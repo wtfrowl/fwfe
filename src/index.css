@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+
+
+.active {
+  color: #ffffff;
+  background-color: rgb(31 60 103);
+  border-radius: 10px;
+}
+
+@media only screen and (min-width: 600px) {
+  .active {
+    color: #000000;
+  background-color: rgb(255, 255, 255);
+  box-shadow: 5px 5px #888888;
+    border-radius: 10px;
+
+  }
+}
+
+
+
+input:checked~.dot {
+transform: translateX(100%);
+background-color: #4caf50;
+}
+/* For Webkit-based browsers (Chrome, Safari and Opera) */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* For IE, Edge and Firefox */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+
+
+form label{
+  font-family: "Mulish", sans-serif;
+  font-optical-sizing: auto;
+  font-weight: 800;
+}
+
