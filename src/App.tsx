@@ -20,6 +20,7 @@ function App() {
       <Router>
       <Routes>
         <Route path="/" element={<WebHome/>} />
+        <Route path='/fwfe' element={<WebHome/>}/>
         <Route path="/owner-login" element={<Ologin/>} />
         <Route path="/owner-home" element={<OwnerHome />}>
             <Route index element={<OwnerDashboard />} />
