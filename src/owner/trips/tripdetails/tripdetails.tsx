@@ -139,7 +139,7 @@ const TripInfo: React.FC = () => {
       }
 
       try {
-        const response = await axios.get(`http://localhost:5000/api/trips/byTripId/${id}`, config)
+        const response = await axios.get(`https://fwfe.vercel.app/api/trips/byTripId/${id}`, config)
         setTrip(response.data)
         setExpenses(response.data.tripExpenses)
         const total = response.data.tripExpenses.reduce((sum: number, expense: Expense) => sum + expense.amount, 0)
@@ -168,7 +168,7 @@ const TripInfo: React.FC = () => {
     }
 
     try {
-      await axios.patch(`http://localhost:5000/api/tripexpense/${expenseId}/approve`, {}, config)
+      await axios.patch(`https://fwfe.vercel.app/api/tripexpense/${expenseId}/approve`, {}, config)
       setExpenses((prevExpenses) =>
         prevExpenses.map((expense) => (expense._id === expenseId ? { ...expense, isApproved: true } : expense)),
       )
@@ -192,10 +192,10 @@ const TripInfo: React.FC = () => {
     }
 
     try {
-      await axios.post("http://localhost:5000/api/tripexpense", newExpense, config)
+      await axios.post("https://fwfe.vercel.app/api/tripexpense", newExpense, config)
 
       // Fetch updated trip details
-      const response = await axios.get(`http://localhost:5000/api/trips/byTripId/${id}`, config)
+      const response = await axios.get(`https://fwfe.vercel.app/api/trips/byTripId/${id}`, config)
       setTrip(response.data)
       setExpenses(response.data.tripExpenses)
       const total = response.data.tripExpenses.reduce((sum: number, expense: Expense) => sum + expense.amount, 0)
@@ -229,10 +229,10 @@ const TripInfo: React.FC = () => {
     }
 
     try {
-      const response = await axios.patch(`http://localhost:5000/api/trips/updateStatus/${id}`, {}, config)
+      const response = await axios.patch(`https://fwfe.vercel.app/api/trips/updateStatus/${id}`, {}, config)
 
       // Fetch updated trip details
-      const updatedTripResponse = await axios.get(`http://localhost:5000/api/trips/byTripId/${id}`, config)
+      const updatedTripResponse = await axios.get(`https://fwfe.vercel.app/api/trips/byTripId/${id}`, config)
       setTrip(updatedTripResponse.data)
       setExpenses(updatedTripResponse.data.tripExpenses)
       const total = updatedTripResponse.data.tripExpenses.reduce(

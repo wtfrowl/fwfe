@@ -1,7 +1,7 @@
 import axios from "axios"
 import Cookies from "js-cookie"
 
-const BASE_URL = "http://localhost:5000/api"
+const BASE_URL = "https://fwfe.vercel.app/api"
 
 export const getAuthConfig = () => {
   const token = Cookies.get("ownerToken")
