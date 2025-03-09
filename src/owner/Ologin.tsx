@@ -54,7 +54,7 @@ function Ologin() {
     const signal = controller.signal;
 
     axios
-      .post("https://fwfe.vercel.app/api/owner/login", driverLoginData, { signal })
+      .post("https://fleetwiseapi.azurewebsites.net/api/owner/login", driverLoginData, { signal })
       .then((res) => {
         ownerLogin(res.data);
         if (res.status === 200) navigate("/owner-home");

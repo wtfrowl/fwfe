@@ -41,10 +41,10 @@ export default function TruckDetails() {
 
       try {
         // Log the API request URL for debugging
-        console.log(`Fetching data from: https://fwfe.vercel.app/api/info/getMyTruckDetails/${regNo}`);
+        console.log(`Fetching data from: https://fleetwiseapi.azurewebsites.net/api/info/getMyTruckDetails/${regNo}`);
         
         const response = await axios.get(
-          `https://fwfe.vercel.app/api/info/getMyTruckDetails/${regNo}`,
+          `https://fleetwiseapi.azurewebsites.net/api/info/getMyTruckDetails/${regNo}`,
           config
         );
 

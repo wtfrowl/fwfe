@@ -1,7 +1,7 @@
 import axios from "axios"
 import Cookies from "js-cookie"
 
-const BASE_URL = "https://fwfe.vercel.app/api"
+const BASE_URL = "https://fleetwiseapi.azurewebsites.net/api"
 
 export const getAuthConfig = () => {
   const token = Cookies.get("ownerToken")

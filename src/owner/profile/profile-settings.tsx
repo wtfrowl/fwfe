@@ -37,7 +37,7 @@ export default function ProfileSettings() {
       setIsLoading(true)
       setError(null)
       try {
-        const response = await axios.get("https://fwfe.vercel.app/api/owner/my-profile", {
+        const response = await axios.get("https://fleetwiseapi.azurewebsites.net/api/owner/my-profile", {
           headers: {
             "Content-Type": "application/json",
             authorization: getToken(),
@@ -65,7 +65,7 @@ export default function ProfileSettings() {
       state: data.state
     }
     try {
-      const response = await axios.patch("https://fwfe.vercel.app/api/owner/my-profile",toBeSentData, {
+      const response = await axios.patch("https://fleetwiseapi.azurewebsites.net/api/owner/my-profile",toBeSentData, {
         headers: {
           "Content-Type": "application/json",
           authorization: getToken(),
@@ -81,7 +81,7 @@ export default function ProfileSettings() {
 
   const handlePasswordUpdate = async (data: { currentPassword: string; newPassword: string }) => {
     try {
-      await axios.patch("https://fwfe.vercel.app/api/owner/change-password", data, {
+      await axios.patch("https://fleetwiseapi.azurewebsites.net/api/owner/change-password", data, {
         headers: {
           "Content-Type": "application/json",
           authorization: getToken(),

@@ -51,7 +51,7 @@ export function VehicleTable({ vehicles }: VehicleTableProps) {
       };
 
       await axios.patch(
-        `https://fwfe.vercel.app/api/trucks/${selectedVehicle?.id}`,
+        `https://fleetwiseapi.azurewebsites.net/api/trucks/${selectedVehicle?.id}`,
         editTruckDetails,
         config
       );
