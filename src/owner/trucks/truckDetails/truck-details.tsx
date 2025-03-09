@@ -18,7 +18,7 @@ export default function TruckDetails() {
   useEffect(() => {
     const fetchTruckDetails = async () => {
       const token = Cookies.get("ownerToken");
-      let parsedToken = "";
+      let parsedToken:any = "";
 
       if (token) {
         try {
@@ -27,6 +27,7 @@ export default function TruckDetails() {
           console.error("Invalid token format:", error);
           setError("Failed to parse token.");
           setLoading(false);
+          console.log(error);
           return;
         }
       }
@@ -50,7 +51,7 @@ export default function TruckDetails() {
         console.log("Response data:", response.data);
 
         setTruckDetails(response.data);
-      } catch (err) {
+      } catch (err:any) {
         console.error("Truck details fetch failed:", err.response || err.message || err);
         setError("Failed to fetch truck details.");
       } finally {
@@ -79,7 +80,7 @@ export default function TruckDetails() {
       </div>
 
       <div className="mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* {error && <p className="text-red-500">{error}</p>} */}
+      {error && <p className="text-red-500">{error}</p>} 
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-white rounded-lg shadow p-6">

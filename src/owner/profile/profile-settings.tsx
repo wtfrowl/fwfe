@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
@@ -29,7 +30,7 @@ export default function ProfileSettings() {
   const getToken = useCallback(() => {
     const token = Cookies.get("ownerToken")
     return token ? JSON.parse(token).accessToken : ""
-  })
+  }, [])
 
   useEffect(() => {
     const fetchProfileData = async () => {

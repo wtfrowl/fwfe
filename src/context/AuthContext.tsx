@@ -11,7 +11,7 @@ interface AuthContextType {
 }
 
 // Initialize AuthContext with a default value
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextType | any>(undefined);
 
 // Define the props for the AuthProvider component
 interface AuthProviderProps {

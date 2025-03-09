@@ -1,5 +1,7 @@
+import { Key } from "react"
+
 export type VehicleType = "Truck" | "Van" | "Car"
-export type VehicleStatus = "Available" | "En Route" | "Out of Service"
+export type VehicleStatus = "ALL" |"Available" | "En Route" | "Out of Service"
 export type AlertType = "Attention" | "All Good" | "Critical"
 
 export interface Vehicle {

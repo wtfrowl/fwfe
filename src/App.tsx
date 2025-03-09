@@ -1,4 +1,4 @@
-import { useState } from 'react'
+// import { useState } from 'react'
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import './App.css'
 
@@ -13,7 +13,7 @@ import ProfileSettings from './owner/profile/profile-settings.tsx';
 import TripDetails from './owner/trips/tripdetails/tripdetails.tsx';
 
 function App() {
-  const [count, setCount] = useState(0)
+  //const [count, setCount] = useState(0)
 
   return (
     <>

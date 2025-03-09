@@ -4,7 +4,8 @@ import { AlertBadge } from "./alert-badge";
 import { FaCog, FaInfoCircle, FaTruck, FaCar, FaShuttleVan } from "react-icons/fa";
 import { useState } from "react";
 import axios from "axios";
-import Cookies from "js-cookie";
+import Cookies from 'js-cookie';
+;
 import { useNavigate } from "react-router-dom";
 
 interface VehicleTableProps {

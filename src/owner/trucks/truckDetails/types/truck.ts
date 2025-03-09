@@ -6,7 +6,7 @@ export interface TruckTrip {
     status: "Completed" | "In Progress" | "Cancelled"
     weight: number
     fare: number
-    expenses?: number
+    expenses?: any
   }
   
   export interface TruckDetails {
@@ -20,4 +20,14 @@ export interface TruckTrip {
     trips: TruckTrip[]
   }
   
-  
+  // Add the necessary imports and types above
+
+export interface CurrentTrip {
+  id: string;
+  driverContactNumber: string;
+  status: string;
+  departureDateTime: string;
+  speed: number;
+  departureLocation: string;
+  arrivalLocation: string;
+}

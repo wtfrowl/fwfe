@@ -3,7 +3,8 @@ import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { BiHomeAlt, BiLogOut, BiTrip, BiSolidUser, BiSolidTruck } from "react-icons/bi";
 import truckIcon from "../assets/truck.svg";
 // auth
-import Cookies from "js-cookie";
+import Cookies from 'js-cookie';
+;
 import { AuthContext } from "../context/AuthContext";
 
 const OwnerHome: React.FC = () => {

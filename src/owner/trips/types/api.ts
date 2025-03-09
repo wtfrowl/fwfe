@@ -1,3 +1,5 @@
+import { ReactNode } from "react"
+
 export interface ApiResponse<T> {
     success: boolean
     data: T
@@ -5,6 +7,8 @@ export interface ApiResponse<T> {
   }
   
   export interface Driver {
+    firstName: string
+    lastName: string
     contactNumber: string | number | readonly string[] | undefined
     availability: boolean
     _id: string

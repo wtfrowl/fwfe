@@ -5,7 +5,7 @@ const BASE_URL = "http://localhost:5000/api"
 
 export const getAuthConfig = () => {
   const token = Cookies.get("ownerToken")
-  let parsedToken = ""
+  let parsedToken:any = ""
 
   if (token) {
     parsedToken = JSON.parse(token)

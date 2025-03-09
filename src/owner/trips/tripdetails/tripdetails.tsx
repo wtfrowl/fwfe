@@ -126,7 +126,7 @@ const TripInfo: React.FC = () => {
   useEffect(() => {
     const fetchTripDetails = async () => {
       const token = Cookies.get("ownerToken")
-      let parsedToken = ""
+      let parsedToken:any = ""
       if (token) {
         parsedToken = JSON.parse(token)
       }
@@ -145,6 +145,7 @@ const TripInfo: React.FC = () => {
         const total = response.data.tripExpenses.reduce((sum: number, expense: Expense) => sum + expense.amount, 0)
         setTotalAmount(total)
       } catch (err) {
+        setError("xs");
         console.error("Error fetching trip:", err)
       }
     }
@@ -154,7 +155,7 @@ const TripInfo: React.FC = () => {
 
   const handleApproveExpense = async (expenseId: string) => {
     const token = Cookies.get("ownerToken")
-    let parsedToken = ""
+    let parsedToken:any = ""
     if (token) {
       parsedToken = JSON.parse(token)
     }
@@ -178,7 +179,7 @@ const TripInfo: React.FC = () => {
 
   const handleAddExpense = async () => {
     const token = Cookies.get("ownerToken")
-    let parsedToken = ""
+    let parsedToken:any = ""
     if (token) {
       parsedToken = JSON.parse(token)
     }
@@ -215,7 +216,7 @@ const TripInfo: React.FC = () => {
 
   const handleMarkAsCompleted = async () => {
     const token = Cookies.get("ownerToken")
-    let parsedToken = ""
+    let parsedToken:any = ""
     if (token) {
       parsedToken = JSON.parse(token)
     }

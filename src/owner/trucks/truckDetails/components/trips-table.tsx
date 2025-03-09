@@ -69,7 +69,7 @@ export function TripsTable({ trips }: TripsTableProps) {
       <td className="px-4 py-4">
         <div className="flex flex-col">
           <span className="text-sm font-medium">Expenses:</span>
-          {trip.expenses.fuel && <span className="text-sm text-gray-500">fuel: ${trip.expenses.fuel}</span>}
+          {trip?.expenses?.fuel && <span className="text-sm text-gray-500">fuel: ${trip?.expenses?.fuel}</span>}
         </div>
       </td>
       <td className="px-4 py-4">

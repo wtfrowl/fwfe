@@ -143,7 +143,7 @@ export function AddTripModal({ isOpen, onClose, onAdd, trucks, drivers }: AddTri
   .filter((driver) => driver.availability !== false) // Filter out unavailable drivers
   .map((driver) => (
     <option key={driver._id} value={driver.contactNumber}>
-      {driver.firstName + " " + driver.lastName}
+      {driver.firstName + " " + driver?.lastName}
     </option>
   ))}
 

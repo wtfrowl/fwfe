@@ -5,7 +5,8 @@ import { StatusTab } from "./components/status-tab";
 import { VehicleTable } from "./components/vehicle-table";
 import type { Vehicle, VehicleStatus } from "./types/vehicle";
 import { FaPlus, FaSearch } from "react-icons/fa";
-import Cookies from "js-cookie";
+import Cookies from 'js-cookie';
+;
 import axios from "axios";
 import { LoadingSpinner } from "../trips/components/loading-spinner";
 

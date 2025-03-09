@@ -1,7 +1,7 @@
 import type { IconType } from "react-icons"
 import { BsHandbag } from "react-icons/bs"
 import { FiDollarSign } from "react-icons/fi"
-import { HiOutlineArrowDown, HiOutlineArrowUp } from "react-icons/hi"
+import { HiOutlineArrowDown } from "react-icons/hi"
 import { MdOutlineAccessTime } from "react-icons/md"
 
 interface MetricCardProps {

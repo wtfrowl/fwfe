@@ -8,9 +8,8 @@ import { LoadingSpinner } from "./components/loading-spinner"
 import type { Trip, Driver, Truck } from "./types/api"
 import { api } from "./services/api"
 import { FaPlus } from "react-icons/fa"
-
 export default function Trips() {
-  const [activeStatus, setActiveStatus] = useState<Trip["status"] | "Running">("Running")
+  const [activeStatus, setActiveStatus] = useState<Trip["status"] | "ALL" | "Running">("Running")
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [trips, setTrips] = useState<Trip[]>([])
   const [drivers, setDrivers] = useState<Driver[]>([])
@@ -119,11 +118,10 @@ export default function Trips() {
 
               {/* Trips Table */}
               <TripsTable
-                trips={filteredTrips}
-                onDelete={handleDeleteTrip}
-                onEdit={handleEditTrip}
-                onCopy={handleCopyTrip}
-              />
+                  trips={filteredTrips}
+                  onDelete={handleDeleteTrip}
+                  onEdit={handleEditTrip}
+                  onCopy={handleCopyTrip} isLoading={false}              />
             </>
           )}
         </div>

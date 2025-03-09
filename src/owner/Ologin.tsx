@@ -1,7 +1,7 @@
 import { useState, useContext, useEffect, ChangeEvent, FormEvent } from "react";
 import truckIcon from "../assets/truck.svg";
 import { useNavigate } from "react-router-dom";
-import Cookies from "js-cookie";
+import Cookies from "js-cookie"
 import axios from "axios";
 import { AuthContext } from "../context/AuthContext";
 
@@ -13,6 +13,7 @@ interface LoginData {
 interface ErrorMessages {
   contactNumber?: string;
   password?: string;
+  [key: string]: string | undefined;
 }
 
 function Ologin() {
