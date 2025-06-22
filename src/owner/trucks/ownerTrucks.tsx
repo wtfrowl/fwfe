@@ -44,7 +44,7 @@ export default function OwnerTrucks() {
           },
         };
 
-        const response = await axios.get("https://fleetwiseapi.azurewebsites.net/api/owner/myTrucks", config);
+        const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/owner/myTrucks`, config);
 
         // Ensure undefined for missing fields
         const sanitizedVehicles = response.data.map((vehicle: Partial<Vehicle>) => ({

@@ -1,6 +1,6 @@
 import { useContext, useEffect } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { BiHomeAlt, BiLogOut, BiTrip, BiSolidUser, BiSolidTruck } from "react-icons/bi";
+import { BiHomeAlt, BiLogOut, BiTrip, BiSolidUser, BiSolidTruck, BiFile } from "react-icons/bi";
 import truckIcon from "../assets/truck.svg";
 // auth
 import Cookies from 'js-cookie';
@@ -93,6 +93,14 @@ const OwnerHome: React.FC = () => {
         </NavLink>
         <NavLink
           className="flex items-center p-2 font-semibold border rounded-lg bg-[#dbdbdb]"
+          to="mydocs"
+          end
+        >
+          <BiFile className="mr-2" />
+          Documents
+        </NavLink>
+        <NavLink
+          className="flex items-center p-2 font-semibold border rounded-lg bg-[#dbdbdb]"
           to="owner-profile"
           end
         >
@@ -121,6 +129,12 @@ const OwnerHome: React.FC = () => {
                 <NavLink className="flex items-center p-2" to="trips">
                   <BiTrip className="mr-2" />
                   Trips
+                </NavLink>
+              </li>
+              <li className="mb-2 h-10 p-2 font-semibold w-[220px]">
+                <NavLink className="flex items-center p-2" to="mydocs">
+                  <BiFile className="mr-2" />
+                  Documents
                 </NavLink>
               </li>
               <li className="mb-2 h-10 p-2 font-semibold w-[220px]">

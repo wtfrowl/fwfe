@@ -11,6 +11,7 @@ import TruckDetails from './owner/trucks/truckDetails/truck-details.tsx';
 import Trips from './owner/trips/trips.tsx';
 import ProfileSettings from './owner/profile/profile-settings.tsx';
 import TripDetails from './owner/trips/tripdetails/tripdetails.tsx';
+import Documents from './owner/docs/documents.tsx';
 
 function App() {
   //const [count, setCount] = useState(0)
@@ -24,6 +25,7 @@ function App() {
         <Route path="/owner-home" element={<OwnerHome />}>
             <Route index element={<OwnerDashboard />} />
             <Route path="mytrucks" element={<OwnerTrucks />} />
+            <Route path='mydocs' element={<Documents/>} />
             <Route path="mytrucks/:regNo" element={<TruckDetails />} /> {/* Dynamic route for Truck Info */}
             <Route path="trips" element={<Trips />} />
             <Route path="trips/:id" element={<TripDetails />} />

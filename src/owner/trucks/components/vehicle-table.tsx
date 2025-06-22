@@ -51,7 +51,7 @@ export function VehicleTable({ vehicles }: VehicleTableProps) {
       };
 
       await axios.patch(
-        `https://fleetwiseapi.azurewebsites.net/api/trucks/${selectedVehicle?.id}`,
+        `${import.meta.env.VITE_API_BASE_URL}/api/trucks/${selectedVehicle?.id}`,
         editTruckDetails,
         config
       );

@@ -42,4 +42,15 @@ export interface ApiResponse<T> {
     truck: Truck
   }
   
+  export interface Document {
+    id: string
+    name: string
+    truckId: string
+    uploadedAt: string // ISO date string
+    viewUrl: string     // For opening the document in a new tab
+    downloadUrl: string // For downloading the document
+    type?: string       // Optional: e.g. 'Insurance', 'Permit', 'RC'
+    uploadedBy?: string // Optional: user/admin who uploaded
+    fileSize?: number   // Optional: in bytes
+  }
   

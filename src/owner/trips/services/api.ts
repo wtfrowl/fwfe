@@ -1,7 +1,7 @@
 import axios from "axios"
 import Cookies from "js-cookie"
 
-const BASE_URL = "https://fleetwiseapi.azurewebsites.net/api"
+const BASE_URL = `${import.meta.env.VITE_API_BASE_URL}/api`
 
 export const getAuthConfig = () => {
   const token = Cookies.get("ownerToken")
@@ -29,6 +29,12 @@ export const api = {
   trucks: {
     list: async () => {
       const response = await axios.get(`${BASE_URL}/trucks`, getAuthConfig())
+      return response.data
+    },
+  },
+  documents: {
+    list: async () => {
+      const response = await axios.get(`${BASE_URL}/documents`, getAuthConfig())
       return response.data
     },
   },

@@ -44,7 +44,7 @@ export default function TruckDetails() {
         console.log(`Fetching data from: https://fleetwiseapi.azurewebsites.net/api/info/getMyTruckDetails/${regNo}`);
         
         const response = await axios.get(
-          `https://fleetwiseapi.azurewebsites.net/api/info/getMyTruckDetails/${regNo}`,
+          `${import.meta.env.VITE_API_BASE_URL}/api/info/getMyTruckDetails/${regNo}`,
           config
         );
 
