@@ -29,7 +29,7 @@ export default function Documents() {
       setLoading(true);
       setError(null);
       const response = await api.documents.list(1, 100);
-      setDocuments(response.documents);
+      setDocuments(response.documents as unknown as Document[]);
     } catch (err) {
       console.error("Error fetching documents:", err);
       setError("Failed to load documents.");
