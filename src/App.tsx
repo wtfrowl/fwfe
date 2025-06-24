@@ -12,6 +12,7 @@ import Trips from './owner/trips/trips.tsx';
 import ProfileSettings from './owner/profile/profile-settings.tsx';
 import TripDetails from './owner/trips/tripdetails/tripdetails.tsx';
 import Documents from './owner/docs/documents.tsx';
+import Osignup from './owner/OSignup.tsx';
 
 function App() {
   //const [count, setCount] = useState(0)
@@ -22,6 +23,7 @@ function App() {
       <Routes>
         <Route path="/" element={<WebHome/>} />
         <Route path="/owner-login" element={<Ologin/>} />
+        <Route path="/owner-signup" element={<Osignup/>} />
         <Route path="/owner-home" element={<OwnerHome />}>
             <Route index element={<OwnerDashboard />} />
             <Route path="mytrucks" element={<OwnerTrucks />} />
