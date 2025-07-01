@@ -9,6 +9,7 @@ import Cookies from 'js-cookie';
 ;
 import axios from "axios";
 import { LoadingSpinner } from "../trips/components/loading-spinner";
+import { AddTruckModal } from "./modals/AddTruckModal";
 
 const ITEMS_PER_PAGE = 6;
 
@@ -19,6 +20,7 @@ export default function OwnerTrucks() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]); // Fetched vehicles
   const [loading, setLoading] = useState(false); // Loading state
   const [error, setError] = useState<string | null>(null); // Error state
+  const [addTruckmodalOpen, setAddTruckModalOpen] = useState(false);
 
   const statuses: { label: string; value: VehicleStatus }[] = [
     { label: "ALL STATUSES", value: "ALL" },
@@ -88,6 +90,11 @@ export default function OwnerTrucks() {
     setCurrentPage(1);
   }, [activeStatus, searchQuery]);
 
+
+const handleRefresh = () => {
+    setAddTruckModalOpen(false);
+  };
+
   // Paginate filtered vehicles
   const paginatedVehicles = useMemo(() => {
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -113,17 +120,27 @@ export default function OwnerTrucks() {
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="mx-auto space-y-6">
         <div className="bg-white rounded-lg shadow">
+
+
+          {/* Truck Add Modal */}
+          <AddTruckModal
+  isOpen={addTruckmodalOpen}
+  onClose={() => setAddTruckModalOpen(false)}
+  onTruckAdded={handleRefresh}
+/>
+
              {/* Header */}
                     <div className="px-6 py-4 border-b border-gray-200">
                       <div className="flex justify-between items-center">
                         <h1 className="text-2xl font-semibold">My Trucks</h1>
-                        <button
-                          onClick={()=>{}}
-                          className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 flex items-center gap-2 "
-                        >
-                          <FaPlus className="w-4 h-4" />
-                          Add Trucks
-                        </button>
+                       <button
+  onClick={() => setAddTruckModalOpen(true)}
+  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 flex items-center gap-2 "
+>
+  <FaPlus className="w-4 h-4" />
+  Add Trucks
+</button>
+
                       </div>
                     </div>
            {/* Status Tabs */}
