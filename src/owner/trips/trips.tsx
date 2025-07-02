@@ -30,14 +30,16 @@ export default function Trips() {
     } catch (error) {
       console.error("Error fetching data:", error)
     } finally {
-      setIsLoading(false)
+      console.log("Fetched trip");
+        setIsLoading(false);
     }
   }
 
   useEffect(() => {
     fetchData();
-    
-  }, []) // Added drivers and trucks as dependencies
+  
+    console.log("Trucks", trucks);
+  }, [])
 
   const filteredTrips = trips?.length 
   ? trips.filter((trip) => activeStatus === "ALL" || trip.status === activeStatus)
@@ -128,7 +130,7 @@ export default function Trips() {
       </div>
 
       {/* Add Trip Modal */}
-      {!isLoading && (
+      {!isLoading &&  (
         <AddTripModal
           isOpen={isAddModalOpen}
           onClose={() => setIsAddModalOpen(false)}

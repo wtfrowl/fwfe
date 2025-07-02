@@ -38,6 +38,8 @@ export function AddTripModal({ isOpen, onClose, onAdd, trucks, drivers }: AddTri
     onClose()
   }
 
+
+
   if (!isOpen) return null
 
   return (
