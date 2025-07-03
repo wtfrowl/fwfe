@@ -1,4 +1,7 @@
 export interface Document {
+    notes: any
+    expiryDate: string | number | Date
+    version: number
     _id: string
     name: string
     truckId: string

@@ -4,6 +4,7 @@ import { Truck } from "../types/docs"
 
 const BASE_URL = `${import.meta.env.VITE_API_BASE_URL}`
 interface PaginatedDocumentResponse {
+  length: number
   documents: Document[]
   page: number
   totalPages: number

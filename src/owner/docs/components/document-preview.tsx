@@ -7,6 +7,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { FaDownload } from "react-icons/fa";
 import { LoadingSpinner } from "../../trips/components/loading-spinner";
 
+
 export default function DocumentPreviewPage() {
   const { id } = useParams() as { id: string };
   const ITEMS_PER_PAGE = 5;
@@ -34,7 +35,7 @@ export default function DocumentPreviewPage() {
     try {
       setLoading(true);
       const res = await api.documents.getById(id);
-      setDocument(res);
+      setDocument(res as unknown as Document);
     } catch (err) {
       setError("Failed to load document.");
       console.error(err);
@@ -53,8 +54,8 @@ export default function DocumentPreviewPage() {
 
     try {
       const res = await api.documents.fetchOlderDocs(id, olderPage, ITEMS_PER_PAGE);
-      if (res.length < ITEMS_PER_PAGE) setHasMoreOlder(false);
-      setOlderVersions((prev) => [...prev, ...res]);
+      if (res?.length < ITEMS_PER_PAGE) setHasMoreOlder(false);
+      setOlderVersions((prev) => [...prev, ...res as unknown as Document[]]);
       setOlderPage((prev) => prev + 1);
     } catch (err) {
       console.error("Failed to fetch older versions:", err);
@@ -103,7 +104,7 @@ export default function DocumentPreviewPage() {
               <p><strong>Expiry Date:</strong> {new Date(document.expiryDate).toLocaleDateString()}</p>
             )}
             <p><strong>Uploaded By:</strong> {document.uploadedBy}</p>
-            <p><strong>Uploader ID:</strong> {document.uploaderId}</p>
+            <p><strong>Uploader ID:</strong> {document.ownerId}</p>
             <p><strong>Version:</strong> {document.version}</p>
           </div>
         </div>
