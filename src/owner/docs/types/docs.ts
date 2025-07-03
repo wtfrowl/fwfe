@@ -6,6 +6,13 @@ export interface Document {
     downloadUrl: string
     uploadedAt: string
     type?: string
+    uploadedBy?: string
+    ownerId?: string
+    createdAt?: string
+    updatedAt?: string
+    fileSize?: number
+    fileType?: string
+    description?: string
   }
 export interface Truck {
     id: string

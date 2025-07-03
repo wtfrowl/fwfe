@@ -6,7 +6,7 @@ import { api } from "./services/api";
 import type { Document, Truck } from "./types/docs";
 import { LoadingSpinner } from "../trips/components/loading-spinner";
 import { UploadDocumentModal } from "./components/upload-document-modal";
-
+import { useNavigate } from "react-router-dom";
 const ITEMS_PER_PAGE = 6;
 
 export default function Documents() {
@@ -18,7 +18,7 @@ export default function Documents() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
-
+  const navigate = useNavigate();
   useEffect(() => {
     fetchDocuments();
     fetchTrucks();
@@ -128,7 +128,8 @@ export default function Documents() {
                 </div>
               </div>
               {paginatedDocs.map((doc) => (
-                <div key={doc._id} className="grid md:table-row grid-cols-1 md:table-row-group border-b hover:bg-gray-50">
+                <div    key={doc._id}
+    onClick={() => navigate(`documents/${doc._id}`)} className="grid md:table-row grid-cols-1 md:table-row-group border-b hover:bg-gray-50">
                   <div className="table-cell py-2 px-4">
                     <strong>Name:</strong> {doc.name}
                   </div>

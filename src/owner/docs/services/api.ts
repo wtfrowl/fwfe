@@ -34,6 +34,19 @@ export const api = {
       return res.data
     },
 
+    fetchOlderDocs: async (id: string, page: number, limit: number): Promise<PaginatedDocumentResponse> => {
+      const res = await axios.get(`${BASE_URL}/api/docs/getDoc/olderVersion/${id}`, {
+        ...getAuthConfig(),
+        params: { page, limit },
+      })
+      return res.data
+    },
+
+    getById: async (id: string): Promise<Document> => {
+      const res = await axios.get(`${BASE_URL}/api/docs/getDoc/${id}`, getAuthConfig())
+      return res.data
+    },
+
     addDoc: async (data: {
       name: string
       truckId: string

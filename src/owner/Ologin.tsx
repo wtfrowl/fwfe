@@ -19,6 +19,8 @@ interface ErrorMessages {
 function Ologin() {
   const [errMsg, setErrMsg] = useState<ErrorMessages>({});
   const [loginErr, setLoginErr] = useState<string>("");
+  const [isLoading, setIsLoading] = useState(false);
+
   const [driverLoginData, setDriverLoginData] = useState<LoginData>({
     contactNumber: "",
     password: "",
@@ -44,35 +46,41 @@ function Ologin() {
 
   let controller: AbortController | undefined;
 
-  const handleOwnerLogin = (e: FormEvent) => {
-    e.preventDefault();
-    if (controller) {
-      controller.abort();
-    }
+const handleOwnerLogin = (e: FormEvent) => {
+  e.preventDefault();
+  if (controller) {
+    controller.abort();
+  }
 
-    controller = new AbortController();
-    const signal = controller.signal;
+  controller = new AbortController();
+  const signal = controller.signal;
 
-    axios
-      .post(`${import.meta.env.VITE_API_BASE_URL}/api/owner/login`, driverLoginData, { signal })
-      .then((res) => {
-        ownerLogin(res.data);
-        if (res.status === 200) navigate("/owner-home");
-      })
-      .catch((err) => {
-        setErrMsg({});
-        setLoginErr("");
-        if (err.response?.status === 401) {
-          setLoginErr(err.response.data.error);
-        } else if (err.response?.data.errors) {
-          const errObj: ErrorMessages = {};
-          err.response.data.errors.forEach((error: { path: string; msg: string }) => {
-            errObj[error.path] = error.msg;
-          });
-          setErrMsg(errObj);
-        }
-      });
-  };
+  setIsLoading(true); // Start loading
+
+  axios
+    .post(`${import.meta.env.VITE_API_BASE_URL}/api/owner/login`, driverLoginData, { signal })
+    .then((res) => {
+      ownerLogin(res.data);
+      if (res.status === 200) navigate("/owner-home");
+    })
+    .catch((err) => {
+      setErrMsg({});
+      setLoginErr("");
+      if (err.response?.status === 401) {
+        setLoginErr(err.response.data.error);
+      } else if (err.response?.data.errors) {
+        const errObj: ErrorMessages = {};
+        err.response.data.errors.forEach((error: { path: string; msg: string }) => {
+          errObj[error.path] = error.msg;
+        });
+        setErrMsg(errObj);
+      }
+    })
+    .finally(() => {
+      setIsLoading(false); // Stop loading
+    });
+};
+
 
   return (
     <>
@@ -139,9 +147,17 @@ function Ologin() {
                           <p className="error text-xs text-red-600">{errMsg.password}</p>
                         )}
                       </div>
-                      <button type="submit" className={btnCss}>
-                        Login
-                      </button>
+                     <button type="submit" className={btnCss} disabled={isLoading}>
+  {isLoading ? (
+    <div className="flex justify-center items-center gap-2">
+      <span className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></span>
+      <span>Logging in...</span>
+    </div>
+  ) : (
+    "Login"
+  )}
+</button>
+
                       {loginErr && <p className="p-2 error text-xs text-red-600">{loginErr}</p>}
                     </form>
                   </div>

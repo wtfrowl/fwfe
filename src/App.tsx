@@ -13,6 +13,7 @@ import ProfileSettings from './owner/profile/profile-settings.tsx';
 import TripDetails from './owner/trips/tripdetails/tripdetails.tsx';
 import Documents from './owner/docs/documents.tsx';
 import Osignup from './owner/OSignup.tsx';
+import DocumentPreviewPage from './owner/docs/components/document-preview.tsx';
 
 function App() {
   //const [count, setCount] = useState(0)
@@ -28,6 +29,7 @@ function App() {
             <Route index element={<OwnerDashboard />} />
             <Route path="mytrucks" element={<OwnerTrucks />} />
             <Route path='mydocs' element={<Documents/>} />
+            <Route path="mydocs/documents/:id" element={<DocumentPreviewPage />} />
             <Route path="mytrucks/:regNo" element={<TruckDetails />} /> {/* Dynamic route for Truck Info */}
             <Route path="trips" element={<Trips />} />
             <Route path="trips/:id" element={<TripDetails />} />
