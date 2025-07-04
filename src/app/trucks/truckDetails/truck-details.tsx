@@ -107,35 +107,58 @@ export default function TruckDetails() {
       <div className="mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {error && <p className="text-red-500">{error}</p>} 
 
+<div className="bg-white rounded-lg shadow p-6 md:mt-2 mb-6">
+  <h3 className="text-lg font-semibold mb-4">Driver Attachment</h3>
 
-       <div className="bg-white rounded-lg shadow p-6 mt-6">
-      <h3 className="text-lg font-semibold mb-2">Driver Attachment</h3>
-
-      {truckDetails.driverId ? (
-        <p className="text-green-600">Truck is already assigned to a driver.</p>
-      ) : (
-        <div className="flex gap-4 items-center">
-          <select
-            className="border px-3 py-2 rounded-lg"
-            value={selectedDriver}
-            onChange={(e) => setSelectedDriver(e.target.value)}
+  {truckDetails.driverId && truckDetails.driverId.length > 0 ? (
+    <div className="mb-6">
+      <p className="text-green-600 font-medium mb-2">Assigned Drivers:</p>
+      <div className="flex flex-wrap gap-2">
+        {truckDetails.driverNames.map((name: string, idx: number) => (
+          <span
+            key={idx}
+            className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm leading-relaxed break-words"
           >
-            <option value="">Select Driver</option>
-            {drivers.map((d:any) => (
-              <option key={d._id} value={d._id}>
-                {d.firstName} {d.lastName} ({d.contactNumber})
-              </option>
-            ))}
-          </select>
-          <button
-            className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
-            onClick={() => assignDriver(selectedDriver)}
-          >
-            Attach Driver
-          </button>
-        </div>
-      )}
+            {name}
+          </span>
+        ))}
+      </div>
     </div>
+  ) : (
+    <p className="text-red-500 mb-4">No driver assigned yet.</p>
+  )}
+
+  <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-end">
+    <div className="flex-1">
+      <label className="block text-sm font-medium text-gray-700 mb-1">
+        Select Driver
+      </label>
+      <select
+        className="border w-full px-3 py-2 rounded-lg text-sm"
+        value={selectedDriver}
+        onChange={(e) => setSelectedDriver(e.target.value)}
+      >
+        <option value="">Select Driver</option>
+        {drivers.map((d: any) => (
+          <option key={d._id} value={d._id}>
+            {d.firstName} {d.lastName} ({d.contactNumber})
+          </option>
+        ))}
+      </select>
+    </div>
+
+    <div className="sm:w-auto">
+      <label className="invisible block text-sm font-medium mb-1">Attach</label>
+      <button
+        className="bg-blue-500 text-white px-5 py-2 rounded-lg hover:bg-blue-600 w-full sm:w-auto"
+        onClick={() => assignDriver(selectedDriver)}
+        disabled={!selectedDriver}
+      >
+        Attach Driver
+      </button>
+    </div>
+  </div>
+</div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-white rounded-lg shadow p-6">
