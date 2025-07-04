@@ -11,6 +11,7 @@ import {
 import truckIcon from "../assets/truck.svg";
 import Cookies from "js-cookie";
 import { AuthContext } from "../context/AuthContext";
+import { NotificationBell } from "./components/NotificationBell";
 
 const DashboardLayout: React.FC = () => {
   const navigate = useNavigate();
@@ -20,7 +21,7 @@ const DashboardLayout: React.FC = () => {
   const { ownerLogout, driverLogout } = useContext(AuthContext);
 
   const tokenRaw = Cookies.get(isOwner ? "ownerToken" : "driverToken");
-  let token: { firstName: string } | null = null;
+  let token: { firstName: string; _id: string } | null = null;
   if (tokenRaw) {
     try {
       token = JSON.parse(tokenRaw);
@@ -49,6 +50,50 @@ const DashboardLayout: React.FC = () => {
       : "Please Login";
   }, [token, navigate, isOwner]);
 
+
+
+  //sockettt
+//  useEffect(() => {
+//   if (!token) {
+//     navigate(isOwner ? "/owner-login" : "/driver-login");
+//     return;
+//   }
+
+//   socket.connect(); // 🔑 Explicitly connect
+
+//   const roomId = isOwner ? `owner-${token._id}` : `driver-${token._id}`;
+//   console.log("➡️ Joining room:", roomId);
+//   socket.emit("join-room", roomId);
+
+//   socket.on("connect", () => {
+//     console.log("🟢 Connected to socket:", socket.id);
+//   });
+
+//   socket.on("disconnect", () => {
+//     console.log("🔴 Disconnected from socket");
+//   });
+
+//   socket.on("trip-created", (data) => {
+//     console.log("📦 Trip created:", data);
+//     alert(`New Trip Created: ${data.registrationNumber}`);
+//   });
+
+//   socket.on("trip-status-updated", (data) => {
+//     console.log("🔁 Trip status updated:", data);
+//     alert(`Trip ${data.tripId} is now ${data.status}`);
+//   });
+
+//   return () => {
+//     socket.off("connect");
+//     socket.off("disconnect");
+//     socket.off("trip-created");
+//     socket.off("trip-status-updated");
+//     socket.disconnect(); // 🔌 Optional: close when layout unmounts
+//   };
+// }, [token, isOwner, navigate]);
+
+
+
   return (
     <>
       {/* Topbar */}
@@ -62,7 +107,8 @@ const DashboardLayout: React.FC = () => {
             onClick={() => navigate("/")}
           />
         </div>
-        <div className="mr-4">
+        <div className="mr-4 flex items-center gap-4">
+           <NotificationBell />
           {token ? (
             <>
               <span className="hidden md:block text-xs md:text-xl sm:text-xl">
@@ -149,17 +195,17 @@ const DashboardLayout: React.FC = () => {
                       My Trucks
                     </NavLink>
                   </li>
-              {isOwner && (
+              {/* {isOwner && (
                 <>
-               
+                */}
                   <li className="mb-2 h-10 p-2 font-semibold w-[220px]">
                     <NavLink className="flex items-center p-2" to="trips">
                       <BiTrip className="mr-2" />
                       Trips
                     </NavLink>
                   </li>
-                </>
-              )}
+                {/* </>
+              )} */}
               <li className="mb-2 h-10 p-2 font-semibold w-[220px]">
                 <NavLink className="flex items-center p-2" to="mydocs">
                   <BiFile className="mr-2" />

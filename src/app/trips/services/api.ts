@@ -3,21 +3,18 @@ import Cookies from "js-cookie"
 
 const BASE_URL = `${import.meta.env.VITE_API_BASE_URL}/api`
 
-export const getAuthConfig = () => {
-  const token = Cookies.get("ownerToken")
-  let parsedToken:any = ""
 
-  if (token) {
-    parsedToken = JSON.parse(token)
-  }
+export const getAuthConfig = () => {
+  const token = Cookies.get("ownerToken") || Cookies.get("driverToken");
+  const parsedToken = token ? JSON.parse(token) : null;
 
   return {
     headers: {
       "Content-Type": "application/json",
-      authorization: parsedToken ? parsedToken.accessToken : "",
+      authorization: parsedToken?.accessToken || "",
     },
-  }
-}
+  };
+};
 
 export const api = {
   drivers: {
@@ -47,22 +44,36 @@ export const api = {
     },
   },
   trips: {
-    list: async () => {
-      const response = await axios.get(`${BASE_URL}/trips/owner`, getAuthConfig())
-      return response.data
-    },
-    create: async (data: any) => {
-      const response = await axios.post(`${BASE_URL}/trips`, data, getAuthConfig())
-      return response.data
-    },
-    update: async (id: string, data: any) => {
-      const response = await axios.patch(`${BASE_URL}/trips/trip/${id}`, data, getAuthConfig())
-      return response.data
-    },
-    delete: async (id: string) => {
-      const response = await axios.delete(`${BASE_URL}/trips/${id}`, getAuthConfig())
-      return response.data
-    },
+  list: async () => {
+    const response = await axios.get(`${BASE_URL}/trips/tripList`, getAuthConfig());
+    return response.data;
   },
+  create: async (data: any) => {
+    const response = await axios.post(`${BASE_URL}/trips`, data, getAuthConfig());
+    return response.data;
+  },
+  update: async (id: string, data: any) => {
+    const response = await axios.patch(`${BASE_URL}/trips/trip/${id}`, data, getAuthConfig());
+    return response.data;
+  },
+  delete: async (id: string) => {
+    const response = await axios.delete(`${BASE_URL}/trips/${id}`, getAuthConfig());
+    return response.data;
+  },
+  getById: async (id: string) => {
+    const response = await axios.get(`${BASE_URL}/trips/byTripId/${id}`, getAuthConfig());
+    return response.data;
+  },
+  updateStatus: async (id: string) => {
+    const response = await axios.patch(`${BASE_URL}/trips/updateStatus/${id}`, {}, getAuthConfig());
+    return response.data;
+  },
+   //   await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/tripexpense`, newExpense, config)
+  createExpense: async (data: any) => {
+    const response = await axios.post(`${BASE_URL}/tripexpense`, data, getAuthConfig());
+    return response.data;
+  },
+},
+
 }
 

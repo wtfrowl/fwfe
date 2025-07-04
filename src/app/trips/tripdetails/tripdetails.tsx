@@ -6,6 +6,7 @@ import Cookies from "js-cookie"
 import { BiUpload, BiTrash } from "react-icons/bi"
 import { LoadingSpinner } from "../components/loading-spinner"
 import { FaGasPump, FaUtensils, FaRoad, FaQuestion } from "react-icons/fa"
+import { api } from "../services/api"
 
 interface Expense {
   _id: string
@@ -44,6 +45,11 @@ interface NewExpense {
 const ITEMS_PER_PAGE = 3
 
 const TripInfo: React.FC = () => {
+  const driverToken = Cookies.get("driverToken")
+const ownerToken = Cookies.get("ownerToken")
+
+const userRole = driverToken ? "driver" : ownerToken ? "owner" : null
+
   const { id } = useParams<{ id: string }>()
   const [trip, setTrip] = useState<Trip | null>(null)
   const [expenses, setExpenses] = useState<Expense[]>([])
@@ -61,10 +67,10 @@ const TripInfo: React.FC = () => {
 const [isMarkingCompleted, setIsMarkingCompleted] = useState(false)
 
   // Calculate pagination
-  const totalPages = Math.ceil(expenses.length / ITEMS_PER_PAGE)
+  const totalPages = Math.ceil(expenses?.length / ITEMS_PER_PAGE)
   const indexOfLastItem = currentPage * ITEMS_PER_PAGE
   const indexOfFirstItem = indexOfLastItem - ITEMS_PER_PAGE
-  const currentExpenses = expenses.slice(indexOfFirstItem, indexOfLastItem)
+  const currentExpenses = expenses?.slice(indexOfFirstItem, indexOfLastItem)
 
   const handleNextPage = () => {
     if (currentPage < totalPages) {
@@ -126,25 +132,13 @@ const [isMarkingCompleted, setIsMarkingCompleted] = useState(false)
 
   useEffect(() => {
     const fetchTripDetails = async () => {
-      const token = Cookies.get("ownerToken")
-      let parsedToken:any = ""
-      if (token) {
-        parsedToken = JSON.parse(token)
-      }
-
-      const config = {
-        headers: {
-          "Content-Type": "application/json",
-          authorization: parsedToken ? parsedToken.accessToken : "",
-        },
-      }
-
       try {
-        const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/trips/byTripId/${id}`, config)
-        setTrip(response.data)
-        setExpenses(response.data.tripExpenses)
-        const total = response.data.tripExpenses.reduce((sum: number, expense: Expense) => sum + expense.amount, 0)
-        setTotalAmount(total)
+       const response = await api.trips.getById(id || "");
+        setTrip(response)
+        setExpenses(response.tripExpenses || [])
+        setExpenses(response.tripExpenses)
+        const total = response.tripExpenses.reduce((sum: number, expense: Expense) => sum + expense.amount, 0)
+       setTotalAmount(total)
       } catch (err) {
         setError("xs");
         console.error("Error fetching trip:", err)
@@ -179,27 +173,16 @@ const [isMarkingCompleted, setIsMarkingCompleted] = useState(false)
   }
 
   const handleAddExpense = async () => {
-    const token = Cookies.get("ownerToken")
-    let parsedToken:any = ""
-    if (token) {
-      parsedToken = JSON.parse(token)
-    }
-
-    const config = {
-      headers: {
-        "Content-Type": "application/json",
-        authorization: parsedToken ? parsedToken.accessToken : "",
-      },
-    }
 
     try {
-      await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/tripexpense`, newExpense, config)
+   //   await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/tripexpense`, newExpense, config)
+       await api.trips.createExpense(newExpense)
 
       // Fetch updated trip details
-      const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/trips/byTripId/${id}`, config)
-      setTrip(response.data)
-      setExpenses(response.data.tripExpenses)
-      const total = response.data.tripExpenses.reduce((sum: number, expense: Expense) => sum + expense.amount, 0)
+     const response = await api.trips.getById(id || "");
+      setTrip(response)
+      setExpenses(response.tripExpenses)
+      const total = response.tripExpenses.reduce((sum: number, expense: Expense) => sum + expense.amount, 0)
       setTotalAmount(total)
 
       setModalOpen(false)
@@ -216,33 +199,19 @@ const [isMarkingCompleted, setIsMarkingCompleted] = useState(false)
   }
 
 const handleMarkAsCompleted = async () => {
-  const token = Cookies.get("ownerToken")
-  let parsedToken: any = ""
-  if (token) {
-    parsedToken = JSON.parse(token)
-  }
-
-  const config = {
-    headers: {
-      "Content-Type": "application/json",
-      authorization: parsedToken ? parsedToken.accessToken : "",
-    },
-  }
-
   try {
     setIsMarkingCompleted(true) // Start loading
-    const response = await axios.patch(`${import.meta.env.VITE_API_BASE_URL}/api/trips/updateStatus/${id}`, {}, config)
-
-    const updatedTripResponse = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/trips/byTripId/${id}`, config)
-    setTrip(updatedTripResponse.data)
-    setExpenses(updatedTripResponse.data.tripExpenses)
-    const total = updatedTripResponse.data.tripExpenses.reduce(
+    const response = await api.trips.updateStatus(id || "");
+    const updatedTripResponse =  await api.trips.getById(id || "");
+    setTrip(updatedTripResponse)
+    setExpenses(updatedTripResponse.tripExpenses)
+    const total = updatedTripResponse.tripExpenses.reduce(
       (sum: number, expense: Expense) => sum + expense.amount,
       0
     )
     setTotalAmount(total)
 
-    console.log("Trip status updated:", response.data.message)
+    console.log("Trip status updated:", response.message)
   } catch (err) {
     console.error("Error updating trip status:", err)
   } finally {
@@ -364,17 +333,41 @@ const handleMarkAsCompleted = async () => {
         >
           Add Expense
         </button>
-       <button
-  onClick={handleMarkAsCompleted}
-  className="w-full sm:w-auto bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-  disabled={trip.status === "Completed" || isMarkingCompleted}
->
-  {isMarkingCompleted
-    ? "Marking..."
-    : trip.status === "Completed"
-    ? "Completed"
-    : "Mark as Completed"}
-</button>
+     {trip.status === "Completed" ? (
+  <button
+    disabled
+    className="w-full sm:w-auto bg-gray-400 text-white px-6 py-2 rounded-lg cursor-not-allowed"
+  >
+    Completed
+  </button>
+) : trip.status === "ApprovalRequested" ? (
+  userRole === "owner" ? (
+    <button
+      onClick={handleMarkAsCompleted}
+      disabled={isMarkingCompleted}
+      className="w-full sm:w-auto bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+    >
+      {isMarkingCompleted ? "Approving..." : "Approve Trip Completion"}
+    </button>
+  ) : (
+    <button
+      disabled
+      className="w-full sm:w-auto bg-yellow-500 text-white px-6 py-2 rounded-lg cursor-not-allowed"
+    >
+      Approval Requested
+    </button>
+  )
+) : (
+  <button
+    onClick={handleMarkAsCompleted}
+    disabled={isMarkingCompleted}
+    className="w-full sm:w-auto bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+  >
+    {isMarkingCompleted ? "Marking..." : "Mark as Completed"}
+  </button>
+)}
+
+
 
       </div>
 

@@ -23,7 +23,10 @@ function App() {
        <Route path="/owner-login" element={<Login />} />
        <Route path="/driver-signup" element={<Signup/>} />
       <Route path="/owner-signup" element={<Signup />} />
-<Route path="/driver-login" element={<Login />} />
+      <Route path="/driver-login" element={<Login />} />
+
+
+{/* Owner Routes */}
       <Route
         path="/owner-home"
         element={
@@ -57,8 +60,10 @@ function App() {
         <Route index element={<Dashboard />} />
          <Route path="mytrucks" element={<OwnerTrucks />} />
         <Route path="mytrucks/:regNo" element={<TruckDetails />} />
-          <Route path="mydocs" element={<Documents />} />
+        <Route path="mydocs" element={<Documents />} />
         <Route path="mydocs/documents/:id" element={<DocumentPreviewPage />} />
+          <Route path="trips" element={<Trips />} />
+        <Route path="trips/:id" element={<TripDetails />} />
         <Route path="driver-profile" element={<ProfileSettings />} />
       </Route>
       <Route path="*" element={<div>404 Page Not Found</div>} />

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useContext } from "react";
 import { StatusTab } from "./components/status-tab";
 import { VehicleTable } from "./components/vehicle-table";
 import type { Vehicle, VehicleStatus } from "./types/vehicle";
@@ -9,6 +9,7 @@ import Cookies from "js-cookie";
 import axios from "axios";
 import { LoadingSpinner } from "../trips/components/loading-spinner";
 import { AddTruckModal } from "./modals/AddTruckModal";
+import { AuthContext } from "../../context/AuthContext";
 
 const ITEMS_PER_PAGE = 6;
 
@@ -21,7 +22,7 @@ export default function TrucksPage() {
   const [error, setError] = useState<string | null>(null);
   const [addTruckModalOpen, setAddTruckModalOpen] = useState(false);
   const [userRole, setUserRole] = useState<"owner" | "driver" | null>(null);
-
+  const { role } = useContext(AuthContext)
   const statuses: { label: string; value: VehicleStatus }[] = [
     { label: "ALL STATUSES", value: "ALL" },
     { label: "EN ROUTE", value: "En Route" },
@@ -221,7 +222,7 @@ export default function TrucksPage() {
             </div>
           ) : (
             <>
-              <VehicleTable vehicles={paginatedVehicles} />
+              <VehicleTable vehicles={paginatedVehicles} userRole={role} />
 
               {/* Pagination */}
               <div className="px-4 py-3 border-t border-gray-200">

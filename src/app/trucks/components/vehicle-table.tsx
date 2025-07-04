@@ -10,9 +10,10 @@ import { useNavigate } from "react-router-dom";
 
 interface VehicleTableProps {
   vehicles: Vehicle[];
+  userRole: "owner" | "driver" | null;
 }
 
-export function VehicleTable({ vehicles }: VehicleTableProps) {
+export function VehicleTable({ vehicles, userRole }: VehicleTableProps) {
   const [isEditPopupOpen, setIsEditPopupOpen] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
   const [editTruckDetails, setEditTruckDetails] = useState({
@@ -110,7 +111,7 @@ export function VehicleTable({ vehicles }: VehicleTableProps) {
             <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">STATUS</th>
             <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">HEALTH RATE</th>
             <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">ALERT TYPE</th>
-            <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">ACTIONS</th>
+             {userRole === "owner" && (   <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">ACTIONS</th> )}
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-200">
@@ -136,7 +137,7 @@ export function VehicleTable({ vehicles }: VehicleTableProps) {
                 <td className="px-4 py-4">
                   <AlertBadge type={vehicle.alertType} />
                 </td>
-                <td className="px-4 py-4 flex gap-2">
+              {userRole === "owner" && (  <td className="px-4 py-4 flex gap-2">
                   <button
                     className="text-sm text-gray-600 hover:text-gray-900"
                     onClick={() => handleEditButtonClick(vehicle)}
@@ -149,8 +150,9 @@ export function VehicleTable({ vehicles }: VehicleTableProps) {
                   >
                     <FaInfoCircle className="w-5 h-5 inline-block" /> View
                   </button>
-                </td>
+                </td>)}
               </tr>
+          
             );
           })}
         </tbody>
