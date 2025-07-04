@@ -1,8 +1,6 @@
-// AuthContext.tsx
 import { createContext, ReactNode } from "react";
 import Cookies from "js-cookie";
 
-// Define the structure of the AuthContext value
 interface AuthContextType {
   driverLogin: (token: object) => void;
   driverLogout: () => void;
@@ -10,17 +8,15 @@ interface AuthContextType {
   ownerLogout: () => void;
 }
 
-// Initialize AuthContext with a default value
 const AuthContext = createContext<AuthContextType | any>(undefined);
 
-// Define the props for the AuthProvider component
 interface AuthProviderProps {
   children: ReactNode;
 }
 
 const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  // Driver authentication methods
   const driverLogin = (token: object): void => {
+    Cookies.remove("ownerToken"); // ✅ Ensure owner is logged out
     Cookies.set("driverToken", JSON.stringify(token));
   };
 
@@ -28,8 +24,8 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     Cookies.remove("driverToken");
   };
 
-  // Owner authentication methods
   const ownerLogin = (token: object): void => {
+    Cookies.remove("driverToken"); // ✅ Ensure driver is logged out
     Cookies.set("ownerToken", JSON.stringify(token));
   };
 

@@ -8,12 +8,37 @@ import { useParams } from "react-router-dom";
 import Cookies from "js-cookie";
 import axios from "axios";
 import { LoadingSpinner } from "../../trips/components/loading-spinner";
-
+import { api } from "../../trips/services/api";
 export default function TruckDetails() {
   const { regNo } = useParams(); // Extract regNo from the URL
   const [truckDetails, setTruckDetails] = useState<any>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [drivers, setDrivers] = useState<unknown[]>([]);
+  const [selectedDriver, setSelectedDriver] = useState<string>("");
+
+
+   const fetchDriver = async () => {
+     try {
+       const driversData = await api.drivers.list();
+       setDrivers(driversData);
+     } catch (error) {
+       console.error("Error fetching drivers:", error);
+     }
+   };
+
+    useEffect(() => {
+      fetchDriver();
+    }, [])
+
+    const assignDriver = async ( driverId: string) => {
+      try {
+        await api.trucks.assignDriver(truckDetails._id, driverId);
+        console.log("Driver assigned successfully");
+      } catch (error) {
+        console.error("Error assigning driver:", error);
+      }
+    };
 
   useEffect(() => {
     const fetchTruckDetails = async () => {
@@ -81,6 +106,36 @@ export default function TruckDetails() {
 
       <div className="mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {error && <p className="text-red-500">{error}</p>} 
+
+
+       <div className="bg-white rounded-lg shadow p-6 mt-6">
+      <h3 className="text-lg font-semibold mb-2">Driver Attachment</h3>
+
+      {truckDetails.driverId ? (
+        <p className="text-green-600">Truck is already assigned to a driver.</p>
+      ) : (
+        <div className="flex gap-4 items-center">
+          <select
+            className="border px-3 py-2 rounded-lg"
+            value={selectedDriver}
+            onChange={(e) => setSelectedDriver(e.target.value)}
+          >
+            <option value="">Select Driver</option>
+            {drivers.map((d:any) => (
+              <option key={d._id} value={d._id}>
+                {d.firstName} {d.lastName} ({d.contactNumber})
+              </option>
+            ))}
+          </select>
+          <button
+            className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
+            onClick={() => assignDriver(selectedDriver)}
+          >
+            Attach Driver
+          </button>
+        </div>
+      )}
+    </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-white rounded-lg shadow p-6">

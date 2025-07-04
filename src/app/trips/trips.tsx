@@ -35,14 +35,18 @@ export default function Trips() {
     }
   }
 
-  useEffect(() => {
-    fetchData();
-  
-    console.log("Trucks", trucks);
-  }, [])
+ 
 
+  useEffect(() => {
+   fetchData()
+  }, [activeStatus])
   const filteredTrips = trips?.length 
-  ? trips.filter((trip) => activeStatus === "ALL" || trip.status === activeStatus)
+  ? trips.filter(trip =>
+      activeStatus === "ALL" ||
+      (activeStatus === "Running" && trip.status === "Running") ||
+      (activeStatus === "Completed" && trip.status === "Completed") ||
+      (activeStatus === "Cancelled" && trip.status === "Cancelled")
+    )
   : [];
 
 
@@ -95,12 +99,7 @@ export default function Trips() {
             </div>
           </div>
 
-          {isLoading ? (
-            <div className="flex justify-center items-center h-64">
-              <LoadingSpinner />
-            </div>
-          ) : (
-            <>
+      
               {/* Status Tabs */}
               <div className="border-b border-gray-200">
                 <div className="flex">
@@ -117,7 +116,12 @@ export default function Trips() {
                   <StatusTab label="View All" active={activeStatus === "ALL"} onClick={() => setActiveStatus("ALL")} />
                 </div>
               </div>
-
+    {isLoading ? (
+            <div className="flex justify-center items-center h-64">
+              <LoadingSpinner />
+            </div>
+          ) : (
+            <>
               {/* Trips Table */}
               <TripsTable
                   trips={filteredTrips}

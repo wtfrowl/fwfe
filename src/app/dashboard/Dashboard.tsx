@@ -22,7 +22,7 @@ const fuelCostData: MetricsData[] = Array.from({ length: 7 }, (_, i) => ({
 
 type Period = "DAY" | "MONTH" | "YEAR"
 
-export default function OwnerDashboard() {
+export default function Dashboard() {
   const [activePeriod, setActivePeriod] = useState<Period>("MONTH")
 
   return (

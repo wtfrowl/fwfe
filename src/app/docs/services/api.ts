@@ -10,21 +10,34 @@ interface PaginatedDocumentResponse {
   totalPages: number
   totalDocs: number
 }
-export const getAuthConfig = () => {
-  const token = Cookies.get("ownerToken")
-  let parsedToken: any = ""
+// export const getAuthConfig = () => {
+//   const token = Cookies.get("ownerToken")
+//   let parsedToken: any = ""
 
-  if (token) {
-    parsedToken = JSON.parse(token)
-  }
+//   if (token) {
+//     parsedToken = JSON.parse(token)
+//   }
+
+//   return {
+//     headers: {
+//       "Content-Type": "application/json",
+//       authorization: parsedToken ? parsedToken.accessToken : "",
+//     },
+//   }
+// }
+export const getAuthConfig = () => {
+  const token = Cookies.get("ownerToken") || Cookies.get("driverToken");
+  const parsedToken = token ? JSON.parse(token) : null;
 
   return {
     headers: {
       "Content-Type": "application/json",
-      authorization: parsedToken ? parsedToken.accessToken : "",
+      authorization: parsedToken?.accessToken || "",
     },
-  }
-}
+  };
+};
+
+
 export const api = {
   documents: {
     list: async (page = 1, limit = 15): Promise<PaginatedDocumentResponse> => {
@@ -62,8 +75,8 @@ export const api = {
 
   trucks: {
     getMyTrucks: async (): Promise<Truck[]> => {
-      const res = await axios.get(`${BASE_URL}/api/owner/myTrucks`, getAuthConfig())
-      return res.data
+      const res = await axios.get(`${BASE_URL}/api/trucks`, getAuthConfig())
+      return res.data.trucks;
     },
   },
 }

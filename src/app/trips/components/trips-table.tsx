@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { Trip } from "../types/api";
 import { FaEdit, FaCopy, FaTrash } from "react-icons/fa";
-import { LoadingSpinner } from "../components/loading-spinner";
+import { LoadingSpinner } from "./loading-spinner";
 import { useNavigate } from "react-router-dom";
 
 interface TripsTableProps {

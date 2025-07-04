@@ -58,6 +58,7 @@ const TripInfo: React.FC = () => {
     tripId: id || "",
     imageBase64: "",
   })
+const [isMarkingCompleted, setIsMarkingCompleted] = useState(false)
 
   // Calculate pagination
   const totalPages = Math.ceil(expenses.length / ITEMS_PER_PAGE)
@@ -214,38 +215,41 @@ const TripInfo: React.FC = () => {
     }
   }
 
-  const handleMarkAsCompleted = async () => {
-    const token = Cookies.get("ownerToken")
-    let parsedToken:any = ""
-    if (token) {
-      parsedToken = JSON.parse(token)
-    }
-
-    const config = {
-      headers: {
-        "Content-Type": "application/json",
-        authorization: parsedToken ? parsedToken.accessToken : "",
-      },
-    }
-
-    try {
-      const response = await axios.patch(`${import.meta.env.VITE_API_BASE_URL}/api/trips/updateStatus/${id}`, {}, config)
-
-      // Fetch updated trip details
-      const updatedTripResponse = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/trips/byTripId/${id}`, config)
-      setTrip(updatedTripResponse.data)
-      setExpenses(updatedTripResponse.data.tripExpenses)
-      const total = updatedTripResponse.data.tripExpenses.reduce(
-        (sum: number, expense: Expense) => sum + expense.amount,
-        0,
-      )
-      setTotalAmount(total)
-
-      console.log("Trip status updated:", response.data.message)
-    } catch (err) {
-      console.error("Error updating trip status:", err)
-    }
+const handleMarkAsCompleted = async () => {
+  const token = Cookies.get("ownerToken")
+  let parsedToken: any = ""
+  if (token) {
+    parsedToken = JSON.parse(token)
   }
+
+  const config = {
+    headers: {
+      "Content-Type": "application/json",
+      authorization: parsedToken ? parsedToken.accessToken : "",
+    },
+  }
+
+  try {
+    setIsMarkingCompleted(true) // Start loading
+    const response = await axios.patch(`${import.meta.env.VITE_API_BASE_URL}/api/trips/updateStatus/${id}`, {}, config)
+
+    const updatedTripResponse = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/trips/byTripId/${id}`, config)
+    setTrip(updatedTripResponse.data)
+    setExpenses(updatedTripResponse.data.tripExpenses)
+    const total = updatedTripResponse.data.tripExpenses.reduce(
+      (sum: number, expense: Expense) => sum + expense.amount,
+      0
+    )
+    setTotalAmount(total)
+
+    console.log("Trip status updated:", response.data.message)
+  } catch (err) {
+    console.error("Error updating trip status:", err)
+  } finally {
+    setIsMarkingCompleted(false) // End loading
+  }
+}
+
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
@@ -360,13 +364,18 @@ const TripInfo: React.FC = () => {
         >
           Add Expense
         </button>
-        <button
-          onClick={handleMarkAsCompleted}
-          className="w-full sm:w-auto bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-          disabled={trip.status === "Completed"}
-        >
-          {trip.status === "Completed" ? "Completed" : "Mark as Completed"}
-        </button>
+       <button
+  onClick={handleMarkAsCompleted}
+  className="w-full sm:w-auto bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+  disabled={trip.status === "Completed" || isMarkingCompleted}
+>
+  {isMarkingCompleted
+    ? "Marking..."
+    : trip.status === "Completed"
+    ? "Completed"
+    : "Mark as Completed"}
+</button>
+
       </div>
 
       {/* Expenses */}

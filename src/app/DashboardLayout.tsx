@@ -1,37 +1,57 @@
 import { useContext, useEffect } from "react";
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { BiHomeAlt, BiLogOut, BiTrip, BiSolidUser, BiSolidTruck, BiFile } from "react-icons/bi";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import {
+  BiHomeAlt,
+  BiLogOut,
+  BiTrip,
+  BiSolidUser,
+  BiSolidTruck,
+  BiFile,
+} from "react-icons/bi";
 import truckIcon from "../assets/truck.svg";
-// auth
-import Cookies from 'js-cookie';
-;
+import Cookies from "js-cookie";
 import { AuthContext } from "../context/AuthContext";
 
-const OwnerHome: React.FC = () => {
+const DashboardLayout: React.FC = () => {
   const navigate = useNavigate();
-  const { ownerLogout } = useContext(AuthContext);
-  const t = Cookies.get("ownerToken");
+  const location = useLocation();
+
+  const isOwner = location.pathname.startsWith("/owner");
+  const { ownerLogout, driverLogout } = useContext(AuthContext);
+
+  const tokenRaw = Cookies.get(isOwner ? "ownerToken" : "driverToken");
   let token: { firstName: string } | null = null;
-  if (t) {
-    token = JSON.parse(t);
+  if (tokenRaw) {
+    try {
+      token = JSON.parse(tokenRaw);
+    } catch {
+      token = null;
+    }
   }
 
   const handleLogout = (): void => {
-    ownerLogout();
-    navigate("/owner-login");
+    if (isOwner) {
+      ownerLogout();
+      navigate("/owner-login");
+    } else {
+      driverLogout();
+      navigate("/driver-login");
+    }
   };
 
   useEffect(() => {
     if (!token) {
-      navigate("/owner-login");
+      navigate(isOwner ? "/owner-login" : "/driver-login");
     }
+
     document.title = token
-      ? `Welcome ${token.firstName} - Owner Dashboard`
+      ? `Welcome ${token.firstName} - ${isOwner ? "Owner" : "Driver"} Dashboard`
       : "Please Login";
-  }, [token, navigate]);
+  }, [token, navigate, isOwner]);
 
   return (
     <>
+      {/* Topbar */}
       <div className="flex flex-row justify-between md:justify-around items-center h-20 border-b-indigo-400 bg-white">
         <div className="ml-4">
           <img
@@ -54,18 +74,20 @@ const OwnerHome: React.FC = () => {
               />
             </>
           ) : (
-            <>
-              <span className="hidden md:block text-xs md:text-xl sm:text-xl">
-                Please{" "}
-                <a className="text-cyan-600 font-bold" href="/owner-login">
-                  Login
-                </a>
-              </span>
-            </>
+            <span className="hidden md:block text-xs md:text-xl sm:text-xl">
+              Please{" "}
+              <a
+                className="text-cyan-600 font-bold"
+                href={isOwner ? "/owner-login" : "/driver-login"}
+              >
+                Login
+              </a>
+            </span>
           )}
         </div>
       </div>
 
+      {/* Mobile Nav */}
       <div className="flex text-nowrap scrollbar-hide gap-6 p-4 bg-white border-2 overflow-hidden overflow-x-scroll md:hidden">
         <NavLink
           className="flex items-center p-2 font-semibold border rounded-lg bg-[#dbdbdb]"
@@ -75,42 +97,44 @@ const OwnerHome: React.FC = () => {
           <BiHomeAlt className="mr-2" />
           Dashboard
         </NavLink>
-        <NavLink
-          className="flex items-center p-2 font-semibold border rounded-lg bg-[#dbdbdb]"
-          to="mytrucks"
-          end
-        >
-          <BiSolidTruck className="mr-2" />
-          My Trucks
-        </NavLink>
-        <NavLink
-          className="flex items-center p-2 font-semibold border rounded-lg bg-[#dbdbdb]"
-          to="trips"
-          end
-        >
-          <BiTrip className="mr-2" />
-          Trips
-        </NavLink>
+        {isOwner && (
+          <>
+            <NavLink
+              className="flex items-center p-2 font-semibold border rounded-lg bg-[#dbdbdb]"
+              to="mytrucks"
+            >
+              <BiSolidTruck className="mr-2" />
+              My Trucks
+            </NavLink>
+            <NavLink
+              className="flex items-center p-2 font-semibold border rounded-lg bg-[#dbdbdb]"
+              to="trips"
+            >
+              <BiTrip className="mr-2" />
+              Trips
+            </NavLink>
+          </>
+        )}
         <NavLink
           className="flex items-center p-2 font-semibold border rounded-lg bg-[#dbdbdb]"
           to="mydocs"
-          end
         >
           <BiFile className="mr-2" />
           Documents
         </NavLink>
         <NavLink
           className="flex items-center p-2 font-semibold border rounded-lg bg-[#dbdbdb]"
-          to="owner-profile"
-          end
+          to={isOwner ? "owner-profile" : "driver-profile"}
         >
           <BiSolidUser className="mr-2" />
           Profile
         </NavLink>
       </div>
 
+      {/* Main Section */}
       <div className="relative bg-gradient-to-br bg-slate-100">
         <div className="flex h-full">
+          {/* Sidebar (desktop) */}
           <div className="bg-[#e7f09c] hidden md:block">
             <ul className="list-none p-3 flex flex-col m-0">
               <li className="mb-2 h-10 p-2 font-semibold w-[220px]">
@@ -119,18 +143,23 @@ const OwnerHome: React.FC = () => {
                   Dashboard
                 </NavLink>
               </li>
-              <li className="mb-2 h-10 p-2 font-semibold w-[220px]">
-                <NavLink className="flex items-center p-2" to="mytrucks">
-                  <BiSolidTruck className="mr-2" />
-                  My Trucks
-                </NavLink>
-              </li>
-              <li className="mb-2 h-10 p-2 font-semibold w-[220px]">
-                <NavLink className="flex items-center p-2" to="trips">
-                  <BiTrip className="mr-2" />
-                  Trips
-                </NavLink>
-              </li>
+                 <li className="mb-2 h-10 p-2 font-semibold w-[220px]">
+                    <NavLink className="flex items-center p-2" to="mytrucks">
+                      <BiSolidTruck className="mr-2" />
+                      My Trucks
+                    </NavLink>
+                  </li>
+              {isOwner && (
+                <>
+               
+                  <li className="mb-2 h-10 p-2 font-semibold w-[220px]">
+                    <NavLink className="flex items-center p-2" to="trips">
+                      <BiTrip className="mr-2" />
+                      Trips
+                    </NavLink>
+                  </li>
+                </>
+              )}
               <li className="mb-2 h-10 p-2 font-semibold w-[220px]">
                 <NavLink className="flex items-center p-2" to="mydocs">
                   <BiFile className="mr-2" />
@@ -138,12 +167,16 @@ const OwnerHome: React.FC = () => {
                 </NavLink>
               </li>
               <li className="mb-2 h-10 p-2 font-semibold w-[220px]">
-                <NavLink className="flex items-center p-2" to="owner-profile" end>
+                <NavLink
+                  className="flex items-center p-2"
+                  to={isOwner ? "owner-profile" : "driver-profile"}
+                >
                   <BiSolidUser className="mr-2" />
                   Profile
                 </NavLink>
               </li>
             </ul>
+
             <ul className="mt-10 list-none p-3 flex flex-col m-0">
               <li className="mb-2 h-10 p-2 font-semibold">
                 <button onClick={handleLogout} className="flex items-center p-2">
@@ -153,10 +186,14 @@ const OwnerHome: React.FC = () => {
               </li>
             </ul>
           </div>
+
+          {/* Page Outlet */}
           <main className="min-h-screen block w-full">
             <Outlet />
           </main>
         </div>
+
+        {/* Footer */}
         <footer className="w-full p-4 mb-0 bg-white shadow md:flex md:items-center md:justify-between md:p-3">
           <span className="text-sm sm:text-center">
             © 2024 Made with Love. All Rights Reserved.
@@ -167,4 +204,4 @@ const OwnerHome: React.FC = () => {
   );
 };
 
-export default OwnerHome;
+export default DashboardLayout;

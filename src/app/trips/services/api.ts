@@ -29,8 +29,16 @@ export const api = {
   trucks: {
     list: async () => {
       const response = await axios.get(`${BASE_URL}/trucks`, getAuthConfig())
-      return response.data
+      return response.data.trucks
     },
+     assignDriver: async (truckId: string, driverId: string) => {
+    const response = await axios.patch(
+      `${BASE_URL}/trucks/assign-driver`,
+      { truckId, driverId },
+      getAuthConfig()
+    );
+    return response.data;
+  },
   },
   documents: {
     list: async () => {
