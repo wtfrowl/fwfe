@@ -154,8 +154,43 @@ export default function DocumentPreviewPage() {
             )}
           </div>
 
-                   {/* Right: Metadata + Older Versions */}
-         <div className="flex flex-col gap-4">
+          {/* Right: Metadata + Older Versions */}
+          <div className="flex flex-col gap-4">
+
+            {/* Document Status Section */}
+            <div className="bg-white rounded-xl shadow p-4 flex items-center gap-4 border-l-4 
+  ${
+    new Date(document.expiryDate) < new Date()
+      ? 'border-red-500'
+      : new Date(document.expiryDate).getTime() - Date.now() <= 7 * 86400000
+      ? 'border-yellow-500'
+      : 'border-green-500'
+  }">
+              <div className={`p-3 rounded-full 
+    ${new Date(document.expiryDate) < new Date()
+                  ? 'bg-red-100 text-red-600'
+                  : new Date(document.expiryDate).getTime() - Date.now() <= 7 * 86400000
+                    ? 'bg-yellow-100 text-yellow-800'
+                    : 'bg-green-100 text-green-600'
+                }`}>
+                <FaCalendarAlt className="text-xl" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm text-gray-500">Document Status</p>
+                <p className="text-base font-semibold text-gray-800">
+                  {
+                    new Date(document.expiryDate) < new Date()
+                      ? '❌ Expired'
+                      : new Date(document.expiryDate).getTime() - Date.now() <= 7 * 86400000
+                        ? '⚠️ Expiring Soon'
+                        : '✅ Valid'
+                  }
+                </p>
+                <p className="text-xs text-gray-500">
+                  {new Date(document.expiryDate).toLocaleDateString()}
+                </p>
+              </div>
+            </div>
             {/* Updated Premium Info Section */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="bg-white rounded-xl shadow p-4 flex items-center gap-4">
@@ -215,6 +250,7 @@ export default function DocumentPreviewPage() {
                 </div>
               </div>
             </div>
+
 
             {/* Older Versions */}
             <div
