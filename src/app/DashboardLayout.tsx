@@ -143,8 +143,8 @@ const DashboardLayout: React.FC = () => {
           <BiHomeAlt className="mr-2" />
           Dashboard
         </NavLink>
-        {isOwner && (
-          <>
+
+     
             <NavLink
               className="flex items-center p-2 font-semibold border rounded-lg bg-[#dbdbdb]"
               to="mytrucks"
@@ -159,8 +159,8 @@ const DashboardLayout: React.FC = () => {
               <BiTrip className="mr-2" />
               Trips
             </NavLink>
-          </>
-        )}
+      
+
         <NavLink
           className="flex items-center p-2 font-semibold border rounded-lg bg-[#dbdbdb]"
           to="mydocs"

@@ -76,7 +76,7 @@ export function TripsTable({ trips, isLoading, onDelete, onEdit, onCopy }: Trips
         {/* Mobile View */}
         <div className="md:hidden space-y-4">
           {paginatedTrips.map((trip) => (
-            <div key={trip._id} className="bg-white p-4 rounded-lg shadow-md">
+            <div key={trip._id} className="bg-white p-4 rounded-lg shadow-md cursor-pointer hover:bg-gray-100"  onClick={() => navigate(`${trip._id}`)}>
               <div className="flex justify-between items-center">
                 <div>
                   <p className="font-medium">{trip.registrationNumber}</p>
@@ -88,7 +88,7 @@ export function TripsTable({ trips, isLoading, onDelete, onEdit, onCopy }: Trips
               </div>
               <div className="mt-2 flex justify-between items-center">
                 <span className="font-medium">${trip.fare}</span>
-                <div className="flex gap-2">
+                {/* <div className="flex gap-2">
                   <button onClick={() => onEdit(trip)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded">
                     <FaEdit className="w-4 h-4" />
                   </button>
@@ -98,7 +98,7 @@ export function TripsTable({ trips, isLoading, onDelete, onEdit, onCopy }: Trips
                   <button onClick={() => onDelete(trip._id)} className="p-1.5 text-red-600 hover:bg-red-50 rounded">
                     <FaTrash className="w-4 h-4" />
                   </button>
-                </div>
+                </div> */}
               </div>
             </div>
           ))}

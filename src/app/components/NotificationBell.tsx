@@ -77,13 +77,28 @@ export const NotificationBell = () => {
       setUnreadCount((prev) => prev + 1);
     });
 
+
+    socket.on("trip-expense-approved", (data: TripData) => {
+      const newNotification: Notification = {
+        tripId: data.tripId,
+        id: `trip-expense-approved-${data.tripId}-${Date.now()}`,
+        message: `Expense approved for trip ${data.tripId}`,
+        timestamp: new Date().toISOString(),
+      };
+      setNotifications((prev) => [newNotification, ...prev]);
+      setUnreadCount((prev) => prev + 1);
+    });
+
+
     socket.on("trip-created", handleTripCreated);
     socket.on("trip-status-updated", handleTripStatusUpdated);
+
 
     return () => {
       socket.off("trip-created", handleTripCreated);
       socket.off("trip-status-updated", handleTripStatusUpdated);
        socket.off("trip-expense-created"); // ❗ Unregister the event
+       socket.off("trip-expense-approved"); // ❗ Unregister the event
     };
   }, [role]);
 

@@ -248,7 +248,7 @@ export function VehicleTable({ vehicles, userRole }: VehicleTableProps) {
             <HealthBar value={vehicle.healthRate} />
             <p className="text-gray-600 text-sm">Alert Type:</p>
             <AlertBadge type={vehicle.alertType} />
-            <div className="flex gap-3 mt-2">
+           {userRole === "owner" && (    <div className="flex gap-3 mt-2">
               <button
                 className="text-sm text-blue-600 font-medium"
                 onClick={() => handleEditButtonClick(vehicle)}
@@ -261,7 +261,7 @@ export function VehicleTable({ vehicles, userRole }: VehicleTableProps) {
               >
                 View Details
               </button>
-            </div>
+            </div>)}
           </div>
         ))}
       </div>
