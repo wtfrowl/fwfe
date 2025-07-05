@@ -32,7 +32,7 @@ export const NotificationBell = () => {
       token = null;
     }
   }
-    console.log("Connecting to socket...");
+    console.log("Connecting to socket...",role);
       socket.connect(); // 🔑 Explicitly connect
         const roomId = role === "owner" ? `owner-${token?._id}` : `driver-${token?._id}`;
   console.log("➡️ Joining room:", roomId);
@@ -44,6 +44,7 @@ export const NotificationBell = () => {
     // Only listen to 'trip-created' and 'trip-status-updated' as per your socket logic
     const handleTripCreated = (data: TripData) => {
       const newNotification: Notification = {
+           tripId: data.tripId,
         id: `trip-created-${data.tripId || Date.now()}`,
         message: `New trip created: ${data.registrationNumber}`,
         timestamp: new Date().toISOString(),
@@ -70,7 +71,7 @@ export const NotificationBell = () => {
       socket.off("trip-created", handleTripCreated);
       socket.off("trip-status-updated", handleTripStatusUpdated);
     };
-  }, []);
+  }, [role]);
 
   // Close dropdown when clicked outside
   useEffect(() => {

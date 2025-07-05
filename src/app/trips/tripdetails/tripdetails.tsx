@@ -1,5 +1,5 @@
 import type React from "react"
-import { useEffect, useState } from "react"
+import { useContext, useEffect, useState } from "react"
 import axios from "axios"
 import { useParams } from "react-router-dom"
 import Cookies from "js-cookie"
@@ -7,6 +7,7 @@ import { BiUpload, BiTrash } from "react-icons/bi"
 import { LoadingSpinner } from "../components/loading-spinner"
 import { FaGasPump, FaUtensils, FaRoad, FaQuestion } from "react-icons/fa"
 import { api } from "../services/api"
+import { AuthContext } from "../../../context/AuthContext"
 
 interface Expense {
   _id: string
@@ -45,10 +46,8 @@ interface NewExpense {
 const ITEMS_PER_PAGE = 3
 
 const TripInfo: React.FC = () => {
-  const driverToken = Cookies.get("driverToken")
-const ownerToken = Cookies.get("ownerToken")
-
-const userRole = driverToken ? "driver" : ownerToken ? "owner" : null
+    const {  role } = useContext(AuthContext)
+  const userRole = role === "driver" ? "driver" : role === "owner" ? "owner" : null
 
   const { id } = useParams<{ id: string }>()
   const [trip, setTrip] = useState<Trip | null>(null)
@@ -149,7 +148,7 @@ const [isMarkingCompleted, setIsMarkingCompleted] = useState(false)
   }, [id])
 
   const handleApproveExpense = async (expenseId: string) => {
-    const token = Cookies.get("ownerToken")
+    const token = Cookies.get("ownerToken") || Cookies.get("driverToken")
     let parsedToken:any = ""
     if (token) {
       parsedToken = JSON.parse(token)
@@ -407,17 +406,32 @@ const handleMarkAsCompleted = async () => {
                     </span>
                   </td>
                   <td className="p-4">
-                    <button
-                      onClick={() => handleApproveExpense(expense._id)}
-                      disabled={expense.isApproved}
-                      className={`px-3 py-1 rounded ${
-                        expense.isApproved
-                          ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                          : "bg-blue-50 text-blue-600 hover:bg-blue-100"
-                      }`}
-                    >
-                      {expense.isApproved ? "Approved" : "Approve"}
-                    </button>
+                  <button
+  onClick={() => {
+    if (userRole === "owner" && !expense.isApproved) {
+      handleApproveExpense(expense._id);
+    }
+  }}
+  disabled={
+    (userRole === "owner" && expense.isApproved) ||
+    userRole !== "owner"
+  }
+  className={`px-3 py-1 rounded font-medium transition-all duration-200
+    ${
+      expense.isApproved
+        ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+        : userRole === "owner"
+        ? "bg-blue-50 text-blue-600 hover:bg-blue-100"
+        : "bg-yellow-50 text-yellow-600 cursor-not-allowed"
+    }`}
+>
+  {expense.isApproved
+    ? "Approved"
+    : userRole === "owner"
+    ? "Approve"
+    : "Approval Pending"}
+</button>
+
                   </td>
                 </tr>
               ))}
