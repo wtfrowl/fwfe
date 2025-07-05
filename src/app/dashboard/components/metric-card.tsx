@@ -1,13 +1,13 @@
 import type { IconType } from "react-icons"
-import { BsHandbag } from "react-icons/bs"
-import { FiDollarSign } from "react-icons/fi"
+import { BsFuelPumpDiesel, BsHandbag, BsTriangle } from "react-icons/bs"
+import { FiDollarSign, FiTruck } from "react-icons/fi"
 import { HiOutlineArrowDown } from "react-icons/hi"
 import { MdOutlineAccessTime } from "react-icons/md"
 
 interface MetricCardProps {
   title: string
   value: string
-  icon: "expenses" | "profit" | "revenue" | "labour"
+  icon: "expenses" | "profit" | "revenue" | "labour" | "distance" | "trip" | "fuel"
 }
 
 const iconMap: Record<string, IconType> = {
@@ -15,6 +15,9 @@ const iconMap: Record<string, IconType> = {
   profit: FiDollarSign,
   revenue: HiOutlineArrowDown,
   labour: MdOutlineAccessTime,
+  distance: FiTruck, // Assuming distance is also a metric
+  trip:BsTriangle, // Assuming idle cost is also a metric
+  fuel: BsFuelPumpDiesel, // Assuming fuel cost is also a metric
 }
 
 const colorMap: Record<string, string> = {
