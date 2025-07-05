@@ -5,7 +5,7 @@ import { api } from "../services/api";
 import { Document } from "../types/docs";
 import { useNavigate, useParams } from "react-router-dom";
 import { LoadingSpinner } from "../../trips/components/loading-spinner";
-import { FaDownload, FaWhatsapp } from "react-icons/fa";
+import { FaCalendarAlt, FaDownload, FaFileAlt, FaIdCard, FaTruck, FaUser, FaWhatsapp } from "react-icons/fa";
 
 export default function DocumentPreviewPage() {
   const { id } = useParams() as { id: string };
@@ -64,16 +64,14 @@ export default function DocumentPreviewPage() {
     }
   };
 
-const getWhatsappShareUrl = () => {
-  if (!document) return "#";
-  const expiry = document.expiryDate
-    ? new Date(document.expiryDate).toLocaleDateString()
-    : "N/A";
-  const text = `🛻 Truck ID: ${document.truckId}\n📄 Document: ${document.type}\n📅 Expiry: ${expiry}\n🔗 ${document.viewUrl}`;
-  return `https://wa.me/?text=${encodeURIComponent(text)}`;
-};
-
-
+  const getWhatsappShareUrl = () => {
+    if (!document) return "#";
+    const expiry = document.expiryDate
+      ? new Date(document.expiryDate).toLocaleDateString()
+      : "N/A";
+    const text = `🛻 Truck ID: ${document.truckId}\n📄 Document: ${document.type}\n📅 Expiry: ${expiry}\n🔗 ${document.viewUrl}`;
+    return `https://wa.me/?text=${encodeURIComponent(text)}`;
+  };
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const el = e.currentTarget;
@@ -103,79 +101,119 @@ const getWhatsappShareUrl = () => {
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-  <h1 className="text-2xl font-bold text-gray-800">📄 {document.name}</h1>
-  <div className="flex flex-wrap gap-3">
-    <a
-      href={document.downloadUrl}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm"
-    >
-      <FaDownload /> Download
-    </a>
-    <a
-      href={getWhatsappShareUrl()}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="inline-flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition text-sm"
-    >
-      <FaWhatsapp /> Share
-    </a>
-  </div>
-</div>
+          <h1 className="text-2xl font-bold text-gray-800">
+            📄 {document.name}
+          </h1>
+          <div className="flex flex-wrap gap-3">
+            <a
+              href={document.downloadUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm"
+            >
+              <FaDownload /> Download
+            </a>
+            <a
+              href={getWhatsappShareUrl()}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition text-sm"
+            >
+              <FaWhatsapp /> Share
+            </a>
+          </div>
+        </div>
 
-
-        {/* Main Content Layout */}
+        {/* Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left: Document Preview */}
+          {/* Left Column */}
           <div className="lg:col-span-2 bg-white rounded-2xl shadow p-4 md:p-6 space-y-4">
             <div className="border rounded-xl overflow-hidden h-[65vh] bg-gray-200 shadow-inner">
-         {document.viewUrl?.endsWith(".pdf") ? (
-  <iframe
-    src={document.viewUrl}
-    className="w-full h-full"
-    title="PDF Preview"
-  />
-) : (
-  <img
-    src={document.viewUrl}
-    alt="Document"
-    className="w-full h-full object-contain"
-  />
-)}
-
+              {document.viewUrl?.endsWith(".pdf") ? (
+                <iframe
+                  src={document.viewUrl}
+                  className="w-full h-full"
+                  title="PDF Preview"
+                />
+              ) : (
+                <img
+                  src={document.viewUrl}
+                  alt="Document"
+                  className="w-full h-full object-contain"
+                />
+              )}
             </div>
 
             {document.notes && (
               <div className="bg-gray-50 border rounded-lg p-4">
-                <h2 className="text-gray-700 font-semibold mb-2">Notes</h2>
-                <pre className="text-sm text-gray-600 whitespace-pre-wrap">{document.notes}</pre>
+                <h2 className="text-gray-700 font-semibold mb-2">📝 Notes</h2>
+                <pre className="text-sm text-gray-600 whitespace-pre-wrap">
+                  {document.notes}
+                </pre>
               </div>
             )}
           </div>
 
-          {/* Right: Metadata + Actions + Older Versions */}
-          <div className="flex flex-col gap-4">
-            {/* Info Section */}
-            <div className="bg-white rounded-2xl shadow p-4 space-y-2 text-sm text-gray-700">
-              <h2 className="text-lg font-semibold text-gray-800 mb-2">🧾 Details</h2>
-              <p><strong>Truck ID:</strong> {document.truckId}</p>
-              <p><strong>Type:</strong> {document.type}</p>
-              <p><strong>Uploaded:</strong> {new Date(document.uploadedAt).toLocaleString()}</p>
+                   {/* Right: Metadata + Older Versions */}
+         <div className="flex flex-col gap-4">
+            {/* Updated Premium Info Section */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="bg-white rounded-xl shadow p-4 flex items-center gap-4">
+                <div className="bg-blue-100 text-blue-600 p-3 rounded-full">
+                  <FaTruck className="text-xl" />
+                </div>
+                <div className="min-w-0 break-words">
+                  <p className="text-sm text-gray-500">Truck ID</p>
+                  <p className="font-semibold text-gray-800 break-words whitespace-normal">{document.truckId}</p>
+                </div>
+              </div>
+              <div className="bg-white rounded-xl shadow p-4 flex items-center gap-4">
+                <div className="bg-indigo-100 text-indigo-600 p-3 rounded-full">
+                  <FaFileAlt className="text-xl" />
+                </div>
+                <div className="min-w-0 break-words">
+                  <p className="text-sm text-gray-500">Type</p>
+                  <p className="font-semibold text-gray-800 break-words whitespace-normal">{document.type}</p>
+                </div>
+              </div>
+              <div className="bg-white rounded-xl shadow p-4 flex items-center gap-4">
+                <div className="bg-green-100 text-green-600 p-3 rounded-full">
+                  <FaCalendarAlt className="text-xl" />
+                </div>
+                <div className="min-w-0 break-words">
+                  <p className="text-sm text-gray-500">Uploaded</p>
+                  <p className="font-semibold text-gray-800 break-words whitespace-normal">{new Date(document.uploadedAt).toLocaleString()}</p>
+                </div>
+              </div>
               {document.expiryDate && (
-                <p><strong>Expiry Date:</strong> {new Date(document.expiryDate).toLocaleDateString()}</p>
+                <div className="bg-white rounded-xl shadow p-4 flex items-center gap-4">
+                  <div className="bg-red-100 text-red-600 p-3 rounded-full">
+                    <FaCalendarAlt className="text-xl" />
+                  </div>
+                  <div className="min-w-0 break-words">
+                    <p className="text-sm text-gray-500">Expiry Date</p>
+                    <p className="font-semibold text-gray-800 break-words whitespace-normal">{new Date(document.expiryDate).toLocaleDateString()}</p>
+                  </div>
+                </div>
               )}
-              <p><strong>Uploaded By:</strong> {document.uploadedBy}</p>
-              <p><strong>Uploader ID:</strong> {document.ownerId}</p>
-              <p><strong>Version:</strong> {document.version}</p>
-            </div>
-
-            {/* Actions (Optional – can be buttons for verify, reject etc.) */}
-            <div className="bg-white rounded-2xl shadow p-4 text-sm text-gray-700 space-y-3">
-              <h2 className="text-lg font-semibold text-gray-800 mb-2">⚙️ Actions</h2>
-              <button className="w-full py-2 px-3 rounded-lg bg-green-500 text-white hover:bg-green-600 transition">Verify</button>
-              <button className="w-full py-2 px-3 rounded-lg bg-red-500 text-white hover:bg-red-600 transition">Reject</button>
-              <button className="w-full py-2 px-3 rounded-lg bg-indigo-500 text-white hover:bg-indigo-600 transition">Send to Driver</button>
+              <div className="bg-white rounded-xl shadow p-4 flex items-center gap-4">
+                <div className="bg-purple-100 text-purple-600 p-3 rounded-full">
+                  <FaUser className="text-xl" />
+                </div>
+                <div className="min-w-0 break-words">
+                  <p className="text-sm text-gray-500">Uploaded By</p>
+                  <p className="font-semibold text-gray-800 break-words whitespace-normal">{document.uploadedBy}</p>
+                </div>
+              </div>
+              <div className="bg-white rounded-xl shadow p-4 flex items-center gap-4">
+                <div className="bg-pink-100 text-pink-600 p-3 rounded-full">
+                  <FaIdCard className="text-xl" />
+                </div>
+                <div className="min-w-0 break-words">
+                  <p className="text-sm text-gray-500">Uploader ID</p>
+                  <p className="font-semibold text-gray-800 break-words whitespace-normal">{document.ownerId}</p>
+                </div>
+              </div>
             </div>
 
             {/* Older Versions */}
@@ -211,7 +249,6 @@ const getWhatsappShareUrl = () => {
                   ))}
                 </ul>
               )}
-
               {loadingOlder ? (
                 <div className="flex justify-center py-3">
                   <LoadingSpinner />
