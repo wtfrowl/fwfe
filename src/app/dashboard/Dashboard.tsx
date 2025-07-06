@@ -1,5 +1,5 @@
 // src/pages/Dashboard.tsx
-import { useContext, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { AuthContext } from "../../context/AuthContext";
 
 // Shared components
@@ -8,6 +8,7 @@ import { RevenueChart } from "./components/revenue-chart";
 import { ExpensesChart } from "./components/expenses-chart";
 import { DistanceChart } from "./components/distance-chart";
 import { MetricsChart } from "./components/metrics-chart";
+import { api } from "../services/api";
 
 interface MetricsData {
   month: string;
@@ -32,16 +33,33 @@ type Period = "DAY" | "MONTH" | "YEAR";
 export default function Dashboard() {
   const { role } = useContext(AuthContext);       // "owner" | "driver"
   const [activePeriod, setActivePeriod] = useState<Period>("MONTH");
+  const [dashboardData, setDashboardData] = useState<any>(null); // Replace 'any' with your actual data type
+
+
+
+  //get dashboard data
+  useEffect(() => {
+  if (role==='driver') return; // Ensure role is defined before fetching data
+    // Fetch dashboard data based on role and activePeriod
+   const dashboardData = api.dashboard.info;
+    dashboardData()
+      .then(data => {
+        setDashboardData(data);
+      })
+      .catch(error => {
+        console.error("Error fetching dashboard data:", error);
+      });
+  }, [role]);
 
   /* ---------- OWNER DASHBOARD ---------- */
   const renderOwnerDashboard = () => (
     <>
       {/* Metric Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <MetricCard title="Total Expenses" value="$124,000" icon="expenses" />
-        <MetricCard title="Profit"         value="$124,000" icon="profit"   />
-        <MetricCard title="Revenue"        value="$100,000" icon="revenue"  />
-        <MetricCard title="Labour Hours"   value="300,000K" icon="labour"   />
+        <MetricCard title="Total Expenses" value={`₹${dashboardData?.totalExpenses}`} icon="expenses"   loading={!dashboardData} />
+        <MetricCard title="Profit"         value={`₹${dashboardData?.profit}`} icon="profit"    loading={!dashboardData} />
+        <MetricCard title="Revenue"        value={`₹${dashboardData?.revenue}`} icon="revenue"   loading={!dashboardData} />
+        <MetricCard title="Labour Hours"   value={`${dashboardData?.labourHours} hrs`} icon="labour"    loading={!dashboardData} />
       </div>
 
       {/* Charts */}
@@ -66,9 +84,9 @@ export default function Dashboard() {
     <>
       {/* Driver‑specific metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <MetricCard title="Total Trips"       value="58"        icon="trip"     />
-        <MetricCard title="Distance Covered"  value="14,300 km" icon="distance" />
-        <MetricCard title="Fuel Used"         value="2,400 L"   icon="fuel"     />
+        <MetricCard title="Total Trips"       value="58"        icon="trip"  loading={false}   />
+        <MetricCard title="Distance Covered"  value="14,300 km" icon="distance" loading={false} />
+        <MetricCard title="Fuel Used"         value="2,400 L"   icon="fuel"     loading={false} />
       </div>
 
       {/* Driver charts */}

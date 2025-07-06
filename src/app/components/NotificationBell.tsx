@@ -4,6 +4,12 @@ import { socket } from "../../utils/socket";
 import Cookies from "js-cookie";
 import { AuthContext } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { useEventStore } from "../../store/trips/store";
+
+const {
+  triggerTripRefresh,
+  triggerExpenseRefresh,
+} = useEventStore.getState(); // ⚠️ use .getState() outside components
 interface Notification {
   tripId?: string; // Optional, used for trip status updates
   id: string;
@@ -58,10 +64,11 @@ export const NotificationBell = () => {
 
     // Only listen to 'trip-created' and 'trip-status-updated' as per your socket logic
     const handleTripCreated = (data: TripData) => {
+     triggerTripRefresh();
       const newNotification: Notification = {
         tripId: data.tripId,
         id: `trip-created-${data.tripId || Date.now()}`,
-        message: `New trip created: ${data.registrationNumber}`,
+        message: `New trip created: ${data.tripId}`,
         timestamp: new Date().toISOString(),
       };
       setNotifications((prev) => [newNotification, ...prev]);
@@ -69,6 +76,7 @@ export const NotificationBell = () => {
     };
 
     const handleTripStatusUpdated = (data: TripData) => {
+      triggerTripRefresh();
       const newNotification: Notification = {
         tripId: data.tripId,
         id: `trip-status-${data.tripId}-${data.status}`,
@@ -82,6 +90,7 @@ export const NotificationBell = () => {
 
     // Listen to "trip-expense-created
     socket.on("trip-expense-created", (data: TripData) => {
+      triggerExpenseRefresh();
       const newNotification: Notification = {
         tripId: data.tripId,
         id: `trip-expense-${data.tripId}-${Date.now()}`,
@@ -94,6 +103,7 @@ export const NotificationBell = () => {
 
 
     socket.on("trip-expense-approved", (data: TripData) => {
+      triggerExpenseRefresh();
       const newNotification: Notification = {
         tripId: data.tripId,
         id: `trip-expense-approved-${data.tripId}-${Date.now()}`,

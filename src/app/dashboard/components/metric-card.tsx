@@ -7,6 +7,7 @@ import { MdOutlineAccessTime } from "react-icons/md"
 interface MetricCardProps {
   title: string
   value: string
+  loading?: boolean
   icon: "expenses" | "profit" | "revenue" | "labour" | "distance" | "trip" | "fuel"
 }
 
@@ -27,9 +28,9 @@ const colorMap: Record<string, string> = {
   labour: "bg-red-100 text-red-500",
 }
 
-export function MetricCard({ title, value, icon }: MetricCardProps) {
-  const Icon = iconMap[icon]
-  const colorClass = colorMap[icon]
+export function MetricCard({ title, value, icon, loading = false }: MetricCardProps) {
+  const Icon = iconMap[icon];
+  const colorClass = colorMap[icon] || "bg-gray-100 text-gray-400";
 
   return (
     <div className="bg-white rounded-lg p-6 shadow-sm">
@@ -39,10 +40,15 @@ export function MetricCard({ title, value, icon }: MetricCardProps) {
         </div>
         <div>
           <p className="text-sm text-gray-500">{title}</p>
-          <p className="text-2xl font-semibold">{value}</p>
+          {loading ? (
+            <div className="mt-1 w-24 h-6 rounded-md bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 animate-pulse" />
+          ) : (
+            <p className="text-2xl font-semibold">{value}</p>
+          )}
         </div>
       </div>
     </div>
-  )
+  );
 }
+
 

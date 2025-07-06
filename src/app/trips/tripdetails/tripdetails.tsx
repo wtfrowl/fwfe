@@ -8,7 +8,7 @@ import { LoadingSpinner } from "../components/loading-spinner"
 import { FaGasPump, FaUtensils, FaRoad, FaQuestion } from "react-icons/fa"
 import { api } from "../services/api"
 import { AuthContext } from "../../../context/AuthContext"
-
+import { useEventStore} from "../../../store/trips/store"
 interface Expense {
   _id: string
   expenseType: string
@@ -48,7 +48,7 @@ const ITEMS_PER_PAGE = 3
 const TripInfo: React.FC = () => {
     const {  role } = useContext(AuthContext)
   const userRole = role === "driver" ? "driver" : role === "owner" ? "owner" : null
-
+  const expenseRefreshKey = useEventStore((state) => state.expenseRefreshKey)
   const { id } = useParams<{ id: string }>()
   const [trip, setTrip] = useState<Trip | null>(null)
   const [expenses, setExpenses] = useState<Expense[]>([])
@@ -145,7 +145,7 @@ const [isMarkingCompleted, setIsMarkingCompleted] = useState(false)
     }
 
     fetchTripDetails()
-  }, [id])
+  }, [id,expenseRefreshKey])
 
   const handleApproveExpense = async (expenseId: string) => {
     const token = Cookies.get("ownerToken") || Cookies.get("driverToken")

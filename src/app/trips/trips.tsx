@@ -8,14 +8,16 @@ import { LoadingSpinner } from "./components/loading-spinner"
 import type { Trip, Driver, Truck } from "./types/api"
 import { api } from "./services/api"
 import { FaPlus } from "react-icons/fa"
+import { useEventStore} from "../../store/trips/store"
+
 export default function Trips() {
+  const tripRefreshKey = useEventStore((s) => s.tripRefreshKey);
   const [activeStatus, setActiveStatus] = useState<Trip["status"] | "ALL" | "Running">("ALL")
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [trips, setTrips] = useState<Trip[]>([])
   const [drivers, setDrivers] = useState<Driver[]>([])
   const [trucks, setTrucks] = useState<Truck[]>([])
   const [isLoading, setIsLoading] = useState(true)
-
   const fetchData = async () => {
     try {
       setIsLoading(true)
@@ -39,7 +41,7 @@ export default function Trips() {
 
   useEffect(() => {
    fetchData()
-  }, [activeStatus])
+  }, [activeStatus,tripRefreshKey])
   const filteredTrips = trips?.length 
   ? trips.filter(trip =>
       activeStatus === "ALL" ||
