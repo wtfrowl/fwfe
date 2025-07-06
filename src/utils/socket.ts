@@ -6,3 +6,10 @@ export const socket = io(URL, {
   transports: ["websocket"],
     autoConnect: false, // Important for explicit control
 });
+// utils/socket.ts (or in AuthContext)
+export const cleanupSocketOnLogout = () => {
+  console.log("🔌 Disconnecting socket and cleaning listeners (on logout)");
+
+  socket.off(); // remove all listeners
+  socket.disconnect();
+};

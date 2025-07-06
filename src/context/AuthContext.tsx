@@ -1,5 +1,6 @@
 import { createContext, useState, useEffect, ReactNode } from "react";
 import Cookies from "js-cookie";
+import { cleanupSocketOnLogout } from "../utils/socket";
 
 interface AuthContextType {
   driverLogin: (token: object) => void;
@@ -37,26 +38,30 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   const driverLogin = (token: object): void => {
-    Cookies.remove("ownerToken"); // ensure only one role logged in
+    ownerLogout(); // ensure only one role logged in
+   // Cookies.remove("ownerToken"); // ensure only one role logged in
     Cookies.set("driverToken", JSON.stringify(token));
     setUser(token);
     setRole("driver");
   };
 
   const driverLogout = (): void => {
+      cleanupSocketOnLogout();
     Cookies.remove("driverToken");
     setUser(null);
     setRole(null);
   };
 
   const ownerLogin = (token: object): void => {
-    Cookies.remove("driverToken");
+    driverLogout(); // ensure only one role logged in
+    //Cookies.remove("driverToken");
     Cookies.set("ownerToken", JSON.stringify(token));
     setUser(token);
     setRole("owner");
   };
 
   const ownerLogout = (): void => {
+      cleanupSocketOnLogout();
     Cookies.remove("ownerToken");
     setUser(null);
     setRole(null);

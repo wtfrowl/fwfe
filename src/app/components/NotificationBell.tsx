@@ -1,6 +1,6 @@
 import { useContext, useEffect, useRef, useState } from "react";
 import { BiBell } from "react-icons/bi";
-import { socket } from "../../utils/socket"; 
+import { socket } from "../../utils/socket";
 import Cookies from "js-cookie";
 import { AuthContext } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -21,30 +21,45 @@ export const NotificationBell = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const { role} = useContext(AuthContext);
+  const { role } = useContext(AuthContext);
   useEffect(() => {
-  const tokenRaw = Cookies.get(role === "owner" ? "ownerToken" : "driverToken");
-  let token: { _id: string } | null = null;
-  if (tokenRaw) {
-    try {
-      token = JSON.parse(tokenRaw);
-    } catch {
-      token = null;
-    }
-  }
-    console.log("Connecting to socket...",role);
-      socket.connect(); // 🔑 Explicitly connect
-        const roomId = role === "owner" ? `owner-${token?._id}` : `driver-${token?._id}`;
-  console.log("➡️ Joining room:", roomId);
-  socket.emit("join-room", roomId);
+    const tokenKey = role === "owner" ? "ownerToken" : "driverToken";
+    const tokenRaw = Cookies.get(tokenKey);
 
-  socket.on("connect", () => {
-    console.log("🟢 Connected to socket:", socket.id);
-  });
+    let userId: string | null = null;
+
+    if (tokenRaw) {
+      try {
+        const parsed = JSON.parse(tokenRaw);
+        if (parsed && parsed._id) {
+          userId = parsed._id;
+        }
+      } catch (err) {
+        console.error("Invalid token format:", err);
+      }
+    }
+
+    const roomPrefix = role === "owner" ? "owner" : "driver";
+
+    if (!userId) {
+      console.warn(`❌ No _id found in ${roomPrefix} token. Skipping socket connection.`);
+      return;
+    }
+
+    const roomId = `${roomPrefix}-${userId}`;
+    console.log("Connecting to socket... as", roomPrefix);
+    socket.connect();
+    console.log("➡️ Joining room:", roomId);
+    socket.emit("join-room", roomId);
+
+    socket.on("connect", () => {
+      console.log("🟢 Connected to socket:", socket.id);
+    });
+
     // Only listen to 'trip-created' and 'trip-status-updated' as per your socket logic
     const handleTripCreated = (data: TripData) => {
       const newNotification: Notification = {
-           tripId: data.tripId,
+        tripId: data.tripId,
         id: `trip-created-${data.tripId || Date.now()}`,
         message: `New trip created: ${data.registrationNumber}`,
         timestamp: new Date().toISOString(),
@@ -97,8 +112,8 @@ export const NotificationBell = () => {
     return () => {
       socket.off("trip-created", handleTripCreated);
       socket.off("trip-status-updated", handleTripStatusUpdated);
-       socket.off("trip-expense-created"); // ❗ Unregister the event
-       socket.off("trip-expense-approved"); // ❗ Unregister the event
+      socket.off("trip-expense-created"); // ❗ Unregister the event
+      socket.off("trip-expense-approved"); // ❗ Unregister the event
     };
   }, [role]);
 
@@ -119,7 +134,7 @@ export const NotificationBell = () => {
   };
 
 
-   const handleNotificationClick = (notif: Notification) => {
+  const handleNotificationClick = (notif: Notification) => {
     if (notif) {
       console.log("Navigating to trip detail for notification:", notif);
       // Navigate to trip detail page (update the route if needed)
@@ -142,7 +157,7 @@ export const NotificationBell = () => {
         )}
       </button>
 
-   {isOpen && (
+      {isOpen && (
         <div className="absolute right-0 mt-2 w-80 max-h-96 bg-white border shadow-xl rounded-lg overflow-auto z-50">
           <div className="p-4 border-b font-semibold">Notifications</div>
           {notifications.length === 0 ? (
