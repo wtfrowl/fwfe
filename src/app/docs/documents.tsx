@@ -50,7 +50,7 @@ export default function DocumentsDashboard() {
       setLoading(true);
       setError(null);
       const response = await api.documents.list(1, 100);
-      setDocuments(response.documents as Document[]);
+      setDocuments(response.documents as unknown as Document[]);
     } catch (err) {
       console.error("Error fetching documents:", err);
       setError("Failed to load documents.");
@@ -210,7 +210,7 @@ export default function DocumentsDashboard() {
                     onClick={() => navigate(`documents/${doc._id}`)}
                   >
                    <td className="px-6 py-4 flex items-center gap-2">
-  {typeIcons[doc.type] || <FaPaperclip className="text-gray-600" />}
+  {typeIcons[doc.type ?? "Other"] || <FaPaperclip className="text-gray-600" />}
   <span>{doc.name}</span>
 </td>
 
