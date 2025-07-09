@@ -22,4 +22,10 @@ export const api = {
       return response.data
     },
   },
+  loads:{
+    allLoadForOwner: async () => {
+      const response = await axios.get(`${BASE_URL}/load/owner/matches?page=1&limit=5`, getAuthConfig())
+      return response.data
+    },
+  }
 }

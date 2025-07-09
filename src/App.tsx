@@ -14,6 +14,7 @@ import TruckDetails from './app/trucks/truckDetails/truck-details.tsx';
 import WebHome from './main/WebHome.tsx';
 import Login from './app/AppLogin.tsx';
 import Signup from './app/AppSignup.tsx';
+import Loads from './app/loads/loads.tsx';
 
 function App() {
   return (
@@ -38,6 +39,7 @@ function App() {
        
 
         <Route index element={<Dashboard />} />
+        <Route path="loads" element={<Loads />} />
         <Route path="mytrucks" element={<OwnerTrucks />} />
         <Route path="mytrucks/:regNo" element={<TruckDetails />} />
         <Route path="trips" element={<Trips />} />

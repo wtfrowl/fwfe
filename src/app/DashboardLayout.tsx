@@ -143,7 +143,12 @@ const DashboardLayout: React.FC = () => {
           <BiHomeAlt className="mr-2" />
           Dashboard
         </NavLink>
-
+   {isOwner && ( 
+                    <NavLink className="flex items-center p-2 font-semibold border rounded-lg bg-[#dbdbdb]" to="loads">
+                      <BiSolidTruck className="mr-2" />
+                      Loads
+                    </NavLink>
+                )}
      
             <NavLink
               className="flex items-center p-2 font-semibold border rounded-lg bg-[#dbdbdb]"
@@ -189,12 +194,19 @@ const DashboardLayout: React.FC = () => {
                   Dashboard
                 </NavLink>
               </li>
-                 <li className="mb-2 h-10 p-2 font-semibold w-[220px]">
+                 
+                   <li className="mb-2 h-10 p-2 font-semibold w-[220px]">
                     <NavLink className="flex items-center p-2" to="mytrucks">
                       <BiSolidTruck className="mr-2" />
                       My Trucks
                     </NavLink>
                   </li>
+             {isOwner && (   <li className="mb-2 h-10 p-2 font-semibold w-[220px]">
+                    <NavLink className="flex items-center p-2" to="loads">
+                      <BiSolidTruck className="mr-2" />
+                      Loads
+                    </NavLink>
+                  </li>  )}
               {/* {isOwner && (
                 <>
                 */}
