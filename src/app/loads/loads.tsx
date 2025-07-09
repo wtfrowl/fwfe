@@ -58,7 +58,7 @@ export default function Loads() {
       ) : (
 <div className="bg-white rounded shadow p-4">
   <div className="grid gap-5 sm:grid-cols-2">
-  {loads.map((load) => (
+  {loads.map((load:any) => (
     <div
       key={load._id}
       className="bg-white rounded-xl shadow border border-gray-200 p-5 transition hover:shadow-md"
