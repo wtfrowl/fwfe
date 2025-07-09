@@ -8,10 +8,12 @@ import {
   BiSolidTruck,
   BiFile,
 } from "react-icons/bi";
+
 import truckIcon from "../assets/truck.svg";
 import Cookies from "js-cookie";
 import { AuthContext } from "../context/AuthContext";
 import { NotificationBell } from "./components/NotificationBell";
+import { FaWeightHanging } from "react-icons/fa";
 
 const DashboardLayout: React.FC = () => {
   const navigate = useNavigate();
@@ -145,7 +147,7 @@ const DashboardLayout: React.FC = () => {
         </NavLink>
    {isOwner && ( 
                     <NavLink className="flex items-center p-2 font-semibold border rounded-lg bg-[#dbdbdb]" to="loads">
-                      <BiSolidTruck className="mr-2" />
+                     <FaWeightHanging className="mr-2" />
                       Loads
                     </NavLink>
                 )}
@@ -203,7 +205,7 @@ const DashboardLayout: React.FC = () => {
                   </li>
              {isOwner && (   <li className="mb-2 h-10 p-2 font-semibold w-[220px]">
                     <NavLink className="flex items-center p-2" to="loads">
-                      <BiSolidTruck className="mr-2" />
+                     <FaWeightHanging className="mr-2" />
                       Loads
                     </NavLink>
                   </li>  )}

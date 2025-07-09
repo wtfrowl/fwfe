@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../services/api";
-import { FiMapPin, FiPhone, FiStar, FiTruck, FiInfo } from "react-icons/fi";
+import {  FiPhone, FiStar, FiTruck, FiInfo } from "react-icons/fi";
 import { HiOutlineLocationMarker } from "react-icons/hi";
 import { MdCalendarToday } from "react-icons/md";
 export default function Loads() {
