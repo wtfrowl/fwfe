@@ -9,9 +9,10 @@ interface AddTripModalProps {
   onAdd: (tripData: any) => Promise<void>
   trucks: Truck[]
   drivers: Driver[]
+  load?: any | null
 }
 
-export function AddTripModal({ isOpen, onClose, onAdd, trucks, drivers }: AddTripModalProps) {
+export function AddTripModal({ isOpen, onClose, onAdd, trucks, drivers, load }: AddTripModalProps) {
   const { user, role } = useContext(AuthContext)
   const isDriver = role === "driver"
 
@@ -27,25 +28,35 @@ export function AddTripModal({ isOpen, onClose, onAdd, trucks, drivers }: AddTri
     driverContactNumber: "",
     fare: "",
     registrationNumber: "",
+    loadId: "",
+    truckId: ""
   })
 
-  // useEffect(() => {
-  //   if (isDriver && isDriverAvailable) {
-  //     setFormData((prev) => ({
-  //       ...prev,
-  //       driverContactNumber: currentDriver?.contactNumber || "",
-  //     }))
-  //   }
-  // }, [isDriver, isDriverAvailable, currentDriver])
-  
-useEffect(() => {
-  if (isDriver && isDriverAvailable) {
-    setFormData((prev) => ({
-      ...prev,
-      driverContactNumber: String(currentDriver?.contactNumber) || "",
-    }))
-  }
-}, [isDriver, isDriverAvailable, currentDriver])
+  useEffect(() => {
+    if (isDriver && isDriverAvailable) {
+      setFormData((prev) => ({
+        ...prev,
+        driverContactNumber: String(currentDriver?.contactNumber) || ""
+      }))
+    }
+  }, [isDriver, isDriverAvailable, currentDriver])
+
+  useEffect(() => {
+    if (load) {
+      setFormData((prev) => ({
+        ...prev,
+        departureLocation: load.source,
+        arrivalLocation: load.destination,
+        totalWeight: String(load.weight),
+        fare: String(load.price),
+        loadId: load._id,
+        truckId: load.truckId,
+        registrationNumber: load.truckReg,
+        departureDateTime: new Date(load.pickupDate).toISOString().slice(0, 16) // format for datetime-local
+      }))
+    }
+  }, [load])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     await onAdd(formData)
@@ -58,13 +69,14 @@ useEffect(() => {
       driverContactNumber: "",
       fare: "",
       registrationNumber: "",
+      loadId: "",
+      truckId: ""
     })
     onClose()
   }
 
   if (!isOpen) return null
 
-  // If driver is not available, disable the modal visually
   if (isDriver && !isDriverAvailable) {
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -93,7 +105,6 @@ useEffect(() => {
         </div>
 
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
-          {/* Truck Selection */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Select Truck</label>
             <select
@@ -113,7 +124,6 @@ useEffect(() => {
             </select>
           </div>
 
-          {/* Date Time */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
@@ -136,7 +146,6 @@ useEffect(() => {
             </div>
           </div>
 
-          {/* Location Inputs */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Departure Location</label>
             <input
@@ -170,7 +179,6 @@ useEffect(() => {
             />
           </div>
 
-          {/* Driver Selection */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Select Driver</label>
             <select
@@ -178,7 +186,7 @@ useEffect(() => {
               value={formData.driverContactNumber}
               onChange={(e) => setFormData({ ...formData, driverContactNumber: e.target.value })}
               required
-              disabled={isDriver} // disable if role is driver
+              disabled={isDriver}
             >
               <option value="">Select Driver</option>
               {drivers
