@@ -52,7 +52,7 @@ export function TripsTable({ trips, isLoading, onDelete, onEdit, onCopy }: Trips
                     </span>
                   </td>
                   <td className="px-4 py-4">
-                    <span className="font-medium">${trip.fare}</span>
+                    <span className="font-medium">Rs {trip.fare}</span>
                   </td>
                   <td className="px-4 py-4">
                     <div className="flex items-center gap-2">
@@ -87,7 +87,7 @@ export function TripsTable({ trips, isLoading, onDelete, onEdit, onCopy }: Trips
                 </span>
               </div>
               <div className="mt-2 flex justify-between items-center">
-                <span className="font-medium">${trip.fare}</span>
+                <span className="font-medium">Rs {trip.fare}</span>
                 {/* <div className="flex gap-2">
                   <button onClick={() => onEdit(trip)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded">
                     <FaEdit className="w-4 h-4" />

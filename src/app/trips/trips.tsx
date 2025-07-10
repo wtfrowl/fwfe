@@ -125,12 +125,18 @@ export default function Trips() {
             </div>
           ) : (
             <>
-              {/* Trips Table */}
+              {/* Trips Table or NO dATA*/}
+              {filteredTrips.length === 0 ? (
+                <div className="flex justify-center items-center h-64">
+                  <p className="text-gray-500">No trips found</p>
+                </div>
+              ) : 
               <TripsTable
                   trips={filteredTrips}
                   onDelete={handleDeleteTrip}
                   onEdit={handleEditTrip}
                   onCopy={handleCopyTrip} isLoading={false}              />
+                  }
             </>
           )}
         </div>
@@ -146,6 +152,8 @@ export default function Trips() {
           drivers={drivers}
         />
       )}
+
+
     </div>
   )
 }

@@ -9,6 +9,7 @@ import { FaGasPump, FaUtensils, FaRoad, FaQuestion } from "react-icons/fa"
 import { api } from "../services/api"
 import { AuthContext } from "../../../context/AuthContext"
 import { useEventStore} from "../../../store/trips/store"
+// import { getCurrentLocation } from "../../services/location"
 interface Expense {
   _id: string
   expenseType: string
@@ -199,6 +200,16 @@ const [isMarkingCompleted, setIsMarkingCompleted] = useState(false)
 
 const handleMarkAsCompleted = async () => {
   try {
+    //GET LOCATION to be used when we change arrival location into lat,lon
+//     getCurrentLocation()
+//   .then(({ latitude, longitude }) => {
+//     console.log("Lat:", latitude, "Long:", longitude);
+//   })
+//   .catch((err) => {
+//     console.error("Location error:", err.message);
+//   });
+// return
+
     setIsMarkingCompleted(true) // Start loading
     const response = await api.trips.updateStatus(id || "");
     const updatedTripResponse =  await api.trips.getById(id || "");
