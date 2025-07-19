@@ -89,10 +89,14 @@ export default function Loads() {
             <div key={i} className="animate-pulse h-28 w-full bg-gray-200 rounded-xl" />
           ))}
         </div>
-      ) : (
-        <div className="bg-white rounded shadow p-4">
-       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-  {loads.map((load: any) => (
+      ) :  loads?.length === 0 ? (
+  <div className="bg-white rounded shadow p-6 min-h-50 justify-center items-center flex text-center text-gray-600 font-medium">
+    🚫 No matched loads available at the moment.
+  </div>
+) : (
+  <div className="bg-white rounded shadow p-4">
+    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      {loads.map((load: any) => (
     <div
       key={load._id}
       className="bg-white rounded-xl shadow-lg border border-gray-200 p-5 flex flex-col justify-between"
@@ -152,7 +156,7 @@ export default function Loads() {
         </div>
       )}
 
-      <div className="mt-8 flex items-center justify-between text-sm">
+   {loads.length !== 0 &&  <div className="mt-8 flex items-center justify-between text-sm">
         <p className="text-gray-500">
           Showing {(page - 1) * limit + 1} – {Math.min(page * limit, loads.length)}
         </p>
@@ -175,7 +179,7 @@ export default function Loads() {
             &rarr;
           </button>
         </div>
-      </div>
+      </div>}
     </div>
   );
 }

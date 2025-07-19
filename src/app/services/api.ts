@@ -15,6 +15,8 @@ export const getAuthConfig = () => {
     },
   };
 };
+
+
 export const api = {
   dashboard: {
     info: async () => {

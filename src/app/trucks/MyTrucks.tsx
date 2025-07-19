@@ -222,10 +222,12 @@ export default function TrucksPage() {
             </div>
           ) : (
             <>
-              <VehicleTable vehicles={paginatedVehicles} userRole={role} />
+             { paginatedVehicles.length > 0 ? <VehicleTable vehicles={paginatedVehicles} userRole={role} />: <div className="flex justify-center items-center h-64">
+                  <p className="text-gray-500">No Trucks, Add Now</p>
+                </div> }
 
               {/* Pagination */}
-              <div className="px-4 py-3 border-t border-gray-200">
+                { paginatedVehicles.length > 0 && <div className="px-4 py-3 border-t border-gray-200">
                 <div className="flex items-center justify-between">
                   <p className="text-sm text-gray-700">
                     Showing{" "}
@@ -264,6 +266,7 @@ export default function TrucksPage() {
                   </div>
                 </div>
               </div>
+}
             </>
           )}
         </div>

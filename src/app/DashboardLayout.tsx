@@ -1,19 +1,22 @@
 import { useContext, useEffect } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
-  BiHomeAlt,
   BiLogOut,
-  BiTrip,
-  BiSolidUser,
-  BiSolidTruck,
-  BiFile,
+
 } from "react-icons/bi";
+
 
 import truckIcon from "../assets/truck.svg";
 import Cookies from "js-cookie";
 import { AuthContext } from "../context/AuthContext";
 import { NotificationBell } from "./components/NotificationBell";
-import { FaWeightHanging } from "react-icons/fa";
+import { FaTruck } from "react-icons/fa";
+import { MdDashboard } from "react-icons/md";
+import { TbPackages } from "react-icons/tb";
+import { GiPathDistance } from "react-icons/gi";
+import { HiOutlineDocumentText } from "react-icons/hi";
+import { CgProfile } from "react-icons/cg";
+import { FiLogOut } from "react-icons/fi";
 
 const DashboardLayout: React.FC = () => {
   const navigate = useNavigate();
@@ -55,44 +58,44 @@ const DashboardLayout: React.FC = () => {
 
 
   //sockettt
-//  useEffect(() => {
-//   if (!token) {
-//     navigate(isOwner ? "/owner-login" : "/driver-login");
-//     return;
-//   }
+  //  useEffect(() => {
+  //   if (!token) {
+  //     navigate(isOwner ? "/owner-login" : "/driver-login");
+  //     return;
+  //   }
 
-//   socket.connect(); // 🔑 Explicitly connect
+  //   socket.connect(); // 🔑 Explicitly connect
 
-//   const roomId = isOwner ? `owner-${token._id}` : `driver-${token._id}`;
-//   console.log("➡️ Joining room:", roomId);
-//   socket.emit("join-room", roomId);
+  //   const roomId = isOwner ? `owner-${token._id}` : `driver-${token._id}`;
+  //   console.log("➡️ Joining room:", roomId);
+  //   socket.emit("join-room", roomId);
 
-//   socket.on("connect", () => {
-//     console.log("🟢 Connected to socket:", socket.id);
-//   });
+  //   socket.on("connect", () => {
+  //     console.log("🟢 Connected to socket:", socket.id);
+  //   });
 
-//   socket.on("disconnect", () => {
-//     console.log("🔴 Disconnected from socket");
-//   });
+  //   socket.on("disconnect", () => {
+  //     console.log("🔴 Disconnected from socket");
+  //   });
 
-//   socket.on("trip-created", (data) => {
-//     console.log("📦 Trip created:", data);
-//     alert(`New Trip Created: ${data.registrationNumber}`);
-//   });
+  //   socket.on("trip-created", (data) => {
+  //     console.log("📦 Trip created:", data);
+  //     alert(`New Trip Created: ${data.registrationNumber}`);
+  //   });
 
-//   socket.on("trip-status-updated", (data) => {
-//     console.log("🔁 Trip status updated:", data);
-//     alert(`Trip ${data.tripId} is now ${data.status}`);
-//   });
+  //   socket.on("trip-status-updated", (data) => {
+  //     console.log("🔁 Trip status updated:", data);
+  //     alert(`Trip ${data.tripId} is now ${data.status}`);
+  //   });
 
-//   return () => {
-//     socket.off("connect");
-//     socket.off("disconnect");
-//     socket.off("trip-created");
-//     socket.off("trip-status-updated");
-//     socket.disconnect(); // 🔌 Optional: close when layout unmounts
-//   };
-// }, [token, isOwner, navigate]);
+  //   return () => {
+  //     socket.off("connect");
+  //     socket.off("disconnect");
+  //     socket.off("trip-created");
+  //     socket.off("trip-status-updated");
+  //     socket.disconnect(); // 🔌 Optional: close when layout unmounts
+  //   };
+  // }, [token, isOwner, navigate]);
 
 
 
@@ -110,7 +113,7 @@ const DashboardLayout: React.FC = () => {
           />
         </div>
         <div className="mr-4 flex items-center gap-4">
-           <NotificationBell />
+          <NotificationBell />
           {token ? (
             <>
               <span className="hidden md:block text-xs md:text-xl sm:text-xl">
@@ -136,53 +139,59 @@ const DashboardLayout: React.FC = () => {
       </div>
 
       {/* Mobile Nav */}
-      <div className="flex text-nowrap scrollbar-hide gap-6 p-4 bg-white border-2 overflow-hidden overflow-x-scroll md:hidden">
-        <NavLink
-          className="flex items-center p-2 font-semibold border rounded-lg bg-[#dbdbdb]"
-          to=""
-          end
-        >
-          <BiHomeAlt className="mr-2" />
-          Dashboard
-        </NavLink>
-   {isOwner && ( 
-                    <NavLink className="flex items-center p-2 font-semibold border rounded-lg bg-[#dbdbdb]" to="loads">
-                     <FaWeightHanging className="mr-2" />
-                      Loads
-                    </NavLink>
-                )}
-     
-            <NavLink
-              className="flex items-center p-2 font-semibold border rounded-lg bg-[#dbdbdb]"
-              to="mytrucks"
-            >
-              <BiSolidTruck className="mr-2" />
-              My Trucks
-            </NavLink>
-            <NavLink
-              className="flex items-center p-2 font-semibold border rounded-lg bg-[#dbdbdb]"
-              to="trips"
-            >
-              <BiTrip className="mr-2" />
-              Trips
-            </NavLink>
-      
+     <div className="flex text-nowrap scrollbar-hide gap-6 p-4 bg-white border-2 overflow-hidden overflow-x-scroll md:hidden">
+  <NavLink
+    className="flex items-center p-2 font-semibold border rounded-lg bg-[#dbdbdb]"
+    to=""
+    end
+  >
+    <MdDashboard className="mr-2" />
+    Dashboard
+  </NavLink>
 
-        <NavLink
-          className="flex items-center p-2 font-semibold border rounded-lg bg-[#dbdbdb]"
-          to="mydocs"
-        >
-          <BiFile className="mr-2" />
-          Documents
-        </NavLink>
-        <NavLink
-          className="flex items-center p-2 font-semibold border rounded-lg bg-[#dbdbdb]"
-          to={isOwner ? "owner-profile" : "driver-profile"}
-        >
-          <BiSolidUser className="mr-2" />
-          Profile
-        </NavLink>
-      </div>
+  {isOwner && (
+    <NavLink
+      className="flex items-center p-2 font-semibold border rounded-lg bg-[#dbdbdb]"
+      to="loads"
+    >
+      <TbPackages className="mr-2" />
+      Loads
+    </NavLink>
+  )}
+
+  <NavLink
+    className="flex items-center p-2 font-semibold border rounded-lg bg-[#dbdbdb]"
+    to="mytrucks"
+  >
+    <FaTruck className="mr-2" />
+    My Trucks
+  </NavLink>
+
+  <NavLink
+    className="flex items-center p-2 font-semibold border rounded-lg bg-[#dbdbdb]"
+    to="trips"
+  >
+    <GiPathDistance className="mr-2" />
+    Trips
+  </NavLink>
+
+  <NavLink
+    className="flex items-center p-2 font-semibold border rounded-lg bg-[#dbdbdb]"
+    to="mydocs"
+  >
+    <HiOutlineDocumentText className="mr-2" />
+    Documents
+  </NavLink>
+
+  <NavLink
+    className="flex items-center p-2 font-semibold border rounded-lg bg-[#dbdbdb]"
+    to={isOwner ? "owner-profile" : "driver-profile"}
+  >
+    <CgProfile className="mr-2" />
+    Profile
+  </NavLink>
+</div>
+
 
       {/* Main Section */}
       <div className="relative bg-gradient-to-br bg-slate-100">
@@ -192,55 +201,47 @@ const DashboardLayout: React.FC = () => {
             <ul className="list-none p-3 flex flex-col m-0">
               <li className="mb-2 h-10 p-2 font-semibold w-[220px]">
                 <NavLink className="flex items-center p-2" to="" end>
-                  <BiHomeAlt className="mr-2" />
+                  <MdDashboard className="mr-2" />
                   Dashboard
                 </NavLink>
               </li>
-                 
-                   <li className="mb-2 h-10 p-2 font-semibold w-[220px]">
-                    <NavLink className="flex items-center p-2" to="mytrucks">
-                      <BiSolidTruck className="mr-2" />
-                      My Trucks
-                    </NavLink>
-                  </li>
-             {isOwner && (   <li className="mb-2 h-10 p-2 font-semibold w-[220px]">
-                    <NavLink className="flex items-center p-2" to="loads">
-                     <FaWeightHanging className="mr-2" />
-                      Loads
-                    </NavLink>
-                  </li>  )}
-              {/* {isOwner && (
-                <>
-                */}
-                  <li className="mb-2 h-10 p-2 font-semibold w-[220px]">
-                    <NavLink className="flex items-center p-2" to="trips">
-                      <BiTrip className="mr-2" />
-                      Trips
-                    </NavLink>
-                  </li>
-                {/* </>
-              )} */}
+
+              <li className="mb-2 h-10 p-2 font-semibold w-[220px]">
+                <NavLink className="flex items-center p-2" to="mytrucks">
+                  <FaTruck className="mr-2" />
+                  My Trucks
+                </NavLink>
+              </li>
+              {isOwner && (<li className="mb-2 h-10 p-2 font-semibold w-[220px]">
+                <NavLink className="flex items-center p-2" to="loads">
+                  <TbPackages className="mr-2" />
+                  Loads
+                </NavLink>
+              </li>)}
+              <li className="mb-2 h-10 p-2 font-semibold w-[220px]">
+                <NavLink className="flex items-center p-2" to="trips">
+                  <GiPathDistance className="mr-2" />
+                  Trips
+                </NavLink></li>
               <li className="mb-2 h-10 p-2 font-semibold w-[220px]">
                 <NavLink className="flex items-center p-2" to="mydocs">
-                  <BiFile className="mr-2" />
+                  <HiOutlineDocumentText className="mr-2" />
                   Documents
-                </NavLink>
-              </li>
+                </NavLink></li>
+
               <li className="mb-2 h-10 p-2 font-semibold w-[220px]">
-                <NavLink
-                  className="flex items-center p-2"
-                  to={isOwner ? "owner-profile" : "driver-profile"}
-                >
-                  <BiSolidUser className="mr-2" />
+                <NavLink className="flex items-center p-2" to={isOwner ? "owner-profile" : "driver-profile"}>
+                  <CgProfile className="mr-2" />
                   Profile
-                </NavLink>
-              </li>
+                </NavLink></li>
+
+
             </ul>
 
             <ul className="mt-10 list-none p-3 flex flex-col m-0">
               <li className="mb-2 h-10 p-2 font-semibold">
                 <button onClick={handleLogout} className="flex items-center p-2">
-                  <BiLogOut className="mr-2" />
+                  <FiLogOut className="mr-2" />
                   Logout
                 </button>
               </li>
