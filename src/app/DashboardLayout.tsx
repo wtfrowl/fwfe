@@ -1,4 +1,4 @@
-import { useContext, useEffect } from "react";
+import { useContext, useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   BiLogOut,
@@ -17,10 +17,32 @@ import { GiPathDistance } from "react-icons/gi";
 import { HiOutlineDocumentText } from "react-icons/hi";
 import { CgProfile } from "react-icons/cg";
 import { FiLogOut } from "react-icons/fi";
+import {  getCurrentLocation } from "./services/location";
+import { ImLocation2 } from "react-icons/im";
 
 const DashboardLayout: React.FC = () => {
   const navigate = useNavigate();
+  const [locationStatus, setLocationStatus] = useState<'idle' | 'loading' | 'success'>('loading');
+
   const location = useLocation();
+const getLocationDetails = async () => {
+  try {
+    setLocationStatus('loading');
+    await getCurrentLocation()
+      .then(async (res: any) => {
+        console.log("Lat:", res.latitude, "Long:", res.longitude, "Location:", res.location);
+        setLocationStatus('success');
+      })
+      .catch((err) => {
+        console.error("Location error:", err.message);
+        setLocationStatus('idle');
+      });
+  } catch (err: any) {
+    console.error("Error:", err.message);
+    setLocationStatus('idle');
+  }
+};
+
 
   const isOwner = location.pathname.startsWith("/owner");
   const { ownerLogout, driverLogout } = useContext(AuthContext);
@@ -113,6 +135,21 @@ const DashboardLayout: React.FC = () => {
           />
         </div>
         <div className="mr-4 flex items-center gap-4">
+        {/*Location refresh button icon*/}
+
+        <button onClick={getLocationDetails}
+  className={` h-8 w-8 items-center justify-center flex rounded-full cursor-pointer ${
+    locationStatus === 'loading'
+      ? 'blinking-red'
+      : locationStatus === 'success'
+      ? 'bg-green-500'
+      : 'bg-gray-200'
+  }`}
+>
+  <ImLocation2 className="w-5 h-5 text-white" />
+</button>
+
+
           <NotificationBell />
           {token ? (
             <>

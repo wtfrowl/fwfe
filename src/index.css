@@ -18,6 +18,15 @@
   }
 }
 
+@keyframes blink {
+  0% { background-color: #f87171; } /* red-400 */
+  50% { background-color: #fca5a5; } /* red-300 */
+  100% { background-color: #f87171; }
+}
+
+.blinking-red {
+  animation: blink 1s infinite;
+}
 
 
 input:checked~.dot {
