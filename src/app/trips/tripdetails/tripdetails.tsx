@@ -134,7 +134,9 @@ const [isMarkingCompleted, setIsMarkingCompleted] = useState(false)
     const fetchTripDetails = async () => {
       try {
        const response = await api.trips.getById(id || "");
-        setTrip(response)
+        // setTrip(response)
+        setTrip({ ...response }); 
+
         setExpenses(response.tripExpenses || [])
         setExpenses(response.tripExpenses)
         const total = response.tripExpenses.reduce((sum: number, expense: Expense) => sum + expense.amount, 0)
@@ -181,6 +183,7 @@ const [isMarkingCompleted, setIsMarkingCompleted] = useState(false)
       // Fetch updated trip details
      const response = await api.trips.getById(id || "");
       setTrip(response)
+      console.log("Updated trip:", response)
       setExpenses(response.tripExpenses)
       const total = response.tripExpenses.reduce((sum: number, expense: Expense) => sum + expense.amount, 0)
       setTotalAmount(total)
@@ -213,7 +216,7 @@ const handleMarkAsCompleted = async () => {
     setIsMarkingCompleted(true) // Start loading
     const response = await api.trips.updateStatus(id || "");
     const updatedTripResponse =  await api.trips.getById(id || "");
-    setTrip(updatedTripResponse)
+    setTrip({ ...updatedTripResponse });
     setExpenses(updatedTripResponse.tripExpenses)
     const total = updatedTripResponse.tripExpenses.reduce(
       (sum: number, expense: Expense) => sum + expense.amount,
