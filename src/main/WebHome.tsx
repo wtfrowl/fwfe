@@ -3,6 +3,7 @@ import truckIcon from '../assets/truck.svg'
 import driverIcon from '../assets/drivericon.svg'
 import ownerIcon from '../assets/ownerIcon.svg'
 import { useNavigate } from "react-router-dom";
+import InstallFloater from '../app/components/InstallFloater';
 
 
 
@@ -11,6 +12,8 @@ function WebHome() {
   return (
   <div className="h-screen relative py-16 bg-gradient-to-br from-sky-50 to-gray-200"> 
   <h2 className=" flex justify-center mb-8 text-3xl text-cyan-900 font-bold">Manage Fleet with Ease.</h2>
+  {/* ⬅️ Add the floater component */}
+      <InstallFloater />
     <div className="relative container m-auto px-6 text-gray-500 md:px-12 xl:px-40">
         <div className="m-auto md:w-8/12 lg:w-6/12 xl:w-6/12">
             <div className="rounded-xl bg-white shadow-xl">
