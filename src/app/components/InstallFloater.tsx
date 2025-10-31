@@ -1,9 +1,8 @@
-// src/components/InstallFloater.tsx
+// src/components/InstallFloater.tsx (Tailwind Version)
 
 import React, { useState, useEffect } from 'react';
 
-// 1. Define a type for the deferred prompt event
-// The BeforeInstallPromptEvent is not standard, so we augment the Window interface.
+// Type definitions (Keep the same as the previous response)
 declare global {
   interface WindowEventMap {
     'beforeinstallprompt': BeforeInstallPromptEvent;
@@ -20,23 +19,16 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 const InstallFloater: React.FC = () => {
-  // State to hold the deferred prompt event, typed as the custom interface or null
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  
-  // State to control the visibility of the floater
   const [showInstall, setShowInstall] = useState(false);
 
   useEffect(() => {
-    // 2. Use the custom type in the event listener
     const handler = (e: BeforeInstallPromptEvent) => {
       e.preventDefault();
-      
       setDeferredPrompt(e);
       setShowInstall(true);
     };
 
-    // We cast window to 'any' here if TypeScript complains about adding a custom event type 
-    // without a full global augmentation setup, but using WindowEventMap often works.
     window.addEventListener('beforeinstallprompt', handler as EventListener); 
 
     return () => {
@@ -44,26 +36,20 @@ const InstallFloater: React.FC = () => {
     };
   }, []);
 
-  // Check if already installed
+  // Check if already installed (also prevents the floater from showing)
   useEffect(() => {
-    // Note: window.navigator.standalone is specific to iOS Safari
     if (window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone) {
       setShowInstall(false);
     }
   }, []);
 
-  // 3. Handle the install button click
   const handleInstallClick = async () => {
     if (deferredPrompt) {
-      // Show the browser's native installation prompt
       deferredPrompt.prompt(); 
-
-      // Wait for the user to respond to the prompt
       const { outcome } = await deferredPrompt.userChoice;
       
       console.log(`User response to the install prompt: ${outcome}`);
 
-      // Hide the floater
       setShowInstall(false); 
       setDeferredPrompt(null);
     }
@@ -74,21 +60,34 @@ const InstallFloater: React.FC = () => {
   }
 
   return (
-    <div className="install-floater">
-      <div className="install-content">
-        <p>Install the app for a full-screen experience!</p>
-        <button 
-          onClick={handleInstallClick} 
-          className="install-button"
-        >
-          Install App
-        </button>
-        <button 
-          onClick={() => setShowInstall(false)} 
-          className="close-button"
-        >
-          &times;
-        </button>
+    // Floater Container (Sticky/Fixed to the bottom)
+    <div className="fixed bottom-0 left-0 w-full bg-cyan-900 text-white p-3 z-50 shadow-2xl">
+      <div className="flex items-center justify-between max-w-xl mx-auto">
+        
+        {/* Text */}
+        <p className="text-sm sm:text-base font-medium">
+          Install the app for a faster, full-screen experience!
+        </p>
+
+        {/* Buttons Group */}
+        <div className="flex items-center space-x-3">
+          
+          {/* Install Button */}
+          <button 
+            onClick={handleInstallClick} 
+            className="bg-white text-cyan-900 font-semibold px-4 py-1 rounded-full text-sm hover:bg-gray-200 transition"
+          >
+            Install
+          </button>
+          
+          {/* Close Button */}
+          <button 
+            onClick={() => setShowInstall(false)} 
+            className="text-white hover:text-gray-300 transition text-2xl"
+          >
+            &times;
+          </button>
+        </div>
       </div>
     </div>
   );
