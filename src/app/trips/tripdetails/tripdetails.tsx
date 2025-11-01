@@ -49,6 +49,7 @@ const TripInfo: React.FC = () => {
     const {  role } = useContext(AuthContext)
   const userRole = role === "driver" ? "driver" : role === "owner" ? "owner" : null
   const expenseRefreshKey = useEventStore((state) => state.expenseRefreshKey)
+  const tripRefreshKey = useEventStore((state) => state.tripRefreshKey)
   const { id } = useParams<{ id: string }>()
   const [trip, setTrip] = useState<Trip | null>(null)
   const [expenses, setExpenses] = useState<Expense[]>([])
@@ -147,7 +148,7 @@ const [isMarkingCompleted, setIsMarkingCompleted] = useState(false)
     }
 
     fetchTripDetails()
-  }, [id,expenseRefreshKey])
+  }, [id,expenseRefreshKey,tripRefreshKey])
 
   const handleApproveExpense = async (expenseId: string) => {
     const token = localStorage.getItem("ownerToken") || localStorage.getItem("driverToken")

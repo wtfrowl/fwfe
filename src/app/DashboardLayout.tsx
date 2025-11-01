@@ -236,7 +236,7 @@ const getLocationDetails = async () => {
       <div className="relative bg-gradient-to-br bg-slate-100">
         <div className="flex h-full">
           {/* Sidebar (desktop) */}
-          <div className="bg-[#e7f09c] hidden md:block">
+          <div className="bg-[#e7f09c] hidden md:block sticky top-20 h-[calc(100vh-80px)]">
             <ul className="list-none p-3 flex flex-col m-0">
               <li className="mb-2 h-10 p-2 font-semibold w-[220px]">
                 <NavLink className="flex items-center p-2" to="" end>
@@ -288,17 +288,16 @@ const getLocationDetails = async () => {
           </div>
 
           {/* Page Outlet */}
-          <main className="min-h-screen block w-full">
+          <main className="min-h-screen block w-full pb-12 md:pb-0">
             <Outlet />
+            {/* Footer */}
+            {/* <footer className="w-full p-4 bg-white shadow md:flex md:items-center md:justify-between md:p-3 md:fixed md:bottom-0 md:left-[220px] md:right-0 md:z-10">
+              <span className="text-sm sm:text-center">
+                © 2024 Made with Love. All Rights Reserved.
+              </span>
+            </footer> */}
           </main>
         </div>
-
-        {/* Footer */}
-        <footer className="w-full p-4 mb-0 bg-white shadow md:flex md:items-center md:justify-between md:p-3">
-          <span className="text-sm sm:text-center">
-            © 2024 Made with Love. All Rights Reserved.
-          </span>
-        </footer>
       </div>
       <ScrollRestoration />
     </>
