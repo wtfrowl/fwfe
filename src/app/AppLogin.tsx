@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect, ChangeEvent, FormEvent } from "react";
+import  { useState, useContext, useEffect, ChangeEvent, FormEvent } from "react";
 import truckIcon from "../assets/truck.svg";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import axios from "axios";
