@@ -1,5 +1,5 @@
 import { useContext, useEffect, useState } from "react";
-import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { NavLink, Outlet, useLocation, useNavigate, ScrollRestoration } from "react-router-dom";
 import {
   BiLogOut,
 
@@ -123,8 +123,9 @@ const getLocationDetails = async () => {
 
   return (
     <>
+      <div className="sticky top-0 z-10 bg-white shadow-md md:shadow-none">
       {/* Topbar */}
-      <div className="flex flex-row justify-between md:justify-around items-center h-20 border-b-indigo-400 bg-white">
+      <div className="flex flex-row justify-between md:justify-around items-center h-20 border-b-indigo-400">
         <div className="ml-4">
           <img
             src={truckIcon}
@@ -176,8 +177,8 @@ const getLocationDetails = async () => {
       </div>
 
       {/* Mobile Nav */}
-     <div className="flex text-nowrap scrollbar-hide gap-6 p-4 bg-white border-2 overflow-hidden overflow-x-scroll md:hidden">
-  <NavLink
+     <div className="flex text-nowrap scrollbar-hide gap-6 p-4 border-b-2 overflow-hidden overflow-x-scroll md:hidden">
+      <NavLink
     className="flex items-center p-2 font-semibold border rounded-lg bg-[#dbdbdb]"
     to=""
     end
@@ -227,6 +228,7 @@ const getLocationDetails = async () => {
     <CgProfile className="mr-2" />
     Profile
   </NavLink>
+</div>
 </div>
 
 
@@ -298,6 +300,7 @@ const getLocationDetails = async () => {
           </span>
         </footer>
       </div>
+      <ScrollRestoration />
     </>
   );
 };
