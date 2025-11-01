@@ -2,7 +2,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Cookies from "js-cookie";
 import axios from "axios";
 import { Sidebar } from "./components/Sidebar";
 import { ProfileForm } from "./components/ProfileForm";
@@ -23,13 +22,13 @@ interface ProfileData {
 
 // Utility to get token + role
 const getAuthDetails = (): { token: string; role: "owner" | "driver" | null } => {
-  const ownerToken = Cookies.get("ownerToken");
+  const ownerToken = localStorage.getItem("ownerToken");
   if (ownerToken) {
     const parsed = JSON.parse(ownerToken);
     return { token: parsed.accessToken, role: "owner" };
   }
 
-  const driverToken = Cookies.get("driverToken");
+  const driverToken = localStorage.getItem("driverToken");
   if (driverToken) {
     const parsed = JSON.parse(driverToken);
     return { token: parsed.accessToken, role: "driver" };

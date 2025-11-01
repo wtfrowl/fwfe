@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import Cookies from "js-cookie";
 import axios, { AxiosError } from "axios";
 import truckIcon from "../assets/truck.svg";
 
@@ -17,8 +16,8 @@ export default function Signup() {
   const isDriver = location.pathname === "/driver-signup";
   const themeColor = isDriver ? "blue" : "pink";
 
-  const token = Cookies.get(isDriver ? "driverToken" : "ownerToken");
-
+  const tokenKey= (isDriver ? "driverToken" : "ownerToken");
+  const token = localStorage.getItem(tokenKey);
   const [errMsg, setErrMsg] = useState<ErrorMessage>({});
   const [signupData, setSignupData] = useState<any>({
     firstName: "",

@@ -1,5 +1,4 @@
 import { createContext, useState, useEffect, ReactNode } from "react";
-import Cookies from "js-cookie";
 import { cleanupSocketOnLogout } from "../utils/socket";
 
 interface AuthContextType {
@@ -22,8 +21,8 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [role, setRole] = useState<"driver" | "owner" | null>(null);
 
   useEffect(() => {
-    const driverToken = Cookies.get("driverToken");
-    const ownerToken = Cookies.get("ownerToken");
+    const driverToken = localStorage.getItem("driverToken");
+    const ownerToken = localStorage.getItem("ownerToken");
 
     if (driverToken) {
       setUser(JSON.parse(driverToken));
@@ -40,14 +39,14 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const driverLogin = (token: object): void => {
     ownerLogout(); // ensure only one role logged in
    // Cookies.remove("ownerToken"); // ensure only one role logged in
-    Cookies.set("driverToken", JSON.stringify(token));
+   localStorage.setItem("driverToken", JSON.stringify(token));
     setUser(token);
     setRole("driver");
   };
 
   const driverLogout = (): void => {
       cleanupSocketOnLogout();
-    Cookies.remove("driverToken");
+    localStorage.removeItem("driverToken");
     setUser(null);
     setRole(null);
   };
@@ -55,14 +54,14 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const ownerLogin = (token: object): void => {
     driverLogout(); // ensure only one role logged in
     //Cookies.remove("driverToken");
-    Cookies.set("ownerToken", JSON.stringify(token));
+   localStorage.setItem("ownerToken", JSON.stringify(token));
     setUser(token);
     setRole("owner");
   };
 
   const ownerLogout = (): void => {
       cleanupSocketOnLogout();
-    Cookies.remove("ownerToken");
+    localStorage.removeItem("ownerToken");
     setUser(null);
     setRole(null);
   };

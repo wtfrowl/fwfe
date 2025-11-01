@@ -7,7 +7,6 @@ import {
 
 
 import truckIcon from "../assets/truck.svg";
-import Cookies from "js-cookie";
 import { AuthContext } from "../context/AuthContext";
 import { NotificationBell } from "./components/NotificationBell";
 import { FaTruck } from "react-icons/fa";
@@ -47,7 +46,8 @@ const getLocationDetails = async () => {
   const isOwner = location.pathname.startsWith("/owner");
   const { ownerLogout, driverLogout } = useContext(AuthContext);
 
-  const tokenRaw = Cookies.get(isOwner ? "ownerToken" : "driverToken");
+    const tokenKey= (isOwner ? "ownerToken" : "driverToken");
+  const tokenRaw = localStorage.getItem(tokenKey);
   let token: { firstName: string; _id: string } | null = null;
   if (tokenRaw) {
     try {

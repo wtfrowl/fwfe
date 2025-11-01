@@ -1,7 +1,6 @@
 import { useState, useContext, useEffect, ChangeEvent, FormEvent } from "react";
 import truckIcon from "../assets/truck.svg";
 import { useNavigate, useLocation } from "react-router-dom";
-import Cookies from "js-cookie";
 import axios from "axios";
 import { AuthContext } from "../context/AuthContext";
 
@@ -36,7 +35,7 @@ function Login() {
 
   const { ownerLogin, driverLogin } = useContext(AuthContext);
   const tokenKey = isOwner ? "ownerToken" : "driverToken";
-  const token = Cookies.get(tokenKey);
+  const token = localStorage.getItem(tokenKey);
 
   useEffect(() => {
     document.title = isOwner ? "Owner Login" : "Driver Login";

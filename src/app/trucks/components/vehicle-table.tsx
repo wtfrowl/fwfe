@@ -4,7 +4,6 @@ import { AlertBadge } from "./alert-badge";
 import { FaCog, FaInfoCircle, FaTruck, FaCar, FaShuttleVan } from "react-icons/fa";
 import { useState } from "react";
 import axios from "axios";
-import Cookies from 'js-cookie';
 ;
 import { useNavigate } from "react-router-dom";
 
@@ -36,7 +35,7 @@ export function VehicleTable({ vehicles, userRole }: VehicleTableProps) {
   const handleEditFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
-      const token = Cookies.get("ownerToken");
+      const token = localStorage.getItem("ownerToken");
       const parsedToken = token ? JSON.parse(token) : null;
 
       if (!parsedToken?.accessToken) {

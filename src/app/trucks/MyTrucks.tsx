@@ -5,7 +5,6 @@ import { StatusTab } from "./components/status-tab";
 import { VehicleTable } from "./components/vehicle-table";
 import type { Vehicle, VehicleStatus } from "./types/vehicle";
 import { FaPlus, FaSearch } from "react-icons/fa";
-import Cookies from "js-cookie";
 import axios from "axios";
 import { LoadingSpinner } from "../trips/components/loading-spinner";
 import { AddTruckModal } from "./modals/AddTruckModal";
@@ -39,8 +38,8 @@ export default function TrucksPage() {
       setError(null);
       try {
         // Try owner token first, then fallback to driver token
-        const ownerToken = Cookies.get("ownerToken");
-        const driverToken = Cookies.get("driverToken");
+        const ownerToken = localStorage.getItem("ownerToken");
+        const driverToken = localStorage.getItem("driverToken");
         let tokenData = null;
 
         if (ownerToken) {

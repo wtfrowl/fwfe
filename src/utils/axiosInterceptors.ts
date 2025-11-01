@@ -1,5 +1,4 @@
 import axios from "axios";
-import Cookies from "js-cookie";
 import { cleanupSocketOnLogout } from "../utils/socket";
 
 export function setupAxiosInterceptors() {
@@ -8,8 +7,8 @@ export function setupAxiosInterceptors() {
     (error) => {
       if (error.response?.status === 401) {
         // JWT expired or unauthorized
-        Cookies.remove("ownerToken");
-        Cookies.remove("driverToken");
+   localStorage.removeItem("ownerToken");
+localStorage.removeItem("driverToken");
         cleanupSocketOnLogout();
 
         const path = window.location.pathname;

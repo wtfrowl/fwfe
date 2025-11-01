@@ -1,7 +1,6 @@
 import { useContext, useEffect, useRef, useState } from "react";
 import { BiBell } from "react-icons/bi";
 import { socket } from "../../utils/socket";
-import Cookies from "js-cookie";
 import { AuthContext } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useEventStore } from "../../store/trips/store";
@@ -30,7 +29,7 @@ export const NotificationBell = () => {
   const { role } = useContext(AuthContext);
   useEffect(() => {
     const tokenKey = role === "owner" ? "ownerToken" : "driverToken";
-    const tokenRaw = Cookies.get(tokenKey);
+    const tokenRaw = localStorage.getItem(tokenKey);
 
     let userId: string | null = null;
 

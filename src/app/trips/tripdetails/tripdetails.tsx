@@ -2,7 +2,6 @@ import type React from "react"
 import { useContext, useEffect, useState } from "react"
 import axios from "axios"
 import { useParams } from "react-router-dom"
-import Cookies from "js-cookie"
 import { BiUpload, BiTrash } from "react-icons/bi"
 import { LoadingSpinner } from "../components/loading-spinner"
 import { FaGasPump, FaUtensils, FaRoad, FaQuestion } from "react-icons/fa"
@@ -151,7 +150,7 @@ const [isMarkingCompleted, setIsMarkingCompleted] = useState(false)
   }, [id,expenseRefreshKey])
 
   const handleApproveExpense = async (expenseId: string) => {
-    const token = Cookies.get("ownerToken") || Cookies.get("driverToken")
+    const token = localStorage.getItem("ownerToken") || localStorage.getItem("driverToken")
     let parsedToken:any = ""
     if (token) {
       parsedToken = JSON.parse(token)

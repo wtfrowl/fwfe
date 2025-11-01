@@ -5,7 +5,6 @@ import { CurrentTripCard } from "./components/current-trip-card";
 import { FaArrowLeft } from "react-icons/fa";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import Cookies from "js-cookie";
 import axios from "axios";
 import { LoadingSpinner } from "../../trips/components/loading-spinner";
 import { api } from "../../trips/services/api";
@@ -42,7 +41,7 @@ export default function TruckDetails() {
 
   useEffect(() => {
     const fetchTruckDetails = async () => {
-      const token = Cookies.get("ownerToken");
+      const token = localStorage.getItem("ownerToken");
       let parsedToken:any = "";
 
       if (token) {

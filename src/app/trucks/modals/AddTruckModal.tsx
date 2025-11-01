@@ -1,6 +1,5 @@
 import { useState } from "react";
 import axios from "axios";
-import Cookies from "js-cookie";
 
 export const AddTruckModal = ({
   isOpen,
@@ -35,7 +34,7 @@ export const AddTruckModal = ({
     setError(null);
 
     try {
-      const token = Cookies.get("ownerToken");
+      const token = localStorage.getItem("ownerToken");
       const parsedToken = token ? JSON.parse(token) : null;
 
       const config = {

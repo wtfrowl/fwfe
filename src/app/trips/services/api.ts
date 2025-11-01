@@ -1,11 +1,10 @@
 import axios from "axios"
-import Cookies from "js-cookie"
 
 const BASE_URL = `${import.meta.env.VITE_API_BASE_URL}/api`
 
 
 export const getAuthConfig = () => {
-  const token = Cookies.get("ownerToken") || Cookies.get("driverToken");
+  const token = localStorage.getItem("ownerToken") || localStorage.getItem("driverToken");
   const parsedToken = token ? JSON.parse(token) : null;
 
   return {
