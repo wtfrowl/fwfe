@@ -1,6 +1,6 @@
-import { useState, useContext, useEffect, ChangeEvent, FormEvent } from "react";
+import React, { useState, useContext, useEffect, ChangeEvent, FormEvent } from "react";
 import truckIcon from "../assets/truck.svg";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import axios from "axios";
 import { AuthContext } from "../context/AuthContext";
 
@@ -16,10 +16,10 @@ interface ErrorMessages {
 }
 
 function Login() {
-  const location = useLocation();
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const [role, setRole] = useState(location.pathname.includes("owner") ? "owner" : "driver");
+  const [role, setRole] = useState(() => location.pathname.includes("owner") ? "owner" : "driver");
   const isOwner = role === "owner";
 
   const [errMsg, setErrMsg] = useState<ErrorMessages>({});
@@ -43,7 +43,7 @@ function Login() {
     if (token) {
       navigate(isOwner ? "/owner-home" : "/driver-home");
     }
-  }, [token, isOwner]);
+  }, [token, isOwner, navigate]);
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -56,38 +56,49 @@ function Login() {
     if (location.pathname !== newPath) {
       navigate(newPath);
     }
-  }, [role]);
+  }, [role, location.pathname, navigate]);
 
   const handleLogin = (e: FormEvent) => {
     e.preventDefault();
-
+    setLoginErr("");
     setIsLoading(true);
     const apiURL = `${import.meta.env.VITE_API_BASE_URL}/api/${isOwner ? "owner" : "driver"}/login`;
 
     axios
       .post(apiURL, loginData)
       .then((res) => {
-        isOwner ? ownerLogin(res.data) : driverLogin(res.data);
+        if (isOwner) ownerLogin(res.data); else driverLogin(res.data);
         if (res.status === 200) {
           navigate(isOwner ? "/owner-home" : "/driver-home");
         }
       })
-      .catch((err) => {
-        setErrMsg({});
-        setLoginErr("");
-        if (err.response?.status === 401) {
-          setLoginErr(err.response.data.error);
-        } else if (err.response?.data.errors) {
-          const errObj: ErrorMessages = {};
-          err.response.data.errors.forEach((error: { path: string; msg: string }) => {
+    .catch((err) => {
+    setErrMsg({}); // Clears field-level errors (the object state)
+    setLoginErr(""); // Clears overall login error (the string state)
+    setIsLoading(false); // Make sure loading is stopped
+
+    if (err.response?.status === 401) {
+        // You are receiving: { "error": "Invalid credentials..." }
+        
+        // 1. Set the string state (loginErr) to the string from the response
+        setLoginErr(err.response.data.error); 
+        
+        // 2. 🚨 CRITICAL: The line that must be REMOVED or commented out.
+        // If this line exists, it is the cause of the crash and refresh.
+        // setErrMsg(err.response.data.error); // <--- MUST NOT BE HERE!
+
+    } else if (err.response?.data.errors) {
+        // ... (This handles the 400 validation array)
+        const errObj: ErrorMessages = {};
+        err.response.data.errors.forEach((error: { path: string; msg: string }) => {
             errObj[error.path] = error.msg;
-          });
-          setErrMsg(errObj);
-        }
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
+        });
+        setErrMsg(errObj); // Correctly setting the object state (errMsg)
+    }
+})
+.finally(() => {
+    setIsLoading(false);
+});
   };
 
   return (
@@ -99,15 +110,15 @@ function Login() {
     className="w-14 h-14 cursor-pointer"
     onClick={() => navigate("/")}
   />
-  <div className="flex items-center gap-2 text-sm">
+  <p className="flex items-center gap-2 text-sm">
     Need an Account?{" "}
-    <span
+    <Link
       className="text-blue-600 font-semibold cursor-pointer hover:underline"
-      onClick={() => navigate(role === "owner" ? "/owner-signup" : "/driver-signup")}
+      to={role === "owner" ? "/owner-signup" : "/driver-signup"}
     >
       Register here
-    </span>
-  </div>
+    </Link>
+  </p>
 </header>
 
 
@@ -177,6 +188,7 @@ function Login() {
             <button
               type="submit"
               className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-60"
+              
               disabled={isLoading}
             >
               {isLoading ? "Logging in..." : "Login"}

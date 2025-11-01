@@ -18,6 +18,7 @@ export function AddTripModal({ isOpen, onClose, onAdd, trucks, drivers, load }: 
 
   const currentDriver = isDriver ? drivers.find(d => d._id === user._id) : null
   const isDriverAvailable = currentDriver?.availability !== false
+  const [isAdding, setIsAdding] = useState(false);
 
   const [formData, setFormData] = useState({
     departureDateTime: "",
@@ -59,20 +60,27 @@ export function AddTripModal({ isOpen, onClose, onAdd, trucks, drivers, load }: 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    await onAdd(formData)
-    setFormData({
-      departureDateTime: "",
-      arrivalDateTime: "",
-      departureLocation: "",
-      arrivalLocation: "",
-      totalWeight: "",
-      driverContactNumber: "",
-      fare: "",
-      registrationNumber: "",
-      loadId: "",
-      truckId: ""
-    })
-    onClose()
+    setIsAdding(true);
+    try {
+      await onAdd(formData)
+      setFormData({
+        departureDateTime: "",
+        arrivalDateTime: "",
+        departureLocation: "",
+        arrivalLocation: "",
+        totalWeight: "",
+        driverContactNumber: "",
+        fare: "",
+        registrationNumber: "",
+        loadId: "",
+        truckId: ""
+      })
+      onClose()
+    } catch (error) {
+      console.error("Failed to add trip:", error);
+    } finally {
+      setIsAdding(false);
+    }
   }
 
   if (!isOpen) return null
@@ -212,9 +220,10 @@ export function AddTripModal({ isOpen, onClose, onAdd, trucks, drivers, load }: 
 
           <button
             type="submit"
-            className="w-full bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors"
+            disabled={isAdding}
+            className="w-full bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors disabled:bg-blue-300 disabled:cursor-not-allowed"
           >
-            Add Trip
+            {isAdding ? "Adding Trip..." : "Add Trip"}
           </button>
         </form>
       </div>
