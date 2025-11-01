@@ -65,6 +65,7 @@ const TripInfo: React.FC = () => {
     imageBase64: "",
   })
 const [isMarkingCompleted, setIsMarkingCompleted] = useState(false)
+const [isAddingExpense, setIsAddingExpense] = useState(false)
 
   // Calculate pagination
   const totalPages = Math.ceil(expenses?.length / ITEMS_PER_PAGE)
@@ -136,6 +137,7 @@ const [isMarkingCompleted, setIsMarkingCompleted] = useState(false)
        const response = await api.trips.getById(id || "");
         // setTrip(response)
         setTrip({ ...response }); 
+        // console.log("Fetched trip:", response)
 
         setExpenses(response.tripExpenses || [])
         setExpenses(response.tripExpenses)
@@ -175,9 +177,9 @@ const [isMarkingCompleted, setIsMarkingCompleted] = useState(false)
   }
 
   const handleAddExpense = async () => {
-
+    setIsAddingExpense(true)
     try {
-   //   await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/tripexpense`, newExpense, config)
+      //   await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/tripexpense`, newExpense, config)
        await api.trips.createExpense(newExpense)
 
       // Fetch updated trip details
@@ -198,6 +200,8 @@ const [isMarkingCompleted, setIsMarkingCompleted] = useState(false)
       })
     } catch (err) {
       console.error("Error adding expense:", err)
+    } finally {
+      setIsAddingExpense(false)
     }
   }
 
@@ -346,6 +350,7 @@ const handleMarkAsCompleted = async () => {
         >
           Add Expense
         </button>
+      
      {trip.status === "Completed" ? (
   <button
     disabled
@@ -558,9 +563,10 @@ const handleMarkAsCompleted = async () => {
                 <button
                   type="button"
                   onClick={handleAddExpense}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  disabled={isAddingExpense}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-blue-400 disabled:cursor-not-allowed"
                 >
-                  Add Expense
+                  {isAddingExpense ? "Adding..." : "Add Expense"}
                 </button>
               </div>
             </form>
@@ -572,4 +578,3 @@ const handleMarkAsCompleted = async () => {
 }
 
 export default TripInfo
-
