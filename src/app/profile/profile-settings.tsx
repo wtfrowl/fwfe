@@ -6,6 +6,7 @@ import axios from "axios";
 import { Sidebar } from "./components/Sidebar";
 import { ProfileForm } from "./components/ProfileForm";
 import { PasswordForm } from "./components/PasswordForm";
+import { useDriverTracking } from "../../utils/location";
 
 interface ProfileData {
   _id?: string;
@@ -38,6 +39,7 @@ const getAuthDetails = (): { token: string; role: "owner" | "driver" | null } =>
 };
 
 export default function ProfileSettings() {
+  const { isTracking, startTracking, stopTracking, error: trackingError } = useDriverTracking();
   const [activeTab, setActiveTab] = useState("profile");
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -178,7 +180,35 @@ export default function ProfileSettings() {
               {(activeTab === "notifications" ||
                 activeTab === "verification") && (
                 <div className="text-center text-gray-500 py-8">
-                  This section is under development
+                <div>
+      <h2>Driver Status</h2>
+      <p>Tracking: {isTracking ? <strong>ON AIR</strong> : <strong>OFF DUTY</strong>}</p>
+      
+      {/* Button to start tracking (e.g., "Go Online") */}
+      <button 
+        onClick={startTracking} 
+        disabled={isTracking}
+        style={{ marginRight: '10px', backgroundColor: '#4CAF50', color: 'white' }}
+      >
+        Start Shift (Start Tracking)
+      </button>
+      
+      {/* Button to stop tracking (e.g., "Go Offline") */}
+      <button 
+        onClick={stopTracking} 
+        disabled={!isTracking}
+        style={{ backgroundColor: '#f44336', color: 'white' }}
+      >
+        End Shift (Stop Tracking)
+      </button>
+
+      {/* Display any errors */}
+      {error && (
+        <p style={{ color: 'red', marginTop: '15px' }}>
+          <strong>Error:</strong> {error}
+        </p>
+      )}
+    </div>
                 </div>
               )}
             </>
