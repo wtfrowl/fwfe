@@ -12,7 +12,7 @@ import { NotificationBell } from "./components/NotificationBell";
 import { FaTruck } from "react-icons/fa";
 import { MdDashboard } from "react-icons/md";
 import { TbPackages } from "react-icons/tb";
-import { GiPathDistance } from "react-icons/gi";
+import { GiPathDistance, GiTyre } from "react-icons/gi";
 import { HiOutlineDocumentText } from "react-icons/hi";
 import { CgProfile } from "react-icons/cg";
 import { FiLogOut } from "react-icons/fi";
@@ -213,6 +213,14 @@ const getLocationDetails = async () => {
     Trips
   </NavLink>
 
+    <NavLink
+    className="flex items-center p-2 font-semibold border rounded-lg bg-[#dbdbdb]"
+    to="tyre"
+  >
+    <GiPathDistance className="mr-2" />
+    Tyre
+  </NavLink>
+
   <NavLink
     className="flex items-center p-2 font-semibold border rounded-lg bg-[#dbdbdb]"
     to="mydocs"
@@ -261,6 +269,12 @@ const getLocationDetails = async () => {
                 <NavLink className="flex items-center p-2" to="trips">
                   <GiPathDistance className="mr-2" />
                   Trips
+                </NavLink></li>
+                 
+              <li className="mb-2 h-10 p-2 font-semibold w-[220px]">
+                <NavLink className="flex items-center p-2" to="tyre">
+                  <GiTyre className="mr-2" />
+                  Tyre
                 </NavLink></li>
               <li className="mb-2 h-10 p-2 font-semibold w-[220px]">
                 <NavLink className="flex items-center p-2" to="mydocs">
