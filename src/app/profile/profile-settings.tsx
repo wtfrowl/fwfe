@@ -39,7 +39,7 @@ const getAuthDetails = (): { token: string; role: "owner" | "driver" | null } =>
 };
 
 export default function ProfileSettings() {
-  const { isTracking, startTracking, stopTracking, error: trackingError } = useDriverTracking();
+  const { isTracking, startTracking, stopTracking} = useDriverTracking();
   const [activeTab, setActiveTab] = useState("profile");
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [isLoading, setIsLoading] = useState(true);

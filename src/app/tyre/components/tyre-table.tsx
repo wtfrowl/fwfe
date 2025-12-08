@@ -1,12 +1,11 @@
 import { useNavigate } from "react-router-dom"; // 1. Import hook
-import { Tyre } from "../TyresPage";
-
+import { Tyre } from "../tyre";
 interface Props {
   tyres: Tyre[];
   userRole: any;
 }
 
-export function TyreTable({ tyres, userRole }: Props) {
+export function TyreTable({ tyres }: Props) {
   const navigate = useNavigate(); // 2. Initialize hook
 
   const getStatusColor = (status: string) => {

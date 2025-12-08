@@ -2,7 +2,7 @@ import type React from "react"
 import { useContext, useEffect, useState } from "react"
 import axios from "axios"
 import { useParams } from "react-router-dom"
-import { BiUpload, BiEdit } from "react-icons/bi"
+import {  BiEdit } from "react-icons/bi"
 import { LoadingSpinner } from "../components/loading-spinner"
 import { 
   FaGasPump, 

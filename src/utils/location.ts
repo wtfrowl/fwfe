@@ -23,18 +23,18 @@ const getAuthDetails = (): { token: string; role: "owner" | "driver" | null } =>
 
   return { token: "", role: null };
 };
-      const { token, role } = getAuthDetails();
+      const { token } = getAuthDetails();
   const [isTracking, setIsTracking] = useState(false);
   const [error, setError] = useState(null);
   
   // Use useRef to hold the watchId. This prevents re-renders when it changes.
-  const watchIdRef = useRef(null);
+  const watchIdRef = useRef<number | null>(null);
 
   /**
    * Success callback for watchPosition.
    * Called every time the browser detects a location change.
    */
-  const handlePositionUpdate = (position) => {
+  const handlePositionUpdate = (position:any) => {
     const { latitude, longitude } = position.coords;
     const timestamp = new Date(position.timestamp);
 
@@ -57,7 +57,7 @@ const getAuthDetails = (): { token: string; role: "owner" | "driver" | null } =>
     .catch(err => {
       // Handle network errors (e.g., driver goes offline)
       console.error('Failed to send location to server:', err);
-      setError('Network error: Failed to send location.');
+      // setError('Network error: Failed to send location.');
     });
   };
 
@@ -65,7 +65,7 @@ const getAuthDetails = (): { token: string; role: "owner" | "driver" | null } =>
    * Error callback for watchPosition.
    * Called when the browser fails to get a location.
    */
-  const handlePositionError = (error) => {
+  const handlePositionError = (error:any) => {
     setError(error.message);
     console.error('Geolocation error:', error.message);
     
@@ -80,7 +80,7 @@ const getAuthDetails = (): { token: string; role: "owner" | "driver" | null } =>
    */
   const startTracking = useCallback(() => {
     if (!navigator.geolocation) {
-      setError('Geolocation is not supported by this browser.');
+      // setError('Geolocation is not supported by this browser.');
       return;
     }
     

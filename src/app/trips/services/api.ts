@@ -63,8 +63,8 @@ export const api = {
     const response = await axios.get(`${BASE_URL}/trips/byTripId/${id}`, getAuthConfig());
     return response.data;
   },
-  updateStatus: async (id: string) => {
-    const response = await axios.patch(`${BASE_URL}/trips/updateStatus/${id}`, {}, getAuthConfig());
+  updateStatus: async (id: string, payload: any) => {
+    const response = await axios.patch(`${BASE_URL}/trips/updateStatus/${id}`, payload, getAuthConfig());
     return response.data;
   },
    //   await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/tripexpense`, newExpense, config)
