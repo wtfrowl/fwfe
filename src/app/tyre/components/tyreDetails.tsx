@@ -35,6 +35,66 @@ interface TyreDetail {
   history: TyreHistory[];
 }
 
+// --- NEW: SKELETON LOADER COMPONENT ---
+// This mimics the exact layout of your page but with pulsating gray boxes
+const TyreDetailsSkeleton = () => {
+  return (
+    <div className="min-h-screen bg-gray-50 animate-pulse">
+      {/* Header Skeleton */}
+      <div className="bg-white border-b">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex justify-between items-center">
+            <div className="space-y-2">
+              <div className="flex gap-3 items-center">
+                <div className="h-8 w-48 bg-gray-200 rounded"></div>
+                <div className="h-6 w-20 bg-gray-200 rounded-full"></div>
+              </div>
+              <div className="h-4 w-32 bg-gray-200 rounded"></div>
+            </div>
+            <div className="flex gap-2">
+              <div className="h-10 w-10 bg-gray-200 rounded-lg"></div>
+              <div className="h-10 w-32 bg-gray-200 rounded-lg"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+        {/* Grid Skeleton */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 h-40">
+              <div className="flex justify-between mb-4">
+                <div className="h-8 w-8 bg-gray-200 rounded"></div>
+                <div className="h-4 w-16 bg-gray-200 rounded"></div>
+              </div>
+              <div className="h-8 w-24 bg-gray-200 rounded mb-2"></div>
+              <div className="h-2 w-full bg-gray-200 rounded"></div>
+            </div>
+          ))}
+        </div>
+
+        {/* History Table Skeleton */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-100">
+            <div className="h-6 w-32 bg-gray-200 rounded"></div>
+          </div>
+          <div className="p-6 space-y-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="flex justify-between">
+                <div className="h-4 w-24 bg-gray-200 rounded"></div>
+                <div className="h-4 w-20 bg-gray-200 rounded"></div>
+                <div className="h-4 w-32 bg-gray-200 rounded"></div>
+                <div className="h-4 w-16 bg-gray-200 rounded"></div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function TyreDetailsPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -67,6 +127,8 @@ export default function TyreDetailsPage() {
   };
 
   const fetchTyreDetails = async () => {
+    // Artificial delay check (remove in production if you want instant)
+    // await new Promise(r => setTimeout(r, 500)); 
     try {
       setLoading(true);
       const config = getAuthConfig();
@@ -95,9 +157,8 @@ export default function TyreDetailsPage() {
     
     try {
       const config = getAuthConfig();
-      // Hits your provided 'inspect' controller method
       const response = await axios.patch(
-        `${import.meta.env.VITE_API_BASE_URL}/api/tyre/${id}/inspect`,
+        `${import.meta.env.VITE_API_BASE_URL}/api/tyre/${id}/inspect`, // POST matches your controller
         {
           currentTreadDepth: Number(inspectDepth),
           notes: "Updated via Details Page Inspection" 
@@ -105,7 +166,6 @@ export default function TyreDetailsPage() {
         config
       );
 
-      // Update local state immediately
       setTyre(response.data); 
       setIsInspecting(false);
     } catch (err: any) {
@@ -164,14 +224,24 @@ export default function TyreDetailsPage() {
     }
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center bg-gray-50"><LoadingSpinner /></div>;
-  if (error) return <div className="min-h-screen flex items-center justify-center bg-gray-50 text-red-500">{error}</div>;
+  // --- RENDER LOADING STATE ---
+  if (loading) return <TyreDetailsSkeleton />;
+
+  // --- RENDER ERROR STATE ---
+  if (error) return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 text-red-500 gap-4">
+      <FaTimes size={40} />
+      <p className="font-semibold">{error}</p>
+      <button onClick={fetchTyreDetails} className="text-blue-600 underline">Try Again</button>
+    </div>
+  );
+
   if (!tyre) return <div className="min-h-screen flex items-center justify-center bg-gray-50">Tyre not found</div>;
 
   return (
     <div className="min-h-screen bg-gray-50">
       
-    {/* --- HEADER (Non-Sticky) --- */}
+      {/* --- HEADER --- */}
       <div className="bg-white border-b">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -302,7 +372,7 @@ export default function TyreDetailsPage() {
                         className="p-2 bg-green-100 text-green-700 rounded hover:bg-green-200"
                         title="Save Inspection"
                       >
-                         {inspectSaving ? <LoadingSpinner/> : <FaCheck />}
+                         {inspectSaving ? <LoadingSpinner /> : <FaCheck />}
                       </button>
                       <button 
                         onClick={() => setIsInspecting(false)} 
