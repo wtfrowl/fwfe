@@ -95,19 +95,32 @@ export default function DocumentsDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 p-4 md:p-6">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">Truck Documents</h1>
-          <p className="text-gray-500">Manage, view, and filter documents by truck and type.</p>
+     {/* --- STICKY HEADER --- */}
+      <div className="bg-white border-b mb-2 shadow-sm transition-all">
+        <div className="mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            
+            {/* Title Section */}
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Truck Documents</h1>
+              <p className="text-sm text-gray-500 mt-1">Manage, view, and filter documents by truck and type.</p>
+            </div>
+
+            {/* Action Buttons */}
+            <div>
+              <button
+                onClick={() => setIsUploadModalOpen(true)}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 shadow-sm transition-colors"
+              >
+                <FaPlus className="w-3 h-3" /> 
+                <span>Upload Document</span>
+              </button>
+            </div>
+
+          </div>
         </div>
-        <button
-          onClick={() => setIsUploadModalOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
-        >
-          <FaPlus /> Upload Document
-        </button>
       </div>
 
       {/* Top Stats */}

@@ -1,11 +1,6 @@
-import { useContext, useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate, ScrollRestoration } from "react-router-dom";
-import {
-  BiLogOut,
-
-} from "react-icons/bi";
-
-
+import { BiLogOut } from "react-icons/bi";
 import truckIcon from "../assets/truck.svg";
 import { AuthContext } from "../context/AuthContext";
 import { NotificationBell } from "./components/NotificationBell";
@@ -16,37 +11,36 @@ import { GiPathDistance, GiTyre } from "react-icons/gi";
 import { HiOutlineDocumentText } from "react-icons/hi";
 import { CgProfile } from "react-icons/cg";
 import { FiLogOut } from "react-icons/fi";
-import {  getCurrentLocation } from "./services/location";
+import { getCurrentLocation } from "./services/location";
 import { ImLocation2 } from "react-icons/im";
 
 const DashboardLayout: React.FC = () => {
   const navigate = useNavigate();
   const [locationStatus, setLocationStatus] = useState<'idle' | 'loading' | 'success'>('loading');
-
   const location = useLocation();
-const getLocationDetails = async () => {
-  try {
-    setLocationStatus('loading');
-    await getCurrentLocation()
-      .then(async (res: any) => {
-        console.log("Lat:", res.latitude, "Long:", res.longitude, "Location:", res.location);
-        setLocationStatus('success');
-      })
-      .catch((err) => {
-        console.error("Location error:", err.message);
-        setLocationStatus('idle');
-      });
-  } catch (err: any) {
-    console.error("Error:", err.message);
-    setLocationStatus('idle');
-  }
-};
 
+  const getLocationDetails = async () => {
+    try {
+      setLocationStatus('loading');
+      await getCurrentLocation()
+        .then(async (res: any) => {
+          console.log("Lat:", res.latitude, "Long:", res.longitude, "Location:", res.location);
+          setLocationStatus('success');
+        })
+        .catch((err) => {
+          console.error("Location error:", err.message);
+          setLocationStatus('idle');
+        });
+    } catch (err: any) {
+      console.error("Error:", err.message);
+      setLocationStatus('idle');
+    }
+  };
 
   const isOwner = location.pathname.startsWith("/owner");
   const { ownerLogout, driverLogout } = useContext(AuthContext);
 
-    const tokenKey= (isOwner ? "ownerToken" : "driverToken");
+  const tokenKey = (isOwner ? "ownerToken" : "driverToken");
   const tokenRaw = localStorage.getItem(tokenKey);
   let token: { firstName: string; _id: string } | null = null;
   if (tokenRaw) {
@@ -71,245 +65,177 @@ const getLocationDetails = async () => {
     if (!token) {
       navigate(isOwner ? "/owner-login" : "/driver-login");
     }
-
     document.title = token
       ? `Welcome ${token.firstName} - ${isOwner ? "Owner" : "Driver"} Dashboard`
       : "Please Login";
   }, [token, navigate, isOwner]);
 
-
-
-  //sockettt
-  //  useEffect(() => {
-  //   if (!token) {
-  //     navigate(isOwner ? "/owner-login" : "/driver-login");
-  //     return;
-  //   }
-
-  //   socket.connect(); // 🔑 Explicitly connect
-
-  //   const roomId = isOwner ? `owner-${token._id}` : `driver-${token._id}`;
-  //   console.log("➡️ Joining room:", roomId);
-  //   socket.emit("join-room", roomId);
-
-  //   socket.on("connect", () => {
-  //     console.log("🟢 Connected to socket:", socket.id);
-  //   });
-
-  //   socket.on("disconnect", () => {
-  //     console.log("🔴 Disconnected from socket");
-  //   });
-
-  //   socket.on("trip-created", (data) => {
-  //     console.log("📦 Trip created:", data);
-  //     alert(`New Trip Created: ${data.registrationNumber}`);
-  //   });
-
-  //   socket.on("trip-status-updated", (data) => {
-  //     console.log("🔁 Trip status updated:", data);
-  //     alert(`Trip ${data.tripId} is now ${data.status}`);
-  //   });
-
-  //   return () => {
-  //     socket.off("connect");
-  //     socket.off("disconnect");
-  //     socket.off("trip-created");
-  //     socket.off("trip-status-updated");
-  //     socket.disconnect(); // 🔌 Optional: close when layout unmounts
-  //   };
-  // }, [token, isOwner, navigate]);
-
-
+  // --- STYLE HELPER FOR NAV LINKS ---
+  // This ensures both mobile and desktop links look consistent
+  const navLinkClasses = ({ isActive }: { isActive: boolean }) =>
+    `flex items-center p-3 rounded-lg font-semibold transition-all duration-200 ${
+      isActive
+        ? "bg-[#e7f09c] text-black shadow-sm" // Active: Yellow brand color
+        : "text-gray-600 hover:bg-gray-100 hover:text-black" // Inactive: Gray with hover
+    }`;
 
   return (
     <>
-      <div className="sticky top-0 z-10 bg-white shadow-md md:shadow-none">
-      {/* Topbar */}
-      <div className="flex flex-row justify-between md:justify-around items-center h-20 border-b-indigo-400">
-        <div className="ml-4">
-          <img
-            src={truckIcon}
-            loading="lazy"
-            className="w-15 h-20"
-            alt="tailus logo"
-            onClick={() => navigate("/")}
-          />
-        </div>
-        <div className="mr-4 flex items-center gap-4">
-        {/*Location refresh button icon*/}
+      <div className="sticky top-0 z-20 bg-white shadow-sm border-b border-gray-200">
+        {/* Topbar */}
+        <div className="flex flex-row justify-between md:justify-around items-center h-20">
+          <div className="ml-4 cursor-pointer" onClick={() => navigate("/")}>
+            <img
+              src={truckIcon}
+              loading="lazy"
+              className="w-12 h-16"
+              alt="logo"
+            />
+          </div>
+          <div className="mr-4 flex items-center gap-4">
+            {/* Location refresh button */}
+            <button
+              onClick={getLocationDetails}
+              className={`h-9 w-9 items-center justify-center flex rounded-full cursor-pointer transition-colors ${
+                locationStatus === 'loading'
+                  ? 'bg-red-100 text-red-500 animate-pulse'
+                  : locationStatus === 'success'
+                  ? 'bg-green-100 text-green-600'
+                  : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+              }`}
+              title="Refresh Location"
+            >
+              <ImLocation2 className="w-5 h-5" />
+            </button>
 
-        <button onClick={getLocationDetails}
-  className={` h-8 w-8 items-center justify-center flex rounded-full cursor-pointer ${
-    locationStatus === 'loading'
-      ? 'blinking-red'
-      : locationStatus === 'success'
-      ? 'bg-green-500'
-      : 'bg-gray-200'
-  }`}
->
-  <ImLocation2 className="w-5 h-5 text-white" />
-</button>
-
-
-          <NotificationBell />
-          {token ? (
-            <>
-              <span className="hidden md:block text-xs md:text-xl sm:text-xl">
-                Welcome {token.firstName}
+            <NotificationBell />
+            
+            {token ? (
+              <div className="flex items-center gap-3">
+                <span className="hidden md:block text-sm md:text-lg font-medium text-gray-700">
+                  Welcome, {token.firstName}
+                </span>
+                <BiLogOut
+                  className="h-6 w-6 text-gray-500 cursor-pointer md:hidden hover:text-red-500"
+                  onClick={handleLogout}
+                />
+              </div>
+            ) : (
+              <span className="hidden md:block text-sm">
+                Please{" "}
+                <a
+                  className="text-cyan-600 font-bold hover:underline"
+                  href={isOwner ? "/owner-login" : "/driver-login"}
+                >
+                  Login
+                </a>
               </span>
-              <BiLogOut
-                className="h-8 w-8 block text-[#5786cc] cursor-pointer md:hidden"
-                onClick={handleLogout}
-              />
-            </>
-          ) : (
-            <span className="hidden md:block text-xs md:text-xl sm:text-xl">
-              Please{" "}
-              <a
-                className="text-cyan-600 font-bold"
-                href={isOwner ? "/owner-login" : "/driver-login"}
-              >
-                Login
-              </a>
-            </span>
+            )}
+          </div>
+        </div>
+
+        {/* Mobile Nav (Horizontal Scroll) */}
+        <div className="flex md:hidden text-nowrap scrollbar-hide gap-3 p-3 border-t bg-white overflow-x-auto">
+          <NavLink className={navLinkClasses} to="" end>
+            <MdDashboard className="mr-2 text-xl" /> Dashboard
+          </NavLink>
+
+          {isOwner && (
+            <NavLink className={navLinkClasses} to="loads">
+              <TbPackages className="mr-2 text-xl" /> Loads
+            </NavLink>
           )}
+
+          <NavLink className={navLinkClasses} to="mytrucks">
+            <FaTruck className="mr-2 text-xl" /> My Trucks
+          </NavLink>
+
+          <NavLink className={navLinkClasses} to="trips">
+            <GiPathDistance className="mr-2 text-xl" /> Trips
+          </NavLink>
+
+          <NavLink className={navLinkClasses} to="tyre">
+            <GiTyre className="mr-2 text-xl" /> Tyre
+          </NavLink>
+
+          <NavLink className={navLinkClasses} to="mydocs">
+            <HiOutlineDocumentText className="mr-2 text-xl" /> Documents
+          </NavLink>
+
+          <NavLink className={navLinkClasses} to={isOwner ? "owner-profile" : "driver-profile"}>
+            <CgProfile className="mr-2 text-xl" /> Profile
+          </NavLink>
         </div>
       </div>
 
-      {/* Mobile Nav */}
-     <div className="flex text-nowrap scrollbar-hide gap-6 p-4 border-b-2 overflow-hidden overflow-x-scroll md:hidden">
-      <NavLink
-    className="flex items-center p-2 font-semibold border rounded-lg bg-[#dbdbdb]"
-    to=""
-    end
-  >
-    <MdDashboard className="mr-2" />
-    Dashboard
-  </NavLink>
-
-  {isOwner && (
-    <NavLink
-      className="flex items-center p-2 font-semibold border rounded-lg bg-[#dbdbdb]"
-      to="loads"
-    >
-      <TbPackages className="mr-2" />
-      Loads
-    </NavLink>
-  )}
-
-  <NavLink
-    className="flex items-center p-2 font-semibold border rounded-lg bg-[#dbdbdb]"
-    to="mytrucks"
-  >
-    <FaTruck className="mr-2" />
-    My Trucks
-  </NavLink>
-
-  <NavLink
-    className="flex items-center p-2 font-semibold border rounded-lg bg-[#dbdbdb]"
-    to="trips"
-  >
-    <GiPathDistance className="mr-2" />
-    Trips
-  </NavLink>
-
-    <NavLink
-    className="flex items-center p-2 font-semibold border rounded-lg bg-[#dbdbdb]"
-    to="tyre"
-  >
-    <GiPathDistance className="mr-2" />
-    Tyre
-  </NavLink>
-
-  <NavLink
-    className="flex items-center p-2 font-semibold border rounded-lg bg-[#dbdbdb]"
-    to="mydocs"
-  >
-    <HiOutlineDocumentText className="mr-2" />
-    Documents
-  </NavLink>
-
-  <NavLink
-    className="flex items-center p-2 font-semibold border rounded-lg bg-[#dbdbdb]"
-    to={isOwner ? "owner-profile" : "driver-profile"}
-  >
-    <CgProfile className="mr-2" />
-    Profile
-  </NavLink>
-</div>
-</div>
-
-
       {/* Main Section */}
-      <div className="relative bg-gradient-to-br bg-slate-100">
-        <div className="flex h-full">
-          {/* Sidebar (desktop) */}
-          <div className="bg-[#e7f09c] hidden md:block sticky top-20 h-[calc(100vh-80px)]">
-            <ul className="list-none p-3 flex flex-col m-0">
-              <li className="mb-2 h-10 p-2 font-semibold w-[220px]">
-                <NavLink className="flex items-center p-2" to="" end>
-                  <MdDashboard className="mr-2" />
-                  Dashboard
-                </NavLink>
-              </li>
+      <div className="relative bg-slate-50 min-h-screen">
+        <div className="flex max-w-[1920px] mx-auto">
+          
+          {/* Sidebar (Desktop) - Fixed color scheme */}
+          <aside className="hidden md:block w-[240px] flex-shrink-0 bg-white border-r border-gray-200 sticky top-20 h-[calc(100vh-80px)] overflow-y-auto">
+            <nav className="p-4 flex flex-col h-full justify-between">
+              <ul className="space-y-2">
+                <li>
+                  <NavLink className={navLinkClasses} to="" end>
+                    <MdDashboard className="mr-3 text-xl" /> Dashboard
+                  </NavLink>
+                </li>
 
-              <li className="mb-2 h-10 p-2 font-semibold w-[220px]">
-                <NavLink className="flex items-center p-2" to="mytrucks">
-                  <FaTruck className="mr-2" />
-                  My Trucks
-                </NavLink>
-              </li>
-              {isOwner && (<li className="mb-2 h-10 p-2 font-semibold w-[220px]">
-                <NavLink className="flex items-center p-2" to="loads">
-                  <TbPackages className="mr-2" />
-                  Loads
-                </NavLink>
-              </li>)}
-              <li className="mb-2 h-10 p-2 font-semibold w-[220px]">
-                <NavLink className="flex items-center p-2" to="trips">
-                  <GiPathDistance className="mr-2" />
-                  Trips
-                </NavLink></li>
-                 
-              <li className="mb-2 h-10 p-2 font-semibold w-[220px]">
-                <NavLink className="flex items-center p-2" to="tyre">
-                  <GiTyre className="mr-2" />
-                  Tyre
-                </NavLink></li>
-              <li className="mb-2 h-10 p-2 font-semibold w-[220px]">
-                <NavLink className="flex items-center p-2" to="mydocs">
-                  <HiOutlineDocumentText className="mr-2" />
-                  Documents
-                </NavLink></li>
+                <li>
+                  <NavLink className={navLinkClasses} to="mytrucks">
+                    <FaTruck className="mr-3 text-xl" /> My Trucks
+                  </NavLink>
+                </li>
 
-              <li className="mb-2 h-10 p-2 font-semibold w-[220px]">
-                <NavLink className="flex items-center p-2" to={isOwner ? "owner-profile" : "driver-profile"}>
-                  <CgProfile className="mr-2" />
-                  Profile
-                </NavLink></li>
+                {isOwner && (
+                  <li>
+                    <NavLink className={navLinkClasses} to="loads">
+                      <TbPackages className="mr-3 text-xl" /> Loads
+                    </NavLink>
+                  </li>
+                )}
 
+                <li>
+                  <NavLink className={navLinkClasses} to="trips">
+                    <GiPathDistance className="mr-3 text-xl" /> Trips
+                  </NavLink>
+                </li>
 
-            </ul>
+                <li>
+                  <NavLink className={navLinkClasses} to="tyre">
+                    <GiTyre className="mr-3 text-xl" /> Tyre
+                  </NavLink>
+                </li>
 
-            <ul className="mt-10 list-none p-3 flex flex-col m-0">
-              <li className="mb-2 h-10 p-2 font-semibold">
-                <button onClick={handleLogout} className="flex items-center p-2">
-                  <FiLogOut className="mr-2" />
-                  Logout
+                <li>
+                  <NavLink className={navLinkClasses} to="mydocs">
+                    <HiOutlineDocumentText className="mr-3 text-xl" /> Documents
+                  </NavLink>
+                </li>
+
+                <li>
+                  <NavLink className={navLinkClasses} to={isOwner ? "owner-profile" : "driver-profile"}>
+                    <CgProfile className="mr-3 text-xl" /> Profile
+                  </NavLink>
+                </li>
+              </ul>
+
+              {/* Logout Button at bottom of sidebar */}
+              <div className="pt-4 border-t border-gray-100 mt-4">
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center w-full p-3 rounded-lg font-semibold text-red-500 hover:bg-red-50 transition-colors duration-200"
+                >
+                  <FiLogOut className="mr-3 text-xl" /> Logout
                 </button>
-              </li>
-            </ul>
-          </div>
+              </div>
+            </nav>
+          </aside>
 
           {/* Page Outlet */}
-          <main className="min-h-screen block w-full pb-12 md:pb-0">
+          <main className="flex-1 p-4 md:p-8 w-full overflow-hidden">
             <Outlet />
-            {/* Footer */}
-            {/* <footer className="w-full p-4 bg-white shadow md:flex md:items-center md:justify-between md:p-3 md:fixed md:bottom-0 md:left-[220px] md:right-0 md:z-10">
-              <span className="text-sm sm:text-center">
-                © 2024 Made with Love. All Rights Reserved.
-              </span>
-            </footer> */}
           </main>
         </div>
       </div>

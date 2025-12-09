@@ -46,7 +46,7 @@ export default function Loads() {
   }, [page]);
 
   return (
-    <div className="min-h-screen bg-gray-100 p-4 md:p-6">
+    <div className="min-h-screen bg-gray-100">
       <div className="bg-white rounded shadow p-4 mb-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>

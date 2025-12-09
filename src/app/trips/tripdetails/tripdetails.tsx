@@ -11,7 +11,8 @@ import {
   FaQuestion, 
   FaWrench, 
   FaUserTie,
-  FaTruckLoading
+  FaTruckLoading,
+  FaArrowLeft
 } from "react-icons/fa"
 import { api } from "../services/api"
 import { AuthContext } from "../../../context/AuthContext"
@@ -257,10 +258,28 @@ const TripInfo: React.FC = () => {
   const netProfit = totalFreight - totalExpenses - (trip.commissionAmount || 0) - (trip.shortageAmount || 0);
 
   return (
-    <div className="mx-auto p-6 sm:px-8 bg-gray-50 space-y-6">
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold inline-block px-4 py-2">Trip Details</h1>
-        <button onClick={() => window.history.back()} className="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-100">Go Back</button>
+    <div className="mx-auto sm:px-8 bg-gray-50 space-y-6">
+  <div className="bg-white border-b">
+        <div className="mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            
+            {/* Title Section */}
+            <div>
+              <h1 className="text-2xl font-semibold">Trip Details</h1>
+              <p className="text-sm text-gray-500">View trip status, expenses, and timeline</p>
+            </div>
+
+            {/* Back Button */}
+            <button 
+              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 flex items-center gap-2" 
+              onClick={() => window.history.back()} 
+            >
+              <FaArrowLeft className="w-4 h-4" />
+              Go Back
+            </button>
+
+          </div>
+        </div>
       </div>
 
     {/* Info Cards */}

@@ -142,7 +142,7 @@ export default function Tyre() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
+    <div className="min-h-screen bg-gray-50 ">
       <div className="mx-auto space-y-6">
         <div className="bg-white rounded-lg shadow">
           

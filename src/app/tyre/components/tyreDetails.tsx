@@ -171,9 +171,9 @@ export default function TyreDetailsPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       
-      {/* --- HEADER --- */}
-      <div className="bg-white border-b sticky top-[64px] z-30 shadow-sm transition-all">
-        <div className="mx-auto px-4 sm:px-6 lg:px-8 py-4">
+    {/* --- HEADER (Non-Sticky) --- */}
+      <div className="bg-white border-b">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             
             {/* Title Section */}

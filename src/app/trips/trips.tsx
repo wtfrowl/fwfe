@@ -84,7 +84,7 @@ export default function Trips() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
+    <div className="min-h-screen bg-gray-50">
       <div className="mx-auto">
         <div className="bg-white rounded-lg shadow">
           {/* Header */}
