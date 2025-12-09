@@ -1,4 +1,3 @@
-import { StatusBadge } from "./components/status-badge";
 import { MetricCard } from "./components/metric-card";
 import { TripsTable } from "./components/trips-table";
 import { CurrentTripCard } from "./components/current-trip-card";
@@ -330,7 +329,7 @@ export default function TruckDetails() {
                   className="text-green-600 hover:text-green-800 p-2 bg-green-100 rounded-full"
                   title="Save"
                 >
-                  {isSavingTruck ? <LoadingSpinner size="sm"/> : <FaCheck size={14}/>}
+                  {isSavingTruck ? <LoadingSpinner/> : <FaCheck size={14}/>}
                 </button>
               </div>
             )}
