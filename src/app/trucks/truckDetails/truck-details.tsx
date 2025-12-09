@@ -2,7 +2,10 @@ import { StatusBadge } from "./components/status-badge";
 import { MetricCard } from "./components/metric-card";
 import { TripsTable } from "./components/trips-table";
 import { CurrentTripCard } from "./components/current-trip-card";
-import { FaArrowLeft, FaTimes } from "react-icons/fa"; 
+import { 
+  FaArrowLeft, FaTimes, FaCheck, FaTruck, 
+  FaEdit, FaCalendarAlt, FaWeightHanging 
+} from "react-icons/fa";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
@@ -22,30 +25,58 @@ interface Tyre {
   currentTruckId?: string | { _id: string }; 
 }
 
+// Matches your Mongoose Schema
+interface TruckProfile {
+  _id: string;
+  registrationNumber: string;
+  model: string;
+  capacity: number;
+  status: "En Route" | "Available" | "Out of Service";
+  lastMaintenance: string; // ISO Date string
+  currentSpeed?: number;
+  travelledToday?: number;
+  ignition?: string;
+  lastUpdated?: string;
+  location?: string;
+  currentTrip?: any;
+  trips?: any[];
+  driverNames?: string[];
+  driverId?: string[];
+  totalKm?: number;
+  available?: boolean;
+}
+
 export default function TruckDetails() {
   const { regNo } = useParams();
-  const [truckDetails, setTruckDetails] = useState<any>({});
+  const navigate = useNavigate();
+
+  // --- Main State ---
+  const [truckDetails, setTruckDetails] = useState<Partial<TruckProfile>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [drivers, setDrivers] = useState<unknown[]>([]);
-  const [selectedDriver, setSelectedDriver] = useState<string>("");
+  
+  // --- Truck Edit State ---
+  const [isEditingTruck, setIsEditingTruck] = useState(false);
+  const [truckForm, setTruckForm] = useState<Partial<TruckProfile>>({});
+  const [isSavingTruck, setIsSavingTruck] = useState(false);
 
-  // --- Tyre State ---
+  // --- Driver/Tyre State ---
+  const [drivers, setDrivers] = useState<any[]>([]);
+  const [selectedDriver, setSelectedDriver] = useState<string>("");
   const [allTyres, setAllTyres] = useState<Tyre[]>([]);
   const [mountedTyres, setMountedTyres] = useState<Tyre[]>([]);
   const [spareTyres, setSpareTyres] = useState<Tyre[]>([]);
+  
+  // --- Modal/Action State ---
   const [isMountModalOpen, setIsMountModalOpen] = useState(false);
   const [isMounting, setIsMounting] = useState(false);
-   
-  // Mount Form State
+
   const [mountForm, setMountForm] = useState({
     tyreId: "",
     position: "Front-Left",
     currentKm: 0,
     notes: ""
   });
-
-   const navigate = useNavigate();
 
   // --- Helper: Get Token Config ---
   const getAuthConfig = () => {
@@ -60,22 +91,67 @@ export default function TruckDetails() {
     };
   };
 
+  // --- FETCH DATA ---
+  useEffect(() => {
+    fetchDriver();
+  }, []);
+
+  useEffect(() => {
+    if (regNo) {
+      fetchTruckDetails().then(() => fetchTyres());
+    }
+  }, [regNo]);
+
+  // Filter Tyres Logic
+  useEffect(() => {
+    if (truckDetails._id && allTyres.length > 0) {
+      const mounted = allTyres.filter((t: any) => {
+        const tTruckId = t.currentTruckId?._id || t.currentTruckId;
+        return tTruckId === truckDetails._id && t.status === "Mounted";
+      });
+      setMountedTyres(mounted);
+      const spares = allTyres.filter(t => t.status === "Spare");
+      setSpareTyres(spares);
+    }
+  }, [allTyres, truckDetails]);
+
+
   const fetchDriver = async () => {
     try {
       const driversData = await api.drivers.list();
-      setDrivers(driversData);
-    } catch (error) {
-      console.error("Error fetching drivers:", error);
+      setDrivers(driversData as any[]);
+    } catch (error) { console.error(error); }
+  };
+
+  const fetchTyres = async () => {
+    try {
+      const config = getAuthConfig();
+      const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/tyre/list`, config);
+      setAllTyres(response.data);
+    } catch (error) { console.error(error); }
+  };
+
+  const fetchTruckDetails = async () => {
+    const config = getAuthConfig();
+    try {
+      const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/trucks/${regNo}`, config);
+      setTruckDetails(response.data);
+      setTruckForm(response.data); // Initialize edit form
+      
+      if (response.data.totalKm) {
+        setMountForm(prev => ({ ...prev, currentKm: response.data.totalKm }));
+      }
+    } catch (err: any) {
+      console.error("Truck details fetch failed:", err);
+      setError("Failed to fetch truck details.");
+    } finally {
+      setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchDriver();
-  }, [])
-
   const assignDriver = async ( driverId: string) => {
     try {
-      await api.trucks.assignDriver(truckDetails._id, driverId);
+      await api.trucks.assignDriver(truckDetails._id!, driverId);
       console.log("Driver assigned successfully");
       fetchTruckDetails();
     } catch (error) {
@@ -83,55 +159,46 @@ export default function TruckDetails() {
     }
   };
 
-  // ---------------------------------------------------------
-  // 1. FETCH TYRES (Matches TyreController.getAllByOwner)
-  // ---------------------------------------------------------
-  const fetchTyres = async () => {
+  // --- TRUCK UPDATE HANDLER ---
+ const handleSaveTruck = async () => {
+    setIsSavingTruck(true);
     try {
       const config = getAuthConfig();
-      // Using POST because controller reads req.body.decryptedPayload
-      // Make sure your route is defined as router.post('/get-all', TyreController.getAllByOwner)
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_BASE_URL}/api/tyre/list`, 
+      
+      const payload = {
+        // Send the boolean directly
+        available: truckForm.available,
+        // Optional: Sync status string if backend requires it
+        status: truckForm.available ? "Available" : "Out of Service", 
+        lastMaintenance: truckForm.lastMaintenance,
+      };
+
+      const response = await axios.patch(
+        `${import.meta.env.VITE_API_BASE_URL}/api/trucks/${truckDetails._id}`, 
+        payload,
         config
       );
-      setAllTyres(response.data);
+
+      setTruckDetails({ ...truckDetails, ...response.data });
+      setIsEditingTruck(false);
     } catch (error) {
-      console.error("Error fetching tyres:", error);
+      console.error(error);
+      alert("Failed to update truck details");
+    } finally {
+      setIsSavingTruck(false);
     }
   };
 
-  // Filter Tyres Logic
-  useEffect(() => {
-    if (truckDetails._id && allTyres.length > 0) {
-      // Filter Mounted
-      const mounted = allTyres.filter((t: any) => {
-        const tTruckId = t.currentTruckId?._id || t.currentTruckId;
-        return tTruckId === truckDetails._id && t.status === "Mounted";
-      });
-      setMountedTyres(mounted);
-
-      // Filter Spares
-      const spares = allTyres.filter(t => t.status === "Spare");
-      setSpareTyres(spares);
-    }
-  }, [allTyres, truckDetails]);
-
-  // ---------------------------------------------------------
-  // 2. MOUNT TYRE (Matches TyreController.mountTyre)
-  // ---------------------------------------------------------
+  // --- TYRE ACTIONS ---
   const handleMountSubmit = async () => {
-    // 1. Start Loading
-  setIsMounting(true);
+    setIsMounting(true);
     if (!mountForm.tyreId) return alert("Please select a tyre");
 
     try {
       const config = getAuthConfig();
-      
-      // Payload matching: const { tyreId, truckId, position, currentKm, notes } = req.body;
       const payload = {
         tyreId: mountForm.tyreId,
-        truckId: truckDetails._id, // Explicitly sending truckId
+        truckId: truckDetails._id,
         position: mountForm.position,
         currentKm: mountForm.currentKm,
         notes: mountForm.notes
@@ -144,7 +211,6 @@ export default function TruckDetails() {
       );
 
       setIsMountModalOpen(false);
-      // Reset form but keep currentKm
       setMountForm({ 
         tyreId: "", 
         position: "Front-Left", 
@@ -152,36 +218,25 @@ export default function TruckDetails() {
         notes: "" 
       });
       
-      // Refresh Data
       fetchTyres(); 
-      fetchTruckDetails(); // Update truck to reflect activeTyres changes
+      fetchTruckDetails(); 
     } catch (error: any) {
       alert(error.response?.data?.message || "Mount failed");
-    }
-    finally {
-    // 2. Stop Loading (Runs whether success or failure)
-    setIsMounting(false);
+    } finally {
+      setIsMounting(false);
     }
   };
 
-  // ---------------------------------------------------------
-  // 3. DISMOUNT TYRE (Matches TyreController.dismountTyre)
-  // ---------------------------------------------------------
   const handleDismount = async (tyreId: string) => {
     if (!confirm("Are you sure you want to dismount this tyre?")) return;
-    
-    // Simple prompt for reason. In a real app, use a modal or dropdown.
-    // Controller accepts: "Puncture", "Rotation", "Retread", "Scrap", or defaults to "Spare" logic
     const reason = prompt("Enter Reason (Rotation, Puncture, Retread, Scrap):", "Rotation");
     if (!reason) return; 
 
     try {
       const config = getAuthConfig();
-
-      // Payload matching: const { tyreId, currentKm, reason, notes } = req.body;
       const payload = {
         tyreId,
-        currentKm: truckDetails.totalKm || 0, // Sending Truck KM
+        currentKm: truckDetails.totalKm || 0,
         reason: reason, 
         notes: "Dismounted via Truck Dashboard"
       };
@@ -198,228 +253,295 @@ export default function TruckDetails() {
       alert(error.response?.data?.message || "Dismount failed");
     }
   };
-
-
-  const fetchTruckDetails = async () => {
-    const config = getAuthConfig();
-    try {
-      console.log(`Fetching data from: ${import.meta.env.VITE_API_BASE_URL}/api/trucks/${regNo}`);
-      
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_BASE_URL}/api/trucks/${regNo}`,
-        config
-      );
-
-      console.log("Response data:", response.data);
-      setTruckDetails(response.data);
-      
-      // Update mount form default KM
-      if (response.data.totalKm) {
-        setMountForm(prev => ({ ...prev, currentKm: response.data.totalKm }));
-      }
-
-    } catch (err:any) {
-      console.error("Truck details fetch failed:", err.response || err.message || err);
-      setError("Failed to fetch truck details.");
-    } finally {
-      setLoading(false);
+  
+  // --- RENDER HELPERS ---
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "Available": return "bg-green-100 text-green-800";
+      case "En Route": return "bg-blue-100 text-blue-800";
+      case "Out of Service": return "bg-red-100 text-red-800";
+      default: return "bg-gray-100 text-gray-800";
     }
   };
 
-  // Initial Load
-  useEffect(() => {
-    if (regNo) {
-      fetchTruckDetails().then(() => {
-        // Fetch tyres after we start loading truck details
-        fetchTyres();
-      });
-    }
-  }, [regNo]);
-
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 pb-20">
+      
+      {/* --- HEADER --- */}
       <div className="bg-white border-b">
-        <div className=" mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <div className="mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h1 className="text-2xl font-semibold">Truck #{truckDetails.id}</h1>
-              <p className="text-sm text-gray-500">Get all Details of Truck</p>
+              <div className="flex items-center gap-3 flex-wrap">
+                <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 break-all">
+                  {truckDetails.registrationNumber || "Truck Details"}
+                </h1>
+                {truckDetails.status && (
+                  <span className={`px-2 py-1 rounded text-xs font-bold uppercase whitespace-nowrap ${getStatusColor(truckDetails.status)}`}>
+                    {truckDetails.status}
+                  </span>
+                )}
+              </div>
+              <p className="text-sm text-gray-500 mt-1">Manage specifications, maintenance, and drivers</p>
             </div>
-            <button className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 flex items-center gap-2"  onClick={() => window.history.back()} >
-              <FaArrowLeft className="w-4 h-4" />
-              Go Back
+            <button 
+              className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 flex items-center gap-2 text-sm w-full sm:w-auto justify-center" 
+              onClick={() => window.history.back()} 
+            >
+              <FaArrowLeft className="w-3 h-3" /> Back
             </button>
           </div>
         </div>
       </div>
 
-      <div className="mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {error && <p className="text-red-500">{error}</p>} 
+      <div className="mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+        {error && <p className="text-red-500">{error}</p>} 
 
-
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="space-y-6">
-              <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-                <div>
-                  <h2 className="text-xl font-semibold">{truckDetails._id}</h2>
-                  <p className="text-sm text-gray-500">{truckDetails.lastUpdated}</p>
-                  <p className="text-sm text-gray-600 mt-2">{truckDetails.location}</p>
-                </div>
-                <div className="flex-shrink-0">
-                  <StatusBadge status="Stopped" duration={truckDetails.stoppedDuration} />
-                </div>
+        {/* --- 1. TRUCK PROFILE CARD (Inline Edit) --- */}
+        <div className="bg-white rounded-lg shadow p-4 sm:p-6 relative group">
+          <div className="flex justify-between items-start mb-4 border-b pb-4">
+            <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+              <FaTruck className="text-blue-600" /> <span className="hidden sm:inline">Truck</span> Profile
+            </h3>
+            
+            {/* MOBILE FIX: Removed 'opacity-0 group-hover:opacity-100'
+                Now uses 'opacity-100 md:opacity-0 md:group-hover:opacity-100'
+                This means it is always visible on mobile, and hover-only on desktop.
+            */}
+            {!isEditingTruck ? (
+              <button 
+                onClick={() => setIsEditingTruck(true)}
+                className="text-blue-600 hover:text-blue-800 flex items-center gap-1 text-sm font-medium opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity p-1"
+              >
+                <FaEdit /> <span className="sm:inline">Edit Details</span>
+              </button>
+            ) : (
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => setIsEditingTruck(false)}
+                  className="text-gray-500 hover:text-gray-700 p-2 bg-gray-100 rounded-full"
+                  title="Cancel"
+                >
+                  <FaTimes size={14}/>
+                </button>
+                <button 
+                  onClick={handleSaveTruck}
+                  disabled={isSavingTruck}
+                  className="text-green-600 hover:text-green-800 p-2 bg-green-100 rounded-full"
+                  title="Save"
+                >
+                  {isSavingTruck ? <LoadingSpinner size="sm"/> : <FaCheck size={14}/>}
+                </button>
               </div>
+            )}
+          </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                <MetricCard
-                  label="Ignition"
-                  value={truckDetails.ignition}
-                  valueColor={truckDetails.ignition === "ON" ? "text-green-600" : "text-red-600"}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
+            {/* Model */}
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Model</label>
+              {isEditingTruck ? (
+                <input 
+                  className="w-full border rounded p-2 text-sm bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                  value={truckForm.model || ""}
+                  onChange={(e) => setTruckForm({...truckForm, model: e.target.value})}
                 />
-                <MetricCard label="Speed" value={`${truckDetails.currentSpeed} km/h`} />
-                <MetricCard label="Travelled Today" value={`${truckDetails.travelledToday} km`} />
-              </div>
+              ) : (
+                <p className="text-gray-900 font-medium">{truckDetails.model || "N/A"}</p>
+              )}
+            </div>
+
+            {/* Capacity */}
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Capacity</label>
+              {isEditingTruck ? (
+                <input 
+                  type="number"
+                  className="w-full border rounded p-2 text-sm bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                  value={truckForm.capacity || ""}
+                  onChange={(e) => setTruckForm({...truckForm, capacity: Number(e.target.value)})}
+                />
+              ) : (
+                <p className="text-gray-900 font-medium flex items-center gap-1">
+                  <FaWeightHanging className="text-gray-400" /> {truckDetails.capacity || 0} Tons
+                </p>
+              )}
+            </div>
+
+          {/* Availability (Boolean Edit) */}
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Availability</label>
+              {isEditingTruck ? (
+                <select 
+                  className="w-full border border-blue-500 rounded p-2 text-sm bg-white focus:ring-2 focus:ring-blue-200 outline-none"
+                  // Convert boolean to string for the select input
+                  value={truckForm.available ? "true" : "false"}
+                  // Convert string back to boolean for state
+                  onChange={(e) => setTruckForm({ ...truckForm, available: e.target.value === "true" })}
+                >
+                  <option value="true">Available</option>
+                  <option value="false">Unavailable</option>
+                </select>
+              ) : (
+                <div className="p-2">
+                  <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${
+                    truckDetails.available ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+                  }`}>
+                    {truckDetails.available ? "Available" : "Unavailable"}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Maintenance Date */}
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Maintenance</label>
+              {isEditingTruck ? (
+                <input 
+                  type="date"
+                  className="w-full border rounded p-2 text-sm bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                  value={truckForm.lastMaintenance ? new Date(truckForm.lastMaintenance).toISOString().split('T')[0] : ""}
+                  onChange={(e) => setTruckForm({...truckForm, lastMaintenance: e.target.value})}
+                />
+              ) : (
+                <p className="text-gray-900 font-medium flex items-center gap-1">
+                  <FaCalendarAlt className="text-gray-400" /> 
+                  {truckDetails.lastMaintenance ? new Date(truckDetails.lastMaintenance).toLocaleDateString() : "N/A"}
+                </p>
+              )}
             </div>
           </div>
-          {loading ? (<>
-<LoadingSpinner/>
-</>):(
-  <>       
-      { <CurrentTripCard trip={truckDetails.currentTrip} />}
-  </>)
-  }
-       
         </div>
 
-                {/* --- TYRE MANAGEMENT SECTION --- */}
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
+        {/* --- 2. TELEMETRY & TRIP CARDS --- */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Telemetry Card */}
+          <div className="bg-white rounded-lg shadow p-4 sm:p-6">
+            <h3 className="text-lg font-semibold mb-4">Live Telemetry</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <MetricCard
+                label="Ignition"
+                value={truckDetails.ignition || "OFF"}
+                valueColor={truckDetails.ignition === "ON" ? "text-green-600" : "text-red-600"}
+              />
+              <MetricCard label="Speed" value={`${truckDetails.currentSpeed || 0} km/h`} />
+              <MetricCard label="Travelled Today" value={`${truckDetails.travelledToday || 0} km`} />
+            </div>
+            <div className="mt-4 pt-4 border-t text-xs sm:text-sm text-gray-500 flex flex-col sm:flex-row justify-between gap-2">
+               <span>Updated: {truckDetails.lastUpdated ? new Date(truckDetails.lastUpdated).toLocaleTimeString() : "-"}</span>
+               <span className="truncate">{truckDetails.location || "Location unknown"}</span>
+            </div>
+          </div>
+
+          {/* Current Trip Card */}
+          {loading ? <LoadingSpinner/> : <CurrentTripCard trip={truckDetails.currentTrip} />}
+        </div>
+
+        {/* --- 3. TYRE MANAGEMENT --- */}
+        <div className="bg-white rounded-lg shadow p-4 sm:p-6 relative">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold">Tyre Configuration</h3>
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+               <span className="p-1 bg-gray-100 rounded text-gray-600">🛞</span> Tyre Config
+            </h3>
             <button 
               onClick={() => setIsMountModalOpen(true)}
-              className="text-sm bg-blue-50 text-blue-600 px-3 py-1 rounded hover:bg-blue-100 font-medium border border-blue-200"
+              className="text-sm bg-blue-50 text-blue-600 px-3 py-1.5 rounded hover:bg-blue-100 font-medium border border-blue-200"
             >
-              + Mount Tyre
+              + Mount
             </button>
           </div>
 
-        {mountedTyres.length > 0 ? (
-  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-    {mountedTyres.map((tyre) => (
-      <div 
-        key={tyre._id} 
-        // 1. Added cursor-pointer and hover effects for better UX
-        className="border rounded-lg p-4 hover:shadow-md transition-shadow relative group bg-white cursor-pointer hover:border-blue-300"
-        // 2. Add Navigation Event here
-        onClick={() => navigate(`/owner-home/tyre/${tyre._id}`)}
-      >
-        <div className="flex justify-between items-start mb-2">
-          <span className="bg-gray-800 text-white text-xs px-2 py-1 rounded font-semibold">
-            {tyre.position || "Pos N/A"}
-          </span>
-          <span className={`text-xs font-bold ${tyre.currentTreadDepth > 5 ? "text-green-600" : "text-red-500"}`}>
-            {tyre.currentTreadDepth}mm
-          </span>
+          {mountedTyres.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {mountedTyres.map((tyre) => (
+                <div 
+                  key={tyre._id} 
+                  className="border rounded-lg p-4 hover:shadow-md transition-shadow relative group bg-white cursor-pointer hover:border-blue-300"
+                  onClick={() => navigate(`/owner-home/tyre/${tyre._id}`)}
+                >
+                  <div className="flex justify-between items-start mb-2">
+                    <span className="bg-gray-800 text-white text-xs px-2 py-1 rounded font-semibold truncate max-w-[60%]">
+                      {tyre.position || "Pos N/A"}
+                    </span>
+                    
+                    <span className={`text-xs font-bold ${tyre.currentTreadDepth > 5 ? "text-green-600" : "text-red-500"}`}>
+                        {tyre.currentTreadDepth}mm
+                    </span>
+                  </div>
+                  
+                  <h4 className="font-bold text-gray-800 text-sm truncate">{tyre.brand}</h4>
+                  <p className="text-xs text-gray-500 font-medium truncate">{tyre.model}</p>
+                  <p className="text-xs text-gray-400 mb-2 truncate">{tyre.tyreNumber}</p>
+                  
+                  <div className="mt-3 pt-2 border-t flex justify-end">
+                    <button 
+                      className="text-red-500 text-xs hover:text-red-700 font-medium border border-red-200 px-2 py-1 rounded hover:bg-red-50 transition-colors z-10"
+                      onClick={(e) => { e.stopPropagation(); handleDismount(tyre._id); }}
+                    >
+                      Dismount
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
+              <p className="text-gray-500 text-sm">No tyres currently mounted.</p>
+            </div>
+          )}
         </div>
-        
-        <h4 className="font-bold text-gray-800 text-sm">{tyre.brand}</h4>
-        <p className="text-xs text-gray-500 font-medium">{tyre.model}</p>
-        <p className="text-xs text-gray-400 mb-2">{tyre.tyreNumber}</p>
-        
-        <div className="mt-3 pt-2 border-t flex justify-end">
-          <button 
-            className="text-red-500 text-xs hover:text-red-700 font-medium border border-red-200 px-2 py-1 rounded hover:bg-red-50 transition-colors z-10"
-            // 3. STOP PROPAGATION so clicking 'Dismount' doesn't open the details page
-            onClick={(e) => {
-              e.stopPropagation(); 
-              handleDismount(tyre._id);
-            }}
-          >
-            Dismount
-          </button>
+
+        {/* --- 4. DRIVER & HISTORY --- */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+           {/* Driver Assignment */}
+           <div className="lg:col-span-1 bg-white rounded-lg shadow p-4 sm:p-6">
+              <h3 className="text-lg font-semibold mb-4">Driver Assignment</h3>
+              {truckDetails.driverNames && truckDetails.driverNames.length > 0 ? (
+                <div className="mb-4 flex flex-wrap gap-2">
+                  {truckDetails.driverNames.map((name: string, i: number) => (
+                    <span key={i} className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">
+                      {name}
+                    </span>
+                  ))}
+                </div>
+              ) : <p className="text-red-500 mb-4 text-sm">No driver assigned.</p>}
+              
+              <div className="flex flex-col sm:flex-row gap-2">
+                 <select 
+                   className="flex-1 border rounded text-sm p-2 outline-none w-full"
+                   value={selectedDriver}
+                   onChange={(e) => setSelectedDriver(e.target.value)}
+                 >
+                    <option value="">Select Driver</option>
+                    {drivers.map((d: any) => (
+                      <option key={d._id} value={d._id}>{d.firstName} {d.lastName}</option>
+                    ))}
+                 </select>
+                 <button 
+                   onClick={() => assignDriver(selectedDriver)}
+                   disabled={!selectedDriver}
+                   className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm w-full sm:w-auto disabled:bg-gray-300"
+                 >
+                   Assign
+                 </button>
+              </div>
+           </div>
+
+           {/* Trips History */}
+           <div className="lg:col-span-2 bg-white rounded-lg shadow overflow-hidden">
+              <div className="p-4 border-b">
+                 <h3 className="text-lg font-semibold">Recent Trips</h3>
+              </div>
+              <div className="p-4 overflow-x-auto">
+                 {loading ? <LoadingSpinner/> : (
+                    truckDetails.trips && <TripsTable trips={truckDetails.trips} />
+                 )}
+              </div>
+           </div>
         </div>
+
       </div>
-    ))}
-  </div>
-) : (
-  <div className="text-center py-6 bg-gray-50 rounded-lg border-dashed border-2 border-gray-200">
-    <p className="text-gray-500">No tyres currently mounted on this truck.</p>
-  </div>
-)}
-        </div>
-        {/* --- END TYRE SECTION --- */}
-
-        <div className="bg-white rounded-lg shadow p-6 md:mt-2 mb-6">
-  <h3 className="text-lg font-semibold mb-4">Driver Attachment</h3>
-
-  {truckDetails.driverId && truckDetails.driverId.length > 0 ? (
-    <div className="mb-6">
-      <p className="text-green-600 font-medium mb-2">Assigned Drivers:</p>
-      <div className="flex flex-wrap gap-2">
-        {truckDetails.driverNames.map((name: string, idx: number) => (
-          <span
-            key={idx}
-            className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm leading-relaxed break-words"
-          >
-            {name}
-          </span>
-        ))}
-      </div>
-    </div>
-  ) : (
-    <p className="text-red-500 mb-4">No driver assigned yet.</p>
-  )}
-
-  <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-end">
-    <div className="flex-1">
-      <label className="block text-sm font-medium text-gray-700 mb-1">
-        Select Driver
-      </label>
-      <select
-        className="border w-full px-3 py-2 rounded-lg text-sm"
-        value={selectedDriver}
-        onChange={(e) => setSelectedDriver(e.target.value)}
-      >
-        <option value="">Select Driver</option>
-        {drivers.map((d: any) => (
-          <option key={d._id} value={d._id}>
-            {d.firstName} {d.lastName} ({d.contactNumber})
-          </option>
-        ))}
-      </select>
-    </div>
-
-    <div className="sm:w-auto">
-      <label className="invisible block text-sm font-medium mb-1">Attach</label>
-      <button
-        className="bg-blue-500 text-white px-5 py-2 rounded-lg hover:bg-blue-600 w-full sm:w-auto"
-        onClick={() => assignDriver(selectedDriver)}
-        disabled={!selectedDriver}
-      >
-        Attach Driver
-      </button>
-    </div>
-  </div>
-</div>
-
-        <div className="mt-8">
-          <h2 className="text-xl font-semibold mb-4">Recently Completed Trips</h2>
-          <div className="bg-white rounded-lg shadow">
-            
-
-{loading ? (<>
-<LoadingSpinner/>
-</>):(
-  <>       
-      {truckDetails.trips   &&   <TripsTable trips={truckDetails.trips} />}
-  </>)
-  }
-          </div>
-        </div>
-      </div>
-
+      
       {/* --- MOUNT MODAL --- */}
       {isMountModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -432,7 +554,6 @@ export default function TruckDetails() {
             </div>
             
             <div className="space-y-4">
-              {/* Dropdown for Spares */}
               <div>
                 <label className="block text-sm font-medium mb-1 text-gray-700">Select Spare Tyre</label>
                 <select 
@@ -488,31 +609,20 @@ export default function TruckDetails() {
                 />
               </div>
 
-            <div className="pt-2">
-  <button 
-    onClick={handleMountSubmit}
-    // Disable if no tyre selected OR if currently mounting
-    disabled={!mountForm.tyreId || isMounting} 
-    className={`w-full py-2 rounded font-medium text-white transition-colors
-      ${(!mountForm.tyreId || isMounting) 
-        ? "bg-gray-300 cursor-not-allowed" 
-        : "bg-blue-600 hover:bg-blue-700"
-      }`}
-  >
-    {isMounting ? (
-      <span className="flex items-center justify-center gap-2">
-        <LoadingSpinner /> Mounting... {/* Or just "Processing..." */}
-      </span>
-    ) : (
-      "Confirm Mount"
-    )}
-  </button>
-</div>
+              <div className="pt-2">
+                <button 
+                  onClick={handleMountSubmit}
+                  disabled={!mountForm.tyreId || isMounting} 
+                  className={`w-full py-2 rounded font-medium text-white transition-colors
+                    ${(!mountForm.tyreId || isMounting) ? "bg-gray-300 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"}`}
+                >
+                  {isMounting ? <span className="flex items-center justify-center gap-2"><LoadingSpinner /> Mounting...</span> : "Confirm Mount"}
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
-
     </div>
   );
 }
