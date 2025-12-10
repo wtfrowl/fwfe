@@ -9,6 +9,7 @@ import axios from "axios";
 import { LoadingSpinner } from "../trips/components/loading-spinner";
 import { AddTruckModal } from "./modals/AddTruckModal";
 import { AuthContext } from "../../context/AuthContext";
+import VehicleTableSkeleton from "./components/vehicle-table-skeleton";
 
 const ITEMS_PER_PAGE = 6;
 
@@ -216,9 +217,7 @@ export default function TrucksPage() {
           {/* Error / Loading */}
           {error && <p className="text-red-500 text-center">{error}</p>}
           {loading ? (
-            <div className="flex justify-center items-center h-64">
-              <LoadingSpinner />
-            </div>
+          <VehicleTableSkeleton/>
           ) : (
             <>
              { paginatedVehicles.length > 0 ? <VehicleTable vehicles={paginatedVehicles} userRole={role} />: <div className="flex justify-center items-center h-64">
