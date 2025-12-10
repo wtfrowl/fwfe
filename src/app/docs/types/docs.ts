@@ -1,4 +1,6 @@
 export interface Document {
+    body: any
+    createElement(arg0: string): unknown
     notes: any
     expiryDate: string | number | Date
     version: number

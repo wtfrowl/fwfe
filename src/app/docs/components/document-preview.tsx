@@ -21,6 +21,21 @@ export default function DocumentPreviewPage() {
   const [hasMoreOlder, setHasMoreOlder] = useState(true);
   const loadingMoreRef = useRef(false);
 
+const downloadName = `${document?.truckId}_${document?.type}_${document?.expiryDate}`;
+  // 1. Helper function to force download via Cloudinary URL transformation
+// Helper to force download with specific name via Cloudinary
+const getDownloadUrl = (url: string, fileName: string) => {
+  if (!url) return "";
+  
+  // Sanitize filename for URL (remove spaces/special chars)
+  const cleanName = fileName.replace(/[^a-zA-Z0-9-_]/g, "_");
+
+  if (url.includes("cloudinary.com") && url.includes("/upload/")) {
+    // Syntax: /upload/fl_attachment:my_filename/
+    return url.replace("/upload/", `/upload/fl_attachment:${cleanName}/`);
+  }
+  return url;
+};
   useEffect(() => {
     if (id) {
       setOlderVersions([]);
@@ -105,14 +120,39 @@ export default function DocumentPreviewPage() {
             📄 {document.name}
           </h1>
           <div className="flex flex-wrap gap-3">
-            <a
-              href={document.downloadUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm"
-            >
-              <FaDownload /> Download
-            </a>
+      <a
+  // 1. Pass the custom name to the Cloudinary URL helper
+  href={getDownloadUrl(document.downloadUrl, downloadName)}
+  className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm cursor-pointer"
+  onClick={async (e) => {
+    // Only intercept for non-Cloudinary URLs or if you want to double-ensure blob download
+    if (!document.downloadUrl.includes("cloudinary.com")) {
+        e.preventDefault();
+        try {
+            const response = await fetch(document.downloadUrl);
+            if (!response.ok) throw new Error("Network response was not ok");
+            
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const link: any = document.createElement('a');
+            link.href = url;
+            
+            // 2. Set the custom filename for the blob download
+            link.download = downloadName; 
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error("Blob download failed, falling back to new tab:", error);
+            window.open(document.downloadUrl, "_blank");
+        }
+    }
+  }}
+>
+  <FaDownload /> Download Now
+</a>
             <a
               href={getWhatsappShareUrl()}
               target="_blank"
