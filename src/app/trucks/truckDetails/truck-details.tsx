@@ -45,6 +45,143 @@ interface TruckProfile {
   available?: boolean;
 }
 
+// --- NEW: SKELETON LOADER COMPONENT ---
+const TruckDetailsSkeleton = () => {
+  return (
+    <div className="min-h-screen bg-gray-50 animate-pulse pb-20">
+      
+      {/* 1. Header Skeleton */}
+      <div className="bg-white border-b sticky top-[64px] z-30">
+        <div className="mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex justify-between items-start">
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                {/* Truck Number */}
+                <div className="h-8 w-48 bg-gray-200 rounded"></div>
+                {/* Status Badge */}
+                <div className="h-6 w-20 bg-gray-200 rounded-full"></div>
+              </div>
+              {/* Subtitle */}
+              <div className="h-4 w-64 bg-gray-200 rounded"></div>
+            </div>
+            {/* Back Button */}
+            <div className="h-10 w-24 bg-gray-200 rounded-lg"></div>
+          </div>
+        </div>
+      </div>
+
+      <div className="mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+        
+        {/* 2. Truck Profile Skeleton (4 Columns) */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="h-5 w-32 bg-gray-200 rounded mb-6"></div> {/* Title */}
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="space-y-2">
+                <div className="h-3 w-16 bg-gray-200 rounded"></div> {/* Label */}
+                <div className="h-5 w-24 bg-gray-300 rounded"></div> {/* Value */}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* 3. Telemetry & Current Trip (Split View) */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          
+          {/* Left: Telemetry */}
+          <div className="bg-white rounded-lg shadow p-6 flex flex-col justify-between h-48">
+            <div className="h-5 w-32 bg-gray-200 rounded mb-4"></div>
+            
+            {/* 3 Metrics Row */}
+            <div className="grid grid-cols-3 gap-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="space-y-2">
+                  <div className="h-3 w-12 bg-gray-200 rounded"></div>
+                  <div className="h-6 w-16 bg-gray-300 rounded"></div>
+                </div>
+              ))}
+            </div>
+            
+            {/* Footer Line */}
+            <div className="mt-4 pt-4 border-t border-gray-100 flex justify-between">
+              <div className="h-3 w-24 bg-gray-200 rounded"></div>
+              <div className="h-3 w-32 bg-gray-200 rounded"></div>
+            </div>
+          </div>
+
+          {/* Right: Current Trip (Large Box) */}
+          <div className="bg-white rounded-lg shadow p-6 h-48 flex items-center justify-center border-2 border-dashed border-gray-100">
+             <div className="h-4 w-32 bg-gray-200 rounded"></div>
+          </div>
+        </div>
+
+        {/* 4. Tyre Config Skeleton */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex justify-between items-center mb-6">
+            <div className="h-6 w-32 bg-gray-200 rounded"></div> {/* Title */}
+            <div className="h-8 w-24 bg-gray-200 rounded"></div> {/* Mount Button */}
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="border rounded-lg p-4 h-32 flex flex-col justify-between">
+                <div className="flex justify-between">
+                  <div className="h-4 w-20 bg-gray-200 rounded"></div>
+                  <div className="h-4 w-10 bg-gray-200 rounded"></div>
+                </div>
+                <div className="space-y-2">
+                  <div className="h-3 w-24 bg-gray-200 rounded"></div>
+                  <div className="h-3 w-16 bg-gray-200 rounded"></div>
+                </div>
+                <div className="self-end h-6 w-20 bg-gray-200 rounded"></div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* 5. Driver & Recent Trips (Split View 1:2) */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          
+          {/* Driver Assignment (Left) */}
+          <div className="lg:col-span-1 bg-white rounded-lg shadow p-6 h-64">
+            <div className="h-5 w-40 bg-gray-200 rounded mb-4"></div>
+            {/* Tags */}
+            <div className="flex gap-2 mb-6">
+              <div className="h-6 w-20 bg-gray-200 rounded-full"></div>
+              <div className="h-6 w-24 bg-gray-200 rounded-full"></div>
+            </div>
+            {/* Input & Button */}
+            <div className="flex gap-2 mt-auto">
+              <div className="h-10 flex-1 bg-gray-200 rounded"></div>
+              <div className="h-10 w-16 bg-gray-200 rounded"></div>
+            </div>
+          </div>
+
+          {/* Recent Trips Table (Right) */}
+          <div className="lg:col-span-2 bg-white rounded-lg shadow overflow-hidden h-64">
+            <div className="p-4 border-b">
+              <div className="h-5 w-32 bg-gray-200 rounded"></div>
+            </div>
+            <div className="p-4 space-y-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="flex justify-between items-center">
+                  <div className="h-8 w-8 bg-gray-200 rounded-full"></div> {/* Icon */}
+                  <div className="h-3 w-24 bg-gray-200 rounded"></div>
+                  <div className="h-3 w-20 bg-gray-200 rounded hidden sm:block"></div>
+                  <div className="h-3 w-16 bg-gray-200 rounded hidden sm:block"></div>
+                  <div className="h-6 w-6 bg-gray-200 rounded"></div> {/* Action Icon */}
+                </div>
+              ))}
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function TruckDetails() {
   const { regNo } = useParams();
   const navigate = useNavigate();
@@ -159,7 +296,7 @@ export default function TruckDetails() {
   };
 
   // --- TRUCK UPDATE HANDLER ---
- const handleSaveTruck = async () => {
+  const handleSaveTruck = async () => {
     setIsSavingTruck(true);
     try {
       const config = getAuthConfig();
@@ -262,6 +399,9 @@ export default function TruckDetails() {
       default: return "bg-gray-100 text-gray-800";
     }
   };
+
+  // --- RENDER LOADING STATE ---
+  if (loading) return <TruckDetailsSkeleton />;
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
