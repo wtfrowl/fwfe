@@ -6,7 +6,6 @@ import { VehicleTable } from "./components/vehicle-table";
 import type { Vehicle, VehicleStatus } from "./types/vehicle";
 import { FaPlus, FaSearch } from "react-icons/fa";
 import axios from "axios";
-import { LoadingSpinner } from "../trips/components/loading-spinner";
 import { AddTruckModal } from "./modals/AddTruckModal";
 import { AuthContext } from "../../context/AuthContext";
 import VehicleTableSkeleton from "./components/vehicle-table-skeleton";
