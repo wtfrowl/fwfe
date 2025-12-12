@@ -24,7 +24,7 @@ export const UploadDocumentModal = ({
     type: "",
     expiryDate: "",
     notes: "",
-    version: 1,
+    // version: 1,
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
@@ -182,7 +182,7 @@ export const UploadDocumentModal = ({
       // Reset form
       setFormData({
         name: "", truckId: "", viewUrl: "", downloadUrl: "",
-        type: "", expiryDate: "", notes: "", version: 1,
+        type: "", expiryDate: "", notes: "", // version: 1,
       })
     } catch (err) {
       console.error("Upload error:", err)
@@ -196,7 +196,7 @@ export const UploadDocumentModal = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto scrollbar-hide">
         
         {/* Header */}
         <div className="flex justify-between items-center p-6 border-b">
@@ -319,7 +319,7 @@ export const UploadDocumentModal = ({
           {/* Hidden/Advanced Fields (Version & URLs) */}
           <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
              <div className="flex gap-4">
-                <div className="flex-1">
+                {/* <div className="flex-1">
                    <label className="block text-xs font-semibold text-gray-500 mb-1">Version</label>
                    <input
                     type="number"
@@ -327,7 +327,7 @@ export const UploadDocumentModal = ({
                     onChange={(e) => setFormData({ ...formData, version: parseInt(e.target.value) })}
                     className="w-full border border-gray-300 rounded p-1.5 text-sm"
                   />
-                </div>
+                </div> */}
                 <div className="flex-[3]">
                    <label className="block text-xs font-semibold text-gray-500 mb-1">File URL (Read-only)</label>
                    <input

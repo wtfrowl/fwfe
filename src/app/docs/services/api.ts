@@ -47,8 +47,8 @@ export const api = {
       return res.data
     },
 
-    fetchOlderDocs: async (id: string, page: number, limit: number): Promise<PaginatedDocumentResponse> => {
-      const res = await axios.get(`${BASE_URL}/api/docs/getDoc/olderVersion/${id}`, {
+    fetchDocsHistory: async (id: string, page: number, limit: number): Promise<PaginatedDocumentResponse> => {
+      const res = await axios.get(`${BASE_URL}/api/docs/getDoc/history/${id}`, {
         ...getAuthConfig(),
         params: { page, limit },
       })
