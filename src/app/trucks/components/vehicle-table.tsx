@@ -110,7 +110,7 @@ export function VehicleTable({ vehicles, userRole }: VehicleTableProps) {
             <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">STATUS</th>
             <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">HEALTH RATE</th>
             <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">ALERT TYPE</th>
-             {userRole === "owner" && (   <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">ACTIONS</th> )}
+             {/* {userRole === "owner" && (   <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">ACTIONS</th> )} */}
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-200">
@@ -119,7 +119,7 @@ export function VehicleTable({ vehicles, userRole }: VehicleTableProps) {
             const statusColor = getStatusColor(vehicle.status);
 
             return (
-              <tr key={vehicle.id} className="bg-white hover:bg-gray-50 cursor-pointer">
+              <tr  onClick={() => navigate(`${vehicle.registrationNumber}`)} key={vehicle.id} className="bg-white hover:bg-gray-50 cursor-pointer">
                 <td className="px-4 py-4 flex items-center gap-3">
                   <div className="p-2 bg-gray-100 rounded-full">
                     <VehicleIcon className="w-5 h-5 text-gray-600" />
@@ -136,7 +136,7 @@ export function VehicleTable({ vehicles, userRole }: VehicleTableProps) {
                 <td className="px-4 py-4">
                   <AlertBadge type={vehicle.alertType} />
                 </td>
-              {userRole === "owner" && (  <td className="px-4 py-4 flex gap-2">
+              {/* {userRole === "owner" && (  <td className="px-4 py-4 flex gap-2">
                   <button
                     className="text-sm text-gray-600 hover:text-gray-900"
                     onClick={() => handleEditButtonClick(vehicle)}
@@ -149,7 +149,7 @@ export function VehicleTable({ vehicles, userRole }: VehicleTableProps) {
                   >
                     <FaInfoCircle className="w-5 h-5 inline-block" /> View
                   </button>
-                </td>)}
+                </td>)} */}
               </tr>
           
             );
