@@ -1,7 +1,7 @@
 import type { Vehicle } from "../types/vehicle";
 import { HealthBar } from "./health-bar";
 import { AlertBadge } from "./alert-badge";
-import { FaCog, FaInfoCircle, FaTruck, FaCar, FaShuttleVan } from "react-icons/fa";
+import { FaTruck, FaCar, FaShuttleVan } from "react-icons/fa";
 import { useState } from "react";
 import axios from "axios";
 ;
