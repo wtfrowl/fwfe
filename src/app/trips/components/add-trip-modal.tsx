@@ -36,7 +36,8 @@ export function AddTripModal({ isOpen, onClose, onAdd, trucks, drivers, load }: 
     tyreDetails: "",
     tyreNumber: "",
     loadId: "",
-    truckId: ""
+    truckId: "",
+    distance: ""
   })
 
   // Pre-fill driver info
@@ -62,7 +63,8 @@ export function AddTripModal({ isOpen, onClose, onAdd, trucks, drivers, load }: 
         truckId: load.truckId,
         registrationNumber: load.truckReg,
         departureDateTime: load.pickupDate ? new Date(load.pickupDate).toISOString().slice(0, 16) : "",
-        loadingDate: load.pickupDate ? new Date(load.pickupDate).toISOString().slice(0, 16) : ""
+        loadingDate: load.pickupDate ? new Date(load.pickupDate).toISOString().slice(0, 16) : "",
+       distance: load.distance ? String(load.distance) : ""
       }))
     }
   }, [load])
@@ -88,7 +90,8 @@ export function AddTripModal({ isOpen, onClose, onAdd, trucks, drivers, load }: 
         tyreDetails: "",
         tyreNumber: "",
         loadId: "",
-        truckId: ""
+        truckId: "",
+        distance: ""
       })
       onClose()
     } catch (error) {
@@ -232,6 +235,17 @@ export function AddTripModal({ isOpen, onClose, onAdd, trucks, drivers, load }: 
                             placeholder="City"
                            />
                         </div>
+                      </div>
+                      {/* --- ADDED: DISTANCE FIELD --- */}
+                      <div>
+                         <label className="block text-sm font-medium text-gray-700 mb-1">Estimated Distance (Km)</label>
+                         <input
+                          type="number"
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                          value={formData.distance}
+                          onChange={(e) => setFormData({ ...formData, distance: e.target.value })}
+                          placeholder="0"
+                         />
                       </div>
                    </div>
                 </div>

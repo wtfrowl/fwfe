@@ -3,14 +3,14 @@
 import { Line, LineChart, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
 
 interface MetricsData {
-  month: string
+  name: string
   value: number
 }
 
 interface MetricsChartProps {
   title: string
   data: MetricsData[]
-  color: string
+  color: string,
 }
 
 export function MetricsChart({ title, data, color }: MetricsChartProps) {

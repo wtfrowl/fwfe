@@ -1,68 +1,27 @@
 "use client"
 
-import type React from "react"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
-
-interface DistanceData {
-  date?: string
-  month?: string
-  year?: number
-  distance: number
-}
-
-const dailyData: DistanceData[] = Array.from({ length: 30 }, (_, i) => ({
-  date: `Day ${i + 1}`,
-  distance: Math.floor(Math.random() * 5000) + 1000,
-}))
-
-const monthlyData: DistanceData[] = [
-  { month: "Jan", distance: 30000 },
-  { month: "Feb", distance: 95000 },
-  { month: "Mar", distance: 50000 },
-  { month: "Apr", distance: 70000 },
-  { month: "May", distance: 75000 },
-  { month: "Jun", distance: 72000 },
-  { month: "Jul", distance: 50000 },
-  { month: "Aug", distance: 95000 },
-  { month: "Sep", distance: 100000 },
-  { month: "Oct", distance: 42000 },
-  { month: "Nov", distance: 50000 },
-  { month: "Dec", distance: 65000 },
-]
-
-const yearlyData: DistanceData[] = Array.from({ length: 5 }, (_, i) => ({
-  year: 2019 + i,
-  distance: Math.floor(Math.random() * 1000000) + 500000,
-}))
 
 type Period = "DAY" | "MONTH" | "YEAR"
 
-interface DistanceChartProps {
-  activePeriod: Period
-  setActivePeriod: React.Dispatch<React.SetStateAction<Period>>
+interface DistanceData {
+  name?: string     // Unified label (e.g., "Jan", "2024")
+  distance: number  // The value to plot
+  [key: string]: any 
 }
 
-export function DistanceChart({ activePeriod, setActivePeriod }: DistanceChartProps) {
-  const getChartData = (): DistanceData[] => {
-    switch (activePeriod) {
-      case "DAY":
-        return dailyData
-      case "YEAR":
-        return yearlyData
-      default:
-        return monthlyData
-    }
-  }
+interface DistanceChartProps {
+  data: DistanceData[]
+  activePeriod: Period
+  setActivePeriod: (period: Period) => void
+}
 
+export function DistanceChart({ data, activePeriod, setActivePeriod }: DistanceChartProps) {
+  
+  // We use "name" because the parent component formats the date label 
+  // before passing it down.
   const getXAxisKey = (): string => {
-    switch (activePeriod) {
-      case "DAY":
-        return "date"
-      case "YEAR":
-        return "year"
-      default:
-        return "month"
-    }
+    return "name"
   }
 
   return (
@@ -83,18 +42,43 @@ export function DistanceChart({ activePeriod, setActivePeriod }: DistanceChartPr
           ))}
         </div>
       </div>
+      
       <div className="h-[200px]">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={getChartData()}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey={getXAxisKey()} />
-            <YAxis />
-            <Tooltip />
-            <Bar dataKey="distance" fill="#3B82F6" />
-          </BarChart>
-        </ResponsiveContainer>
+        {(!data || data.length === 0) ? (
+          <div className="h-full flex items-center justify-center text-gray-400 text-sm">
+            No distance data available
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={data}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <XAxis 
+                dataKey={getXAxisKey()} 
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 12, fill: "#6B7280" }}
+                dy={10}
+              />
+              <YAxis 
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 12, fill: "#6B7280" }}
+                tickFormatter={(val) => `${val / 1000}k`}
+              />
+              <Tooltip 
+                cursor={{ fill: "#F3F4F6" }}
+                contentStyle={{ borderRadius: "8px", border: "none", boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)" }}
+                formatter={(value: number) => [`${value.toLocaleString()} km`, "Distance"]}
+              />
+              <Bar 
+                dataKey="distance" 
+                fill="#3B82F6" 
+                radius={[4, 4, 0, 0]}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        )}
       </div>
     </div>
   )
 }
-
