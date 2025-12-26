@@ -72,6 +72,11 @@ export const api = {
     const response = await axios.post(`${BASE_URL}/tripexpense`, data, getAuthConfig());
     return response.data;
   },
+  // update trip loading/unloading dates router.patch(      "/updateDates/:id",
+  updateTripDates: async (id: string, payload: any) => {
+    const response = await axios.patch(`${BASE_URL}/trips/updateDates/${id}`, payload, getAuthConfig());
+    return response.data;
+  },
 },
 
 }

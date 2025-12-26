@@ -127,6 +127,34 @@ const TripInfo: React.FC = () => {
     }
   }
 
+// --- Inline Date Update State ---
+// --- Inline Date Update State ---
+  const [editingField, setEditingField] = useState<"loadingDate" | "unloadingDate" | null>(null);
+  const [tempDate, setTempDate] = useState<string>("");
+  const [isUpdatingDate, setIsUpdatingDate] = useState(false);
+
+  const isSettled = trip?.status === "Settled";
+
+  const startEditing = (field: "loadingDate" | "unloadingDate", currentVal?: string) => {
+    if (isSettled) return; // Guard clause
+    setEditingField(field);
+    setTempDate(currentVal ? new Date(currentVal).toISOString().split('T')[0] : "");
+  };
+
+  const handleDateSave = async () => {
+    if (!tempDate || !editingField) return;
+    setIsUpdatingDate(true);
+    try {
+      await api.trips.updateTripDates(id || "", { [editingField]: tempDate });
+      await fetchTripDetails();
+      setEditingField(null);
+    } catch (err) {
+      console.error(`Error updating date:`, err);
+    } finally {
+      setIsUpdatingDate(false);
+    }
+  };
+
   // --- Handlers ---
   const handleUpdateSettlement = async () => {
     setIsUpdatingSettlement(true)
@@ -282,33 +310,87 @@ const TripInfo: React.FC = () => {
         </div>
       </div>
 
-    {/* Info Cards */}
+   {/* Info Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
         
-        {/* 1. Departure Card (With Loading Date) */}
-        <div className="bg-white p-4 border border-gray-200 rounded-lg shadow-sm">
-          <h2 className="font-medium mb-2 text-gray-700">Departure</h2>
+        {/* 1. Departure Card */}
+        <div className={`bg-white p-4 border rounded-lg shadow-sm transition-all ${editingField === "loadingDate" ? "border-blue-500 ring-1 ring-blue-500" : "border-gray-200"}`}>
+          <div className="flex justify-between items-start">
+            <h2 className="font-medium mb-2 text-gray-700">Departure</h2>
+            {/* Hide edit button if settled OR if currently editing */}
+            {editingField !== "loadingDate" && (
+              <button 
+                onClick={() => startEditing("loadingDate", trip.loadingDate)}
+                disabled={isSettled}
+                className={`p-1 transition-colors ${isSettled ? "text-gray-200 cursor-not-allowed" : "text-gray-400 hover:text-blue-600"}`}
+                title={isSettled ? "Cannot edit settled trip" : "Edit loading date"}
+              >
+                <BiEdit size={16} />
+              </button>
+            )}
+          </div>
           <p className="font-semibold text-lg">{trip.departureLocation}</p>
+          
           <div className="mt-2 space-y-2">
             <p className="text-sm text-gray-600">
               <span className="font-medium">Departed:</span> {new Date(trip.departureDateTime).toLocaleDateString()}
             </p>
-            {/* Always show Loading Date status */}
-            <p className="text-xs text-gray-600 bg-gray-50 border border-gray-100 inline-block px-2 py-1 rounded">
-              <span className="font-medium">Loaded:</span>{" "}
-              {trip.loadingDate ? (
-                <span>{new Date(trip.loadingDate).toLocaleDateString()}</span>
-              ) : (
-                <span className="text-orange-500 font-bold text-[10px] uppercase">Pending</span>
-              )}
-            </p>
+
+            {editingField === "loadingDate" && !isSettled ? (
+              <div className="mt-2 p-2 bg-blue-50 rounded-md border border-blue-100">
+                <label className="text-[10px] font-bold text-blue-600 uppercase block mb-1">Editing Loading Date</label>
+                <input 
+                  type="date" 
+                  className="w-full text-sm border rounded px-2 py-1 mb-2 outline-none focus:border-blue-400"
+                  value={tempDate}
+                  onChange={(e) => setTempDate(e.target.value)}
+                  disabled={isUpdatingDate}
+                />
+                <div className="flex gap-2">
+                  <button 
+                    onClick={handleDateSave}
+                    className="flex-1 bg-blue-600 text-white text-[10px] font-bold py-1 rounded hover:bg-blue-700"
+                  >
+                    {isUpdatingDate ? "..." : "SAVE"}
+                  </button>
+                  <button 
+                    onClick={() => setEditingField(null)}
+                    className="flex-1 bg-white border border-gray-300 text-gray-600 text-[10px] font-bold py-1 rounded"
+                  >
+                    CANCEL
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <p className="text-xs text-gray-600 bg-gray-50 border border-gray-100 inline-block px-2 py-1 rounded">
+                <span className="font-medium">Loaded:</span>{" "}
+                {trip.loadingDate ? (
+                  <span>{new Date(trip.loadingDate).toLocaleDateString()}</span>
+                ) : (
+                  <span className="text-orange-500 font-bold text-[10px] uppercase">Pending</span>
+                )}
+              </p>
+            )}
           </div>
         </div>
 
-        {/* 2. Arrival Card (With Unloading Date) */}
-        <div className="bg-white p-4 border border-gray-200 rounded-lg shadow-sm">
-          <h2 className="font-medium mb-2 text-gray-700">Arrival</h2>
+        {/* 2. Arrival Card */}
+        <div className={`bg-white p-4 border rounded-lg shadow-sm transition-all ${editingField === "unloadingDate" ? "border-blue-500 ring-1 ring-blue-500" : "border-gray-200"}`}>
+          <div className="flex justify-between items-start">
+            <h2 className="font-medium mb-2 text-gray-700">Arrival</h2>
+            {editingField !== "unloadingDate" && (
+              <button 
+                onClick={() => startEditing("unloadingDate", trip.unloadingDate)}
+                disabled={isSettled}
+                className={`p-1 transition-colors ${isSettled ? "text-gray-200 cursor-not-allowed" : "text-gray-400 hover:text-blue-600"}`}
+                title={isSettled ? "Cannot edit settled trip" : "Edit unloading date"}
+              >
+                <BiEdit size={16} />
+              </button>
+            )}
+          </div>
           <p className="font-semibold text-lg">{trip.arrivalLocation}</p>
+          
           <div className="mt-2 space-y-2">
             <p className="text-sm text-gray-600">
               {trip.arrivalDateTime ? (
@@ -316,37 +398,49 @@ const TripInfo: React.FC = () => {
                   <span className="font-medium">Arrived:</span> {new Date(trip.arrivalDateTime).toLocaleDateString()}
                 </>
               ) : (
-                <span className="text-orange-500 font-medium">In Transit</span>
+                <span className="text-orange-500 font-medium text-sm">In Transit</span>
               )}
             </p>
-            {/* Always show Unloading Date status */}
-            <p className="text-xs text-gray-600 bg-gray-50 border border-gray-100 inline-block px-2 py-1 rounded">
-              <span className="font-medium">Unloaded:</span>{" "}
-              {trip.unloadingDate ? (
-                <span>{new Date(trip.unloadingDate).toLocaleDateString()}</span>
-              ) : (
-                <span className="text-orange-500 font-bold text-[10px] uppercase">Pending</span>
-              )}
-            </p>
+
+            {editingField === "unloadingDate" && !isSettled ? (
+              <div className="mt-2 p-2 bg-blue-50 rounded-md border border-blue-100">
+                <label className="text-[10px] font-bold text-blue-600 uppercase block mb-1">Editing Unloading Date</label>
+                <input 
+                  type="date" 
+                  className="w-full text-sm border rounded px-2 py-1 mb-2 outline-none focus:border-blue-400"
+                  value={tempDate}
+                  onChange={(e) => setTempDate(e.target.value)}
+                  disabled={isUpdatingDate}
+                />
+                <div className="flex gap-2">
+                  <button 
+                    onClick={handleDateSave}
+                    className="flex-1 bg-blue-600 text-white text-[10px] font-bold py-1 rounded hover:bg-blue-700"
+                  >
+                    {isUpdatingDate ? "..." : "SAVE"}
+                  </button>
+                  <button 
+                    onClick={() => setEditingField(null)}
+                    className="flex-1 bg-white border border-gray-300 text-gray-600 text-[10px] font-bold py-1 rounded"
+                  >
+                    CANCEL
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <p className="text-xs text-gray-600 bg-gray-50 border border-gray-100 inline-block px-2 py-1 rounded">
+                <span className="font-medium">Unloaded:</span>{" "}
+                {trip.unloadingDate ? (
+                  <span>{new Date(trip.unloadingDate).toLocaleDateString()}</span>
+                ) : (
+                  <span className="text-orange-500 font-bold text-[10px] uppercase">Pending</span>
+                )}
+              </p>
+            )}
           </div>
+        </div>
         </div>
 
-        {/* 3. Logistics Card */}
-        <div className="bg-white p-4 border border-gray-200 rounded-lg shadow-sm">
-          <h2 className="font-medium mb-2 text-gray-700">Logistics</h2>
-          <div className="space-y-1">
-            <p className="text-sm">
-              <span className="text-gray-500">Transporter:</span> <span className="font-medium">{trip.transporterName || "N/A"}</span>
-            </p>
-            <p className="text-sm">
-              <span className="text-gray-500">Truck:</span> {trip.registrationNumber}
-            </p>
-            <p className="text-sm">
-              <span className="text-gray-500">Driver:</span> {trip.driverContactNumber}
-            </p>
-          </div>
-        </div>
-      </div>
 
       {/* Action Buttons */}
       <div className="flex flex-col sm:flex-row justify-between items-center space-y-4 sm:space-y-0">
