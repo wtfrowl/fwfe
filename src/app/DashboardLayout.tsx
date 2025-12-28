@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useEffect } from "react";
 import { NavLink, Outlet, useLocation, useNavigate, ScrollRestoration } from "react-router-dom";
 import { BiLogOut } from "react-icons/bi";
 import truckIcon from "../assets/truck.svg";
@@ -11,13 +11,11 @@ import { GiPathDistance, GiTyre } from "react-icons/gi";
 import { HiOutlineDocumentText } from "react-icons/hi";
 import { CgProfile } from "react-icons/cg";
 import { FiLogOut } from "react-icons/fi";
-import { getCurrentLocation } from "./services/location";
 import { ImLocation2 } from "react-icons/im";
 import { useTracking } from "../context/TrackingContext";
 
 const DashboardLayout: React.FC = () => {
   const navigate = useNavigate();
-  const [locationStatus, setLocationStatus] = useState<'idle' | 'loading' | 'success'>('loading');
   const location = useLocation();
 
   // const getLocationDetails = async () => {
