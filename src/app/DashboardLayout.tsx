@@ -2,6 +2,7 @@ import React, { useContext, useEffect } from "react";
 import { NavLink, Outlet, useLocation, useNavigate, ScrollRestoration } from "react-router-dom";
 import { BiLogOut } from "react-icons/bi";
 import truckIcon from "../assets/truck.svg";
+import { RiSteering2Fill } from "react-icons/ri";
 import { AuthContext } from "../context/AuthContext";
 import { NotificationBell } from "./components/NotificationBell";
 import { FaTruck } from "react-icons/fa";
@@ -163,7 +164,11 @@ const DashboardLayout: React.FC = () => {
           <NavLink className={navLinkClasses} to="mytrucks">
             <FaTruck className="mr-2 text-xl" /> My Trucks
           </NavLink>
-
+          
+          
+          <NavLink className={navLinkClasses} to="drivers">
+            <RiSteering2Fill className="mr-2 text-xl" /> Drivers
+          </NavLink>
           <NavLink className={navLinkClasses} to="trips">
             <GiPathDistance className="mr-2 text-xl" /> Trips
           </NavLink>
@@ -201,6 +206,11 @@ const DashboardLayout: React.FC = () => {
                     <FaTruck className="mr-3 text-xl" /> My Trucks
                   </NavLink>
                 </li>
+          <li>
+                <NavLink className={navLinkClasses} to="drivers">
+             <RiSteering2Fill  className="mr-2 text-xl" /> Drivers
+          </NavLink>
+          </li>
 
                 {isOwner && (
                   <li>
