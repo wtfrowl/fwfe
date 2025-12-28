@@ -13,29 +13,33 @@ import { CgProfile } from "react-icons/cg";
 import { FiLogOut } from "react-icons/fi";
 import { getCurrentLocation } from "./services/location";
 import { ImLocation2 } from "react-icons/im";
+import { useTracking } from "../context/TrackingContext";
 
 const DashboardLayout: React.FC = () => {
   const navigate = useNavigate();
   const [locationStatus, setLocationStatus] = useState<'idle' | 'loading' | 'success'>('loading');
   const location = useLocation();
 
-  const getLocationDetails = async () => {
-    try {
-      setLocationStatus('loading');
-      await getCurrentLocation()
-        .then(async (res: any) => {
-          console.log("Lat:", res.latitude, "Long:", res.longitude, "Location:", res.location);
-          setLocationStatus('success');
-        })
-        .catch((err) => {
-          console.error("Location error:", err.message);
-          setLocationStatus('idle');
-        });
-    } catch (err: any) {
-      console.error("Error:", err.message);
-      setLocationStatus('idle');
-    }
-  };
+  // const getLocationDetails = async () => {
+  //   try {
+  //     setLocationStatus('loading');
+  //     await getCurrentLocation()
+  //       .then(async (res: any) => {
+  //         console.log("Lat:", res.latitude, "Long:", res.longitude, "Location:", res.location);
+  //         setLocationStatus('success');
+  //       })
+  //       .catch((err) => {
+  //         console.error("Location error:", err.message);
+  //         setLocationStatus('idle');
+  //       });
+  //   } catch (err: any) {
+  //     console.error("Error:", err.message);
+  //     setLocationStatus('idle');
+  //   }
+  // };
+
+  // 1. Get the global tracking state and controls
+  const { isTracking, startTracking, stopTracking, error } = useTracking();
 
   const isOwner = location.pathname.startsWith("/owner");
   const { ownerLogout, driverLogout } = useContext(AuthContext);
@@ -50,6 +54,15 @@ const DashboardLayout: React.FC = () => {
       token = null;
     }
   }
+
+  // 2. Create a toggle handler
+  const handleToggleTracking = () => {
+    if (isTracking) {
+      stopTracking();
+    } else {
+      startTracking();
+    }
+  };
 
   const handleLogout = (): void => {
     if (isOwner) {
@@ -93,22 +106,25 @@ const DashboardLayout: React.FC = () => {
             />
           </div>
           <div className="mr-4 flex items-center gap-4">
-            {/* Location refresh button */}
-            <button
-              onClick={getLocationDetails}
-              className={`h-9 w-9 items-center justify-center flex rounded-full cursor-pointer transition-colors ${
-                locationStatus === 'loading'
-                  ? 'bg-red-100 text-red-500 animate-pulse'
-                  : locationStatus === 'success'
-                  ? 'bg-green-100 text-green-600'
-                  : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-              }`}
-              title="Refresh Location"
-            >
-              <ImLocation2 className="w-5 h-5" />
-            </button>
+           <div className="mr-4 flex items-center gap-4">
+      {/* 3. Updated Toggle Button */}
+      <button
+        onClick={handleToggleTracking}
+        className={`h-9 w-9 items-center justify-center flex rounded-full cursor-pointer transition-all duration-300 ${
+          isTracking
+            ? 'bg-green-100 text-green-600 shadow-[0_0_10px_rgba(34,197,94,0.5)]' // Glowing Green when ON
+            : 'bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-gray-600' // Gray when OFF
+        } ${error ? 'bg-red-100 text-red-500' : ''}`} // Red if error
+        title={isTracking ? "Stop Tracking (Go Offline)" : "Start Tracking (Go Online)"}
+      >
+        <ImLocation2 className={`w-5 h-5 ${isTracking ? 'animate-pulse' : ''}`} />
+      </button>
 
-            <NotificationBell />
+      {/* Optional: Error tooltip/text if something breaks */}
+      {error && <span className="text-xs text-red-500 absolute top-12">{error}</span>}
+
+      <NotificationBell />
+    </div>
             
             {token ? (
               <div className="flex items-center gap-3">
