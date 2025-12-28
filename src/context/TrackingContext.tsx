@@ -74,7 +74,8 @@ export const TrackingProvider = ({ children }: { children: React.ReactNode }) =>
         if (distance < 20) return; // 20m filter
     }
 
-    const { token } = getAuthDetails();
+    const { token, role } = getAuthDetails();
+  if( role !== "driver") return; // Only drivers send location
     if (!token) return;
 
     lastSentRef.current = { lat: latitude, lng: longitude, time: now };
