@@ -125,10 +125,11 @@ const DriverDetailsPage = () => {
     <div className="min-h-screen bg-gray-50 pb-10">
       
       {/* --- Header --- */}
-      <div className="bg-white border-b sticky top-0 z-20 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+  <div className="bg-white border-b">
+        <div className="mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div className="flex items-center gap-4">
+            <div>
+         <div className="flex items-center gap-3 flex-wrap">
               <button 
                 onClick={() => navigate(-1)} 
                 className="p-2 hover:bg-gray-100 rounded-full text-gray-600 transition-colors"
@@ -140,6 +141,7 @@ const DriverDetailsPage = () => {
                   {driver.firstName} {driver.lastName}
                 </h1>
                 <p className="text-xs sm:text-sm text-gray-500">Driver ID: {driver._id}</p>
+              </div>
               </div>
             </div>
             
