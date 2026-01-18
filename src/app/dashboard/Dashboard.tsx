@@ -11,6 +11,10 @@ import { DistanceChart } from "./components/distance-chart";
 import { MetricsChart } from "./components/metrics-chart";
 import { LoadingSpinner } from "../trips/components/loading-spinner";
 
+//# we gonna make i 
+// gonna do kit 
+
+
 // --- Types for API Response ---
 interface DateKey {
   year: number;
@@ -22,7 +26,7 @@ interface ChartPoint {
   dateKey: DateKey;
   value: number;
 }
-
+ 
 interface DashboardResponse {
   summary: {
     revenue: number;

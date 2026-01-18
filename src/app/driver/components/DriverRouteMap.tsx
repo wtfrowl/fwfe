@@ -1,8 +1,16 @@
 import React, { useMemo } from 'react';
-import { MapContainer, TileLayer, Polyline, Marker, Popup, useMap } from 'react-leaflet'; // 👈 Import useMap
+import { 
+  MapContainer, 
+  TileLayer, 
+  Polyline, 
+  Marker, 
+  Popup, 
+  useMap, 
+  LayersControl // 👈 1. Import LayersControl
+} from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-import { FaCrosshairs, FaCompressArrowsAlt } from 'react-icons/fa'; // Icons for buttons
+import { FaCrosshairs, FaCompressArrowsAlt } from 'react-icons/fa';
 
 // ... (Keep your existing Icon imports and definitions here) ...
 import truckSvg from '../../../assets/truck.svg'; 
@@ -46,8 +54,7 @@ interface DriverRouteMapProps {
   currentLocation?: GeoPoint;
 }
 
-// --- 🆕 NEW: Map Controller Component ---
-// This must be INSIDE MapContainer to work
+// --- Map Controller Component ---
 const MapControls = ({ 
   centerPosition, 
   routePath 
@@ -58,23 +65,18 @@ const MapControls = ({
   const map = useMap();
 
   const handleRecenter = () => {
-    // Fly to the current location smoothly
     map.flyTo(centerPosition, 15, { duration: 1.5 });
   };
 
   const handleFitBounds = () => {
     if (routePath.length > 0) {
-      // Zoom out to fit the entire blue line
       const bounds = L.latLngBounds(routePath);
       map.fitBounds(bounds, { padding: [50, 50] });
     }
   };
 
-  // We use standard HTML/Tailwind for the buttons, floating them with absolute positioning
-  // z-[400] is needed because Leaflet tiles are z-0 to z-200
   return (
     <div className="absolute bottom-4 right-4 flex flex-col gap-2 z-[400]">
-      
       <button 
         onClick={handleRecenter}
         className="bg-white p-2 rounded-lg shadow-md hover:bg-gray-50 text-gray-700 border border-gray-200"
@@ -90,7 +92,6 @@ const MapControls = ({
       >
         <FaCompressArrowsAlt size={20} className="text-gray-600" />
       </button>
-
     </div>
   );
 };
@@ -126,29 +127,61 @@ const DriverRouteMap: React.FC<DriverRouteMapProps> = ({ history, currentLocatio
       center={centerPosition} 
       zoom={13} 
       scrollWheelZoom={false} 
-      className="h-full w-full z-0 relative" // Ensure relative for absolute children
+      className="h-full w-full z-0 relative"
     >
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
-      
-      <Polyline 
-        positions={routePath} 
-        pathOptions={{ color: '#3B82F6', weight: 4, opacity: 0.8 }} 
-      />
+      {/* 2. LayersControl acts as the container for the switcher UI. 
+             position="topright" places the icon in the top right corner.
+      */}
+      <LayersControl position="topright">
 
-      {routePath.length > 0 && (
-        <Marker position={routePath[0]} icon={StartIcon}>
-          <Popup>Trip Start</Popup>
-        </Marker>
-      )}
+        {/* --- BASE LAYERS (Radio Buttons - Choose One) --- */}
+        
+        {/* Standard OpenStreetMap */}
+        <LayersControl.BaseLayer checked name="Street Map">
+          <TileLayer
+           // attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+             attribution='OpenStreetMap'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          />
+        </LayersControl.BaseLayer>
 
+        {/* Satellite View (using Esri World Imagery) */}
+        <LayersControl.BaseLayer name="Satellite">
+          <TileLayer
+          //Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community
+            attribution='Maps'
+            url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+          />
+        </LayersControl.BaseLayer>
+
+
+
+        {/* --- OVERLAYS (Checkboxes - Toggle On/Off) --- */}
+        
+        {/* We wrap the Polyline in an overlay so users can hide the blue line if they want */}
+        <LayersControl.Overlay checked name="Route Path">
+          <Polyline 
+            positions={routePath} 
+            pathOptions={{ color: '#3B82F6', weight: 4, opacity: 0.8 }} 
+          />
+        </LayersControl.Overlay>
+
+        {/* You can also wrap markers if you want to toggle them */}
+        <LayersControl.Overlay checked name="Trip Markers">
+            {routePath.length > 0 && (
+              <Marker position={routePath[0]} icon={StartIcon}>
+                <Popup>Trip Start</Popup>
+              </Marker>
+            )}
+        </LayersControl.Overlay>
+
+      </LayersControl>
+
+      {/* Markers outside of LayersControl will ALWAYS be visible (like the truck) */}
       <Marker position={centerPosition} icon={TruckIcon}>
-         <Popup>Current Location</Popup>
+          <Popup>Current Location</Popup>
       </Marker>
 
-      {/* 🆕 Add the controls here */}
       <MapControls centerPosition={centerPosition} routePath={routePath} />
 
     </MapContainer>
