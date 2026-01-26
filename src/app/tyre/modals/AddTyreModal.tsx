@@ -1,6 +1,6 @@
 import { useState } from "react";
-import axios from "axios";
 import { FaTimes } from "react-icons/fa";
+import { addTyre } from "../../../api";
 
 interface Props {
   isOpen: boolean;
@@ -21,19 +21,12 @@ export function AddTyreModal({ isOpen, onClose, onTyreAdded }: Props) {
     e.preventDefault();
     setLoading(true);
     try {
-      const token = localStorage.getItem("ownerToken");
-      const parsedToken = token ? JSON.parse(token) : null;
-      
-      await axios.post(
-        `${import.meta.env.VITE_API_BASE_URL}/api/tyre`, 
-        { 
+      const finalData= { 
             ...formData,
             purchaseDate: new Date().toISOString(),
             decryptedPayload: { id: "TEMP" } // Middleware should handle this
-        },
-        { headers: { authorization: parsedToken?.accessToken } }
-      );
-      
+        }
+     await addTyre(finalData)
       onTyreAdded();
       setFormData({ tyreNumber: "", brand: "", model: "", size: "", purchasePrice: "", vendorName: "", initialTreadDepth: 16 });
     } catch (error) {

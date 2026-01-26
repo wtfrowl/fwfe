@@ -1,6 +1,5 @@
 // src/pages/Dashboard.tsx
 import { useContext, useEffect, useState } from "react";
-import axios from "axios";
 import { AuthContext } from "../../context/AuthContext";
 
 // Shared components
@@ -10,6 +9,7 @@ import { ExpensesChart } from "./components/expenses-chart";
 import { DistanceChart } from "./components/distance-chart";
 import { MetricsChart } from "./components/metrics-chart";
 import { LoadingSpinner } from "../trips/components/loading-spinner";
+import { getDashboardData } from "../../api/dashboard.api";
 
 //# we gonna make i 
 // gonna do kit 
@@ -85,23 +85,9 @@ export default function Dashboard() {
     const fetchDashboardData = async () => {
       setLoading(true);
       try {
-        const token = localStorage.getItem("ownerToken");
-        const parsedToken = token ? JSON.parse(token) : null;
+        const response:any= await getDashboardData({ period: activePeriod });
 
-        const config = {
-          headers: {
-            Authorization: parsedToken?.accessToken,
-          },
-          params: { period: activePeriod }, // Pass period to backend
-        };
-
-        // Hitting the single-source API
-        const response = await axios.get(
-          `${import.meta.env.VITE_API_BASE_URL}/api/stats/all`, 
-          config
-        );
-
-        setData(response.data);
+        setData(response);
       } catch (error) {
         console.error("Error fetching dashboard stats:", error);
       } finally {

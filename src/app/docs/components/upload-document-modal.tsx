@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react"
 import { Truck } from "../types/docs"
-import { api } from "../services/api"
 import Tesseract from "tesseract.js"
 import { FaCloudUploadAlt, FaSpinner, FaTimes } from "react-icons/fa"
+import { addDocument, getTrucks } from "../../../api"
 
 export const UploadDocumentModal = ({
   isOpen,
@@ -37,8 +37,8 @@ export const UploadDocumentModal = ({
 
   const fetchTrucks = async () => {
     try {
-      const data = await api.trucks.getMyTrucks()
-      setTrucks(data)
+      const data:any = await getTrucks();
+      setTrucks(data?.trucks)
     } catch (err) {
       console.error("Failed to fetch trucks:", err)
       setError("Failed to load trucks")
@@ -176,7 +176,7 @@ export const UploadDocumentModal = ({
     }
     try {
       setLoading(true)
-      await api.documents.addDoc(formData)
+      await addDocument(formData)
       onClose()
       onUpload()
       // Reset form

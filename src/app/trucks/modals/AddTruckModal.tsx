@@ -1,5 +1,5 @@
 import { useState } from "react";
-import axios from "axios";
+import { addTruck } from "../../../api";
 
 export const AddTruckModal = ({
   isOpen,
@@ -34,17 +34,9 @@ export const AddTruckModal = ({
     setError(null);
 
     try {
-      const token = localStorage.getItem("ownerToken");
-      const parsedToken = token ? JSON.parse(token) : null;
+     
 
-      const config = {
-        headers: {
-          "Content-Type": "application/json",
-          authorization: parsedToken?.accessToken || "",
-        },
-      };
-
-      const payload = {
+     const payload :any= {
         registrationNumber: form.registrationNumber,
         model: form.model,
         capacity: parseFloat(form.capacity),
@@ -58,7 +50,7 @@ export const AddTruckModal = ({
         availableTill: form.availableTill,
       };
 
-      await axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/trucks`, payload, config);
+      await addTruck(payload);
 
       onTruckAdded();
       onClose();

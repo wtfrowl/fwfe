@@ -5,10 +5,10 @@ import { StatusTab } from "./components/status-tab";
 import { VehicleTable } from "./components/vehicle-table";
 import type { Vehicle, VehicleStatus } from "./types/vehicle";
 import { FaPlus, FaSearch } from "react-icons/fa";
-import axios from "axios";
 import { AddTruckModal } from "./modals/AddTruckModal";
 import { AuthContext } from "../../context/AuthContext";
 import VehicleTableSkeleton from "./components/vehicle-table-skeleton";
+import { getTrucks } from "../../api";
 
 const ITEMS_PER_PAGE = 6;
 
@@ -37,31 +37,10 @@ export default function TrucksPage() {
       setLoading(true);
       setError(null);
       try {
-        // Try owner token first, then fallback to driver token
-        const ownerToken = localStorage.getItem("ownerToken");
-        const driverToken = localStorage.getItem("driverToken");
-        let tokenData = null;
 
-        if (ownerToken) {
-          tokenData = JSON.parse(ownerToken);
-          setUserRole("owner");
-        } else if (driverToken) {
-          tokenData = JSON.parse(driverToken);
-          setUserRole("driver");
-        } else {
-          throw new Error("No valid token found");
-        }
-
-        const config = {
-          headers: {
-            "Content-Type": "application/json",
-            authorization: tokenData?.accessToken || "",
-          },
-        };
-
-        const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/trucks`, config);
-
-        const sanitizedVehicles = response.data.trucks.map((vehicle: Partial<Vehicle>) => ({
+      setUserRole(role as "owner" | "driver");
+      const response:any= await getTrucks();
+        const sanitizedVehicles = response.trucks.map((vehicle: Partial<Vehicle>) => ({
           id: vehicle._id,
           registrationNumber: vehicle.registrationNumber || undefined,
           type: vehicle.model || "Truck",

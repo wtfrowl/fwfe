@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import axios from "axios";
 import DriverRouteMap from './components/DriverRouteMap';
 import { 
   FaArrowLeft, 
@@ -14,6 +13,7 @@ import {
   FaRoute,
   FaStar
 } from "react-icons/fa";
+import { getDriverById } from "../../api";
 
 // --- Interfaces ---
 interface GeoPoint {
@@ -43,11 +43,7 @@ interface LocationHistoryItem {
   recordedAt: string;
 }
 
-interface DriverDetailResponse {
-  driver: Driver;
-  // ✅ 1. Add this back so we can read it from the API response
-  locationHistory: LocationHistoryItem[]; 
-}
+
 
 const DriverDetailsPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -66,23 +62,17 @@ const DriverDetailsPage = () => {
     const fetchDriverDetails = async () => {
       try {
         setLoading(true);
-        const tokenStr = localStorage.getItem("ownerToken") || localStorage.getItem("driverToken");
-        const token = tokenStr ? JSON.parse(tokenStr).accessToken : "";
+       
 
-        const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/driver/${id}`, {
-          headers: { 
-            "Content-Type": "application/json",
-            Authorization: token 
-          }
-        });
+        const response:any= await getDriverById(id!);
 
-        const data: DriverDetailResponse = response.data;
+        console.log("API Response for Driver Details:", response);
         
-        setDriver(data.driver);
+        setDriver(response?.driver);
         
         // ✅ 2. Set the history state (with a safety fallback)
         // If data.locationHistory is undefined, fallback to []
-        setHistory(data.locationHistory || []);
+        setHistory(response?.locationHistory || []);
         
       } catch (err) {
         console.error("Error fetching driver details:", err);

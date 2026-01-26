@@ -19,6 +19,7 @@ import Tyre from './app/tyre/tyre.tsx';
 import TyreDetailsPage from './app/tyre/components/tyreDetails.tsx';
 import DriversPage from './app/driver/Drivers.tsx';
 import DriverDetailsPage from './app/driver/DriverDetails.tsx';
+import AnalyticsDashboard from './app/analytics/AnalyticsDashboard.tsx';
 
 export const routes: RouteObject[] = [
   { path: "/", element: <WebHome /> },
@@ -35,6 +36,7 @@ export const routes: RouteObject[] = [
     ),
     children: [
       { index: true, element: <Dashboard /> },
+      { path: "analytics", element: <AnalyticsDashboard /> },
       { path: "loads", element: <Loads /> },
       { path: "mytrucks", element: <OwnerTrucks /> },
       { path: "mytrucks/:regNo", element: <TruckDetails /> },

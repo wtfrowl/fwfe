@@ -19,16 +19,17 @@ export function AddTripModal({ isOpen, onClose, onAdd, trucks, drivers, load }: 
   const currentDriver = isDriver ? drivers.find(d => d._id === user._id) : null
   const isDriverAvailable = currentDriver?.availability !== false
   const [isAdding, setIsAdding] = useState(false);
+  const [selectedDriverValue, setSelectedDriverValue] = useState(""); // new state
 
   // Form State
-  const [formData, setFormData] = useState({
+  const [formData, setFormData]:any = useState({
     departureDateTime: "",
     arrivalDateTime: "",
     loadingDate: "",
     departureLocation: "",
     arrivalLocation: "",
     totalWeight: "",
-    driverContactNumber: "",
+    driverIds: [],
     fare: "",
     registrationNumber: "",
     transporterName: "",
@@ -43,17 +44,18 @@ export function AddTripModal({ isOpen, onClose, onAdd, trucks, drivers, load }: 
   // Pre-fill driver info
   useEffect(() => {
     if (isDriver && isDriverAvailable) {
-      setFormData((prev) => ({
+      setFormData((prev:any) => ({
         ...prev,
+        driverIds: [],
         driverContactNumber: String(currentDriver?.contactNumber) || ""
       }))
     }
-  }, [isDriver, isDriverAvailable, currentDriver])
+  }, [isDriver, isDriverAvailable, currentDriver, user])
 
   // Pre-fill load info
   useEffect(() => {
     if (load) {
-      setFormData((prev) => ({
+      setFormData((prev:any) => ({
         ...prev,
         departureLocation: load.source,
         arrivalLocation: load.destination,
@@ -82,7 +84,7 @@ export function AddTripModal({ isOpen, onClose, onAdd, trucks, drivers, load }: 
         departureLocation: "",
         arrivalLocation: "",
         totalWeight: "",
-        driverContactNumber: "",
+        driverIds: [],
         fare: "",
         registrationNumber: "",
         transporterName: "",
@@ -93,6 +95,7 @@ export function AddTripModal({ isOpen, onClose, onAdd, trucks, drivers, load }: 
         truckId: "",
         distance: ""
       })
+      setSelectedDriverValue("current");
       onClose()
     } catch (error) {
       console.error("Failed to add trip:", error);
@@ -163,12 +166,23 @@ export function AddTripModal({ isOpen, onClose, onAdd, trucks, drivers, load }: 
                         <select
                           className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
                           value={formData.registrationNumber}
-                          onChange={(e) => setFormData({ ...formData, registrationNumber: e.target.value })}
+                          onChange={(e) => {
+                            const registrationNumber = e.target.value
+                            const truck:any = trucks.find((t) => t.registrationNumber === registrationNumber)
+
+                            setFormData({ ...formData, registrationNumber: registrationNumber, driverIds: [] })
+
+                            if (truck && truck.driverId && truck.driverId.length > 0) {
+                              setSelectedDriverValue("current")
+                            } else {
+                              setSelectedDriverValue("")
+                            }
+                          }}
                           required
                         >
                           <option value="">-- Choose Truck --</option>
                           {trucks
-                            .filter((truck) => truck.status === "Available" && truck.available === true)
+                            ?.filter((truck) => truck.status === "Available" && truck.available === true)
                             .map((truck) => (
                               <option key={truck._id} value={truck.registrationNumber}>
                                 {truck.registrationNumber}
@@ -180,16 +194,43 @@ export function AddTripModal({ isOpen, onClose, onAdd, trucks, drivers, load }: 
                         <label className="block text-sm font-medium text-gray-700 mb-1">Select Driver <span className="text-red-500">*</span></label>
                         <select
                           className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-white focus:ring-2 focus:ring-blue-500 outline-none"
-                          value={formData.driverContactNumber}
-                          onChange={(e) => setFormData({ ...formData, driverContactNumber: e.target.value })}
-                          required
+                          value={selectedDriverValue}
+                          onChange={(e) => {
+                            const selectedValue = e.target.value;
+                            setSelectedDriverValue(selectedValue);
+
+                            if (selectedValue === "current") {
+                              setFormData({ 
+                                ...formData, 
+                                driverIds: [],
+                          
+                              });
+                            } else {
+                              const driver:any = drivers.find(d => d._id === selectedValue);
+                              if (driver) {
+                                setFormData({ 
+                                  ...formData, 
+                                  driverIds: [driver?._id],
+                                  driverContactNumber: String(driver.contactNumber)
+                                });
+                              } else { // for -- Choose Driver --
+                                  setFormData({
+                                      ...formData,
+                                      driverIds: [],
+                           
+                                  })
+                              }
+                            }
+                          }}
+                          
                           disabled={isDriver}
                         >
                           <option value="">-- Choose Driver --</option>
+                          <option value="current">Current</option>
                           {drivers
                             .filter((driver) => driver.availability !== false)
                             .map((driver) => (
-                              <option key={driver._id} value={driver.contactNumber}>
+                              <option key={driver._id} value={driver._id}>
                                 {driver.firstName + " " + driver.lastName}
                               </option>
                             ))}

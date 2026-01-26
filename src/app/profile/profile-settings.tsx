@@ -1,12 +1,13 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
-import { useState, useEffect } from "react";
-import axios from "axios";
+import { useState, useEffect, useContext } from "react";
 import { Sidebar } from "./components/Sidebar";
 import { ProfileForm } from "./components/ProfileForm";
 import { PasswordForm } from "./components/PasswordForm";
 import { useDriverTracking } from "../../utils/location";
+import { changePassword, getDriverProfile, getOwnerProfile, updateProfile } from "../../api";
+import { AuthContext } from "../../context/AuthContext";
 
 interface ProfileData {
   _id?: string;
@@ -21,22 +22,7 @@ interface ProfileData {
   totalTrucks?: number;
 }
 
-// Utility to get token + role
-const getAuthDetails = (): { token: string; role: "owner" | "driver" | null } => {
-  const ownerToken = localStorage.getItem("ownerToken");
-  if (ownerToken) {
-    const parsed = JSON.parse(ownerToken);
-    return { token: parsed.accessToken, role: "owner" };
-  }
 
-  const driverToken = localStorage.getItem("driverToken");
-  if (driverToken) {
-    const parsed = JSON.parse(driverToken);
-    return { token: parsed.accessToken, role: "driver" };
-  }
-
-  return { token: "", role: null };
-};
 
 export default function ProfileSettings() {
   const { isTracking, startTracking, stopTracking} = useDriverTracking();
@@ -44,38 +30,26 @@ export default function ProfileSettings() {
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [role, setRole] = useState<"owner" | "driver" | null>(null);
-
+   const { user,role }:any = useContext(AuthContext);
   useEffect(() => {
     const fetchProfileData = async () => {
       setIsLoading(true);
       setError(null);
-
-      const { token, role } = getAuthDetails();
-      setRole(role); // set role state here
-
-      if (!token || !role) {
+      if (!user || !role) {     
         setError("No valid session found. Please login again.");
         setIsLoading(false);
         return;
       }
 
       try {
-        const endpoint =
-          role === "driver"
-            ? "/api/driver/my-profile"
-            : "/api/owner/my-profile";
-
-        const response = await axios.get(
-          `${import.meta.env.VITE_API_BASE_URL}${endpoint}`,
-          {
-            headers: {
-              "Content-Type": "application/json",
-              authorization: token,
-            },
-          }
-        );
-        setProfileData(response.data);
+        let response:any = {}
+        if(role === 'driver'){
+          response = await getDriverProfile();
+        }else{
+          response = await getOwnerProfile();
+        }
+         
+        setProfileData(response);
       } catch (err) {
         console.error("Error fetching profile data:", err);
         setError("Failed to load profile data. Please try again later.");
@@ -88,9 +62,6 @@ export default function ProfileSettings() {
   }, []);
 
   const handleProfileUpdate = async (data: ProfileData) => {
-    const { token, role } = getAuthDetails();
-    if (!token || !role) return;
-
     const toBeSentData = {
       firstName: data.firstName,
       lastName: data.lastName,
@@ -101,22 +72,8 @@ export default function ProfileSettings() {
     };
 
     try {
-      const endpoint =
-        role === "driver"
-          ? "/api/driver/my-profile"
-          : "/api/owner/my-profile";
-
-      const response = await axios.patch(
-        `${import.meta.env.VITE_API_BASE_URL}${endpoint}`,
-        toBeSentData,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            authorization: token,
-          },
-        }
-      );
-      setProfileData(response.data);
+      const response:any= await updateProfile(role, toBeSentData);
+      setProfileData(response);
       alert("Profile updated successfully");
     } catch (error) {
       console.error("Error updating profile:", error);
@@ -128,25 +85,11 @@ export default function ProfileSettings() {
     currentPassword: string;
     newPassword: string;
   }) => {
-    const { token, role } = getAuthDetails();
-    if (!token || !role) return;
-
+  
     try {
-      const endpoint =
-        role === "driver"
-          ? "/api/driver/change-password"
-          : "/api/owner/change-password";
+     
 
-      await axios.patch(
-        `${import.meta.env.VITE_API_BASE_URL}${endpoint}`,
-        data,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            authorization: token,
-          },
-        }
-      );
+      await changePassword(role, data);
       alert("Password updated successfully");
     } catch (error) {
       console.error("Error updating password:", error);

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { FaEye, FaDownload, FaPlus } from "react-icons/fa";
-import { api } from "./services/api";
+
 import type { Document, Truck } from "./types/docs";
 import { LoadingSpinner } from "../trips/components/loading-spinner";
 import { UploadDocumentModal } from "./components/upload-document-modal";
@@ -15,6 +15,7 @@ import {
   FaCloud,
   FaPaperclip,
 } from "react-icons/fa";
+import { getDocuments, getTrucks } from "../../api";
 
 const typeIcons: Record<string, JSX.Element> = {
   RC: <FaCar className="text-blue-600" />,
@@ -49,7 +50,7 @@ export default function DocumentsDashboard() {
     try {
       setLoading(true);
       setError(null);
-      const response = await api.documents.list(1, 100);
+      const response:any= await getDocuments(1, 100);
       setDocuments(response.documents as unknown as Document[]);
     } catch (err) {
       console.error("Error fetching documents:", err);
@@ -61,8 +62,8 @@ export default function DocumentsDashboard() {
 
   const fetchTrucks = async () => {
     try {
-      const data = await api.trucks.getMyTrucks();
-      setTrucks(data);
+    const response:any= await getTrucks();
+      setTrucks(response?.trucks );
     } catch (err) {
       console.error("Error fetching trucks:", err);
     }

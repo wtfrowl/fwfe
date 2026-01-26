@@ -26,12 +26,12 @@ interface PaginatedDocumentResponse {
 // }
 export const getAuthConfig = () => {
   const token = localStorage.getItem("ownerToken") || localStorage.getItem("driverToken");
-  const parsedToken = token ? JSON.parse(token) : null;
+
 
   return {
     headers: {
       "Content-Type": "application/json",
-      authorization: parsedToken?.accessToken || "",
+      authorization: token || "",
     },
   };
 };

@@ -7,9 +7,8 @@ import {
 } from "react-icons/fa";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import axios from "axios";
 import { LoadingSpinner } from "../../trips/components/loading-spinner";
-import { api } from "../../trips/services/api";
+import {removeDriver, assignDriver, dismountTyre, getDrivers, getTruckByRegNo, getTyres, mountTyre, updateTruck } from "../../../api";
 
 // --- Types ---
 interface Tyre {
@@ -213,19 +212,11 @@ export default function TruckDetails() {
     currentKm: 0,
     notes: ""
   });
+  const [isRemoveDriverModalOpen, setIsRemoveDriverModalOpen] = useState(false);
+  const [driverToRemove, setDriverToRemove] = useState<{ id: string, name: string } | null>(null);
+  const [isRemovingDriver, setIsRemovingDriver] = useState(false);
 
-  // --- Helper: Get Token Config ---
-  const getAuthConfig = () => {
-    const token = localStorage.getItem("ownerToken");
-    let parsedToken: any = "";
-    if (token) parsedToken = JSON.parse(token);
-    return {
-      headers: {
-        "Content-Type": "application/json",
-        authorization: parsedToken ? parsedToken?.accessToken : "",
-      },
-    };
-  };
+
 
   // --- FETCH DATA ---
   useEffect(() => {
@@ -254,28 +245,28 @@ export default function TruckDetails() {
 
   const fetchDriver = async () => {
     try {
-      const driversData = await api.drivers.list();
+      const driversData = await getDrivers()
       setDrivers(driversData as any[]);
     } catch (error) { console.error(error); }
   };
 
   const fetchTyres = async () => {
     try {
-      const config = getAuthConfig();
-      const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/tyre/list`, config);
-      setAllTyres(response.data);
+     
+      const response:any= await getTyres();
+      setAllTyres(response);
     } catch (error) { console.error(error); }
   };
 
   const fetchTruckDetails = async () => {
-    const config = getAuthConfig();
+
     try {
-      const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/trucks/${regNo}`, config);
-      setTruckDetails(response.data);
-      setTruckForm(response.data); // Initialize edit form
+ const response:any= await    getTruckByRegNo(regNo!);
+      setTruckDetails(response);
+      setTruckForm(response); // Initialize edit form
       
-      if (response.data.totalKm) {
-        setMountForm(prev => ({ ...prev, currentKm: response.data.totalKm }));
+      if (response.totalKm) {
+        setMountForm(prev => ({ ...prev, currentKm: response.totalKm }));
       }
     } catch (err: any) {
       console.error("Truck details fetch failed:", err);
@@ -285,9 +276,9 @@ export default function TruckDetails() {
     }
   };
 
-  const assignDriver = async ( driverId: string) => {
+  const assignDriverToTruck = async ( driverId: string) => {
     try {
-      await api.trucks.assignDriver(truckDetails._id!, driverId);
+      await assignDriver(truckDetails._id!, driverId);
       console.log("Driver assigned successfully");
       fetchTruckDetails();
     } catch (error) {
@@ -299,9 +290,9 @@ export default function TruckDetails() {
   const handleSaveTruck = async () => {
     setIsSavingTruck(true);
     try {
-      const config = getAuthConfig();
+    
       
-      const payload = {
+      const payload:any = {
         // Send the boolean directly
         available: truckForm.available,
         // Optional: Sync status string if backend requires it
@@ -309,13 +300,9 @@ export default function TruckDetails() {
         lastMaintenance: truckForm.lastMaintenance,
       };
 
-      const response = await axios.patch(
-        `${import.meta.env.VITE_API_BASE_URL}/api/trucks/${truckDetails._id}`, 
-        payload,
-        config
-      );
+      const response:any= await updateTruck(truckDetails._id!, payload);
 
-      setTruckDetails({ ...truckDetails, ...response.data });
+      setTruckDetails({ ...truckDetails, ...response });
       setIsEditingTruck(false);
     } catch (error) {
       console.error(error);
@@ -331,20 +318,7 @@ export default function TruckDetails() {
     if (!mountForm.tyreId) return alert("Please select a tyre");
 
     try {
-      const config = getAuthConfig();
-      const payload = {
-        tyreId: mountForm.tyreId,
-        truckId: truckDetails._id,
-        position: mountForm.position,
-        currentKm: mountForm.currentKm,
-        notes: mountForm.notes
-      };
-
-      await axios.post(
-        `${import.meta.env.VITE_API_BASE_URL}/api/tyre/mount`,
-        payload,
-        config
-      );
+      await mountTyre({ ...mountForm, truckId: truckDetails._id });
 
       setIsMountModalOpen(false);
       setMountForm({ 
@@ -369,25 +343,58 @@ export default function TruckDetails() {
     if (!reason) return; 
 
     try {
-      const config = getAuthConfig();
-      const payload = {
-        tyreId,
-        currentKm: truckDetails.totalKm || 0,
-        reason: reason, 
-        notes: "Dismounted via Truck Dashboard"
-      };
-
-      await axios.post(
-        `${import.meta.env.VITE_API_BASE_URL}/api/tyre/dismount`,
-        payload,
-        config
-      );
-
+    await dismountTyre({ tyreId, truckId: truckDetails._id, reason });
       fetchTyres();
       fetchTruckDetails();
     } catch (error: any) {
       alert(error.response?.data?.message || "Dismount failed");
     }
+  };
+  
+  const handleRemoveDriver = async () => {
+    if (!driverToRemove) return;
+    setIsRemovingDriver(true);
+    try {
+      await removeDriver(truckDetails._id!, driverToRemove.id);
+      fetchTruckDetails(); 
+    } catch (error) {
+      console.error("Error removing driver:", error);
+      alert("Failed to remove driver.");
+    } finally {
+      setIsRemoveDriverModalOpen(false);
+      setDriverToRemove(null);
+      setIsRemovingDriver(false);
+    }
+  };
+
+  const RemoveDriverModal = ({ isOpen, onClose, onConfirm, driverName, isRemoving }: { isOpen: boolean, onClose: () => void, onConfirm: () => void, driverName: string | undefined, isRemoving: boolean }) => {
+    if (!isOpen) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50">
+        <div className="bg-white rounded-lg p-6 w-full max-w-sm shadow-xl">
+          <h3 className="text-lg font-bold text-gray-800 mb-2">Remove Driver</h3>
+          <p className="text-sm text-gray-600 mb-6">
+            Are you sure you want to remove <span className="font-semibold">{driverName}</span> from this truck?
+          </p>
+          <div className="flex justify-end gap-3">
+            <button 
+              onClick={onClose}
+              className="px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              Cancel
+            </button>
+            <button 
+              onClick={onConfirm}
+              disabled={isRemoving}
+              className="px-4 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors shadow-sm disabled:bg-red-300"
+            >
+              {isRemoving ? "Removing..." : "Remove"}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   };
   
   // --- RENDER HELPERS ---
@@ -638,7 +645,15 @@ export default function TruckDetails() {
               {truckDetails.driverNames && truckDetails.driverNames.length > 0 ? (
                 <div className="mb-4 flex flex-wrap gap-2">
                   {truckDetails.driverNames.map((name: string, i: number) => (
-                    <span key={i} className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">
+                    <span 
+                      key={truckDetails.driverId![i]} 
+                      onDoubleClick={() => {
+                        setDriverToRemove({ id: truckDetails.driverId![i], name: name });
+                        setIsRemoveDriverModalOpen(true);
+                      }}
+                      className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm cursor-pointer"
+                      title="Double-click to remove"
+                    >
                       {name}
                     </span>
                   ))}
@@ -657,7 +672,7 @@ export default function TruckDetails() {
                     ))}
                  </select>
                  <button 
-                   onClick={() => assignDriver(selectedDriver)}
+                   onClick={() => assignDriverToTruck(selectedDriver)}
                    disabled={!selectedDriver}
                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm w-full sm:w-auto disabled:bg-gray-300"
                  >
@@ -762,6 +777,14 @@ export default function TruckDetails() {
           </div>
         </div>
       )}
+
+      <RemoveDriverModal 
+        isOpen={isRemoveDriverModalOpen}
+        onClose={() => setIsRemoveDriverModalOpen(false)}
+        onConfirm={handleRemoveDriver}
+        driverName={driverToRemove?.name}
+        isRemoving={isRemovingDriver}
+      />
     </div>
   );
 }

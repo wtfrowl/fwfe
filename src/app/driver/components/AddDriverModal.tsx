@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import axios from "axios";
 import { FaTimes } from "react-icons/fa";
+import { createDriver } from "../../../api";
 
 interface AddDriverModalProps {
   isOpen: boolean;
@@ -39,19 +39,10 @@ export const AddDriverModal: React.FC<AddDriverModalProps> = ({
     setError(null);
 
     try {
-      const tokenObj = JSON.parse(localStorage.getItem("ownerToken") || "{}");
-      const token = tokenObj.accessToken;
-
-      if (!token) throw new Error("Unauthorized");
-
-      await axios.post(
-        `${import.meta.env.VITE_API_BASE_URL}/api/auth/register-driver`, // Assuming this is your create route
-        {
-            ...formData,
-            age: Number(formData.age), // Ensure number type
-        },
-        { headers: { Authorization: token } }
-      );
+      await createDriver({
+        ...formData,
+        age: Number(formData.age), // Ensure number type
+      });
 
       onDriverAdded(); // Refresh parent list
       onClose(); // Close modal

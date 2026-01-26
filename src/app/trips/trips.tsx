@@ -6,9 +6,9 @@ import { TripsTable } from "./components/trips-table"
 import { AddTripModal } from "./components/add-trip-modal"
 import { LoadingSpinner } from "./components/loading-spinner"
 import type { Trip, Driver, Truck } from "./types/api"
-import { api } from "./services/api"
 import { FaPlus } from "react-icons/fa"
 import { useEventStore} from "../../store/trips/store"
+import { createTrip, deleteTrip, getDrivers, getTrips, getTrucks } from "../../api"
 
 export default function Trips() {
   const tripRefreshKey = useEventStore((s) => s.tripRefreshKey);
@@ -21,14 +21,19 @@ export default function Trips() {
   const fetchData = async () => {
     try {
       setIsLoading(true)
-      const [tripsData, driversData, trucksData] = await Promise.all([
-        api.trips.list(),
-        api.drivers.list(),
-        api.trucks.list(),
+      const [tripsData, driversData, trucksData]:any = await Promise.all([
+       getTrips(),
+        getDrivers(),
+       getTrucks(),
       ])
+
+      console.log("Trips data:", tripsData);
+      console.log("Drivers data:", driversData);
+      console.log("Trucks data:", trucksData?.trucks);
+
       setTrips(tripsData)
       setDrivers(driversData)
-      setTrucks(trucksData)
+      setTrucks(trucksData?.trucks)
     } catch (error) {
       console.error("Error fetching data:", error)
     } finally {
@@ -55,7 +60,7 @@ export default function Trips() {
   const handleAddTrip = async (tripData: any) => {
     try {
       // Add truckId and registrationNumber to tripData
-    await api.trips.create(tripData)
+    await createTrip(tripData)
       await fetchData()
     } catch (error) {
       console.error("Error adding trip:", error)
@@ -65,7 +70,7 @@ export default function Trips() {
   const handleDeleteTrip = async (id: string) => {
     if (window.confirm("Are you sure you want to delete this trip?")) {
       try {
-        await api.trips.delete(id)
+        await deleteTrip(id)
         await fetchData()
       } catch (error) {
         console.error("Error deleting trip:", error)

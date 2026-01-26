@@ -60,7 +60,7 @@ export const getCurrentLocation = async (): Promise<{
     });
 
     // Step 2: Call reverse geocode API
-    const response = await fetch(
+    const response:any= await fetch(
       `https://api-bdc.io/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`
     );
 

@@ -11,14 +11,14 @@ export const useDriverTracking = () => {
 const getAuthDetails = (): { token: string; role: "owner" | "driver" | null } => {
   const ownerToken = localStorage.getItem("ownerToken");
   if (ownerToken) {
-    const parsed = JSON.parse(ownerToken);
-    return { token: parsed.accessToken, role: "owner" };
+
+    return { token: ownerToken, role: "owner" };
   }
 
   const driverToken = localStorage.getItem("driverToken");
   if (driverToken) {
-    const parsed = JSON.parse(driverToken);
-    return { token: parsed.accessToken, role: "driver" };
+   
+    return { token: driverToken, role: "driver" };
   }
 
   return { token: "", role: null };

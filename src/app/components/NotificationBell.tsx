@@ -26,32 +26,18 @@ export const NotificationBell = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const { role } = useContext(AuthContext);
+  const { role,user } = useContext(AuthContext);
   useEffect(() => {
-    const tokenKey = role === "owner" ? "ownerToken" : "driverToken";
-    const tokenRaw = localStorage.getItem(tokenKey);
 
-    let userId: string | null = null;
-
-    if (tokenRaw) {
-      try {
-        const parsed = JSON.parse(tokenRaw);
-        if (parsed && parsed._id) {
-          userId = parsed._id;
-        }
-      } catch (err) {
-        console.error("Invalid token format:", err);
-      }
-    }
 
     const roomPrefix = role === "owner" ? "owner" : "driver";
 
-    if (!userId) {
+    if (!user.id) {
       console.warn(`❌ No _id found in ${roomPrefix} token. Skipping socket connection.`);
       return;
     }
 
-    const roomId = `${roomPrefix}-${userId}`;
+    const roomId = `${roomPrefix}-${user.id}`;
     console.log("Connecting to socket... as", roomPrefix);
     socket.connect();
     console.log("➡️ Joining room:", roomId);

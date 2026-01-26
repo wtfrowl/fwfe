@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import axios from "axios";
 import { 
   FaArrowLeft, FaTruck, FaTools, FaHistory, FaCheckCircle, 
   FaEdit, FaSave, FaTimes, FaPencilAlt, FaCheck 
 } from "react-icons/fa";
 import { LoadingSpinner } from "../../trips/components/loading-spinner"; 
+import { getTyreById, inspectTyre, updateTyreDetails } from "../../../api";
 
 // --- Types ---
 interface TyreHistory {
@@ -114,30 +114,17 @@ export default function TyreDetailsPage() {
   const [inspectSaving, setInspectSaving] = useState(false);
 
   // --- Helper: Get Token ---
-  const getAuthConfig = () => {
-    const token = localStorage.getItem("ownerToken") || localStorage.getItem("driverToken");
-    let parsedToken: any = "";
-    if (token) parsedToken = JSON.parse(token);
-    return {
-      headers: {
-        "Content-Type": "application/json",
-        authorization: parsedToken ? parsedToken?.accessToken : "",
-      },
-    };
-  };
+
 
   const fetchTyreDetails = async () => {
     // Artificial delay check (remove in production if you want instant)
     // await new Promise(r => setTimeout(r, 500)); 
     try {
       setLoading(true);
-      const config = getAuthConfig();
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_BASE_URL}/api/tyre/${id}`, 
-        config
-      );
-      setTyre(response.data);
-      setEditForm(response.data);
+    
+      const response:any= await getTyreById(id!);
+      setTyre(response);
+      setEditForm(response);
     } catch (err: any) {
       console.error("Error fetching tyre details:", err);
       setError("Failed to load tyre details.");
@@ -156,17 +143,9 @@ export default function TyreDetailsPage() {
     setInspectSaving(true);
     
     try {
-      const config = getAuthConfig();
-      const response = await axios.patch(
-        `${import.meta.env.VITE_API_BASE_URL}/api/tyre/${id}/inspect`, // POST matches your controller
-        {
-          currentTreadDepth: Number(inspectDepth),
-          notes: "Updated via Details Page Inspection" 
-        },
-        config
-      );
+      const response:any= await inspectTyre(id!, { currentTreadDepth: Number(inspectDepth), notes: "Updated via Details Page Inspection" });
 
-      setTyre(response.data); 
+      setTyre(response); 
       setIsInspecting(false);
     } catch (err: any) {
       alert("Failed to update tread depth");
@@ -187,8 +166,7 @@ export default function TyreDetailsPage() {
   const handleSaveDetails = async () => {
     setIsSaving(true);
     try {
-      const config = getAuthConfig();
-      const payload = {
+     const payload :any= {
         tyreNumber: editForm.tyreNumber,
         brand: editForm.brand,
         model: editForm.model,
@@ -199,13 +177,9 @@ export default function TyreDetailsPage() {
         initialTreadDepth: editForm.initialTreadDepth
       };
 
-      const response = await axios.patch(
-        `${import.meta.env.VITE_API_BASE_URL}/api/tyre/${id}`,
-        payload,
-        config
-      );
+      const response:any = await updateTyreDetails(id!, payload);
 
-      setTyre(response.data);
+      setTyre(response);
       setIsEditing(false);
     } catch (err: any) {
       alert("Failed to update tyre details");

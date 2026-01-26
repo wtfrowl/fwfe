@@ -4,7 +4,7 @@ import type { Driver } from "../Drivers"; // Adjust path if needed
 
 interface DriverTableProps {
   drivers: Driver[];
-  userRole: "owner" | "driver" | null;
+  role?: "owner" | "driver" | null;
 }
 
 export const DriverTable: React.FC<DriverTableProps> = ({ drivers }) => {

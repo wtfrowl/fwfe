@@ -1,6 +1,5 @@
 import type React from "react"
 import { useContext, useEffect, useState } from "react"
-import axios from "axios"
 import { useParams } from "react-router-dom"
 import {  BiEdit } from "react-icons/bi"
 import { LoadingSpinner } from "../components/loading-spinner"
@@ -14,8 +13,8 @@ import {
   FaTruckLoading,
   FaArrowLeft
 } from "react-icons/fa"
-import { api } from "../services/api"
 import { AuthContext } from "../../../context/AuthContext"
+import { approveExpense, createExpense, getTripById, updateTrip, updateTripDates, updateTripStatus } from "../../../api"
 
 // --- Interfaces ---
 interface Expense {
@@ -109,7 +108,7 @@ const TripInfo: React.FC = () => {
 
   const fetchTripDetails = async () => {
     try {
-      const response = await api.trips.getById(id || "");
+      const response:any= await getTripById(id || "");
       setTrip(response); 
       setExpenses(response.tripExpenses || [])
       
@@ -145,7 +144,7 @@ const TripInfo: React.FC = () => {
     if (!tempDate || !editingField) return;
     setIsUpdatingDate(true);
     try {
-      await api.trips.updateTripDates(id || "", { [editingField]: tempDate });
+      await updateTripDates(id || "", { [editingField]: tempDate });
       await fetchTripDetails();
       setEditingField(null);
     } catch (err) {
@@ -159,18 +158,7 @@ const TripInfo: React.FC = () => {
   const handleUpdateSettlement = async () => {
     setIsUpdatingSettlement(true)
     try {
-        const token = localStorage.getItem("ownerToken") || localStorage.getItem("driverToken");
-        let parsedToken: any = "";
-        if (token) parsedToken = JSON.parse(token);
-
-        // NOTE: Ensure your backend Route for Update Trip matches this URL
-        await axios.patch(`${import.meta.env.VITE_API_BASE_URL}/api/trips/trip/${id}`, settlementData, {
-            headers: {
-                "Content-Type": "application/json",
-                Authorization: parsedToken ? parsedToken.accessToken : "",
-            }
-        });
-      
+        await updateTrip(id!,settlementData)
       await fetchTripDetails()
       setSettlementModalOpen(false)
     } catch (err) {
@@ -183,7 +171,7 @@ const TripInfo: React.FC = () => {
   const handleAddExpense = async () => {
     setIsAddingExpense(true)
     try {
-      await api.trips.createExpense(newExpense)
+      await createExpense(newExpense)
       await fetchTripDetails()
       setExpenseModalOpen(false)
       setNewExpense({ ...newExpense, expenseType: "", amount: "", quantity: "", description: "", imageBase64: "" })
@@ -195,14 +183,9 @@ const TripInfo: React.FC = () => {
   }
 
   const handleApproveExpense = async (expenseId: string) => {
-    const token = localStorage.getItem("ownerToken") || localStorage.getItem("driverToken")
-    let parsedToken: any = ""
-    if (token) parsedToken = JSON.parse(token)
 
     try {
-      await axios.patch(`${import.meta.env.VITE_API_BASE_URL}/api/tripexpense/${expenseId}/approve`, {}, {
-        headers: { "Content-Type": "application/json", authorization: parsedToken ? parsedToken.accessToken : "" }
-      })
+      await approveExpense(expenseId);
       setExpenses((prev) => prev.map((ex) => (ex._id === expenseId ? { ...ex, isApproved: true } : ex)))
     } catch (err) {
       console.error("Error approving expense:", err)
@@ -212,8 +195,8 @@ const TripInfo: React.FC = () => {
   const handleMarkAsCompleted = async () => {
     try {
       setIsMarkingCompleted(true)
-      const payload = { unloadingDate: new Date() };
-      await api.trips.updateStatus(id || "", payload);
+     const payload :any= { unloadingDate: new Date() };
+      await updateTripStatus(id || "", payload);
       await fetchTripDetails();
     } catch (err) {
       console.error("Error updating trip status:", err)
@@ -257,7 +240,7 @@ const TripInfo: React.FC = () => {
   const handleFinalizeSettlement = async () => {
     try {
       // 1. Call API to update status to 'Settled'
-      await api.trips.updateStatus(id || "", { paymentReceivedDate: new Date() });
+      await updateTripStatus(id || "", { paymentReceivedDate: new Date() });
       
       // 2. Fetch the updated trip data to trigger a re-render
       await fetchTripDetails(); 

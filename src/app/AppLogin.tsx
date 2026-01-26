@@ -1,7 +1,7 @@
 import  { useState, useContext, useEffect, ChangeEvent, FormEvent } from "react";
 import truckIcon from "../assets/truck.svg";
 import { useNavigate, useLocation, Link } from "react-router-dom";
-import axios from "axios";
+import { login } from "../api/auth.api";
 import { AuthContext } from "../context/AuthContext";
 
 interface LoginData {
@@ -58,47 +58,35 @@ function Login() {
     }
   }, [role, location.pathname, navigate]);
 
-  const handleLogin = (e: FormEvent) => {
+  const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
     setLoginErr("");
     setIsLoading(true);
-    const apiURL = `${import.meta.env.VITE_API_BASE_URL}/api/${isOwner ? "owner" : "driver"}/login`;
+    setErrMsg({});
 
-    axios
-      .post(apiURL, loginData)
-      .then((res) => {
-        if (isOwner) ownerLogin(res.data); else driverLogin(res.data);
-        if (res.status === 200) {
-          navigate(isOwner ? "/owner-home" : "/driver-home");
-        }
-      })
-    .catch((err) => {
-    setErrMsg({}); // Clears field-level errors (the object state)
-    setLoginErr(""); // Clears overall login error (the string state)
-    setIsLoading(false); // Make sure loading is stopped
-
-    if (err.response?.status === 401) {
-        // You are receiving: { "error": "Invalid credentials..." }
-        
-        // 1. Set the string state (loginErr) to the string from the response
-        setLoginErr(err.response.data.error); 
-        
-        // 2. 🚨 CRITICAL: The line that must be REMOVED or commented out.
-        // If this line exists, it is the cause of the crash and refresh.
-        // setErrMsg(err.response.data.error); // <--- MUST NOT BE HERE!
-
-    } else if (err.response?.data.errors) {
-        // ... (This handles the 400 validation array)
+    try {
+      const res = await login(loginData, isOwner);
+      if (isOwner) {
+        ownerLogin(res);
+      } else {
+        driverLogin(res);
+      }
+      navigate(isOwner ? "/owner-home" : "/driver-home");
+    } catch (error: any) {
+      if (error.statusCode === 401) {
+        setLoginErr(error.message);
+      } else if (error.details) {
         const errObj: ErrorMessages = {};
-        err.response.data.errors.forEach((error: { path: string; msg: string }) => {
-            errObj[error.path] = error.msg;
+        error.details.forEach((err: { path: string; msg: string }) => {
+          errObj[err.path] = err.msg;
         });
-        setErrMsg(errObj); // Correctly setting the object state (errMsg)
+        setErrMsg(errObj);
+      } else {
+        setLoginErr(error.message || "An unexpected error occurred.");
+      }
+    } finally {
+      setIsLoading(false);
     }
-})
-.finally(() => {
-    setIsLoading(false);
-});
   };
 
   return (

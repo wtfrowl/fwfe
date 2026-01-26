@@ -3,9 +3,8 @@ import { HealthBar } from "./health-bar";
 import { AlertBadge } from "./alert-badge";
 import { FaTruck, FaCar, FaShuttleVan } from "react-icons/fa";
 import { useState } from "react";
-import axios from "axios";
-;
 import { useNavigate } from "react-router-dom";
+import { updateTruck } from "../../../api";
 
 interface VehicleTableProps {
   vehicles: Vehicle[];
@@ -35,26 +34,8 @@ export function VehicleTable({ vehicles, userRole }: VehicleTableProps) {
   const handleEditFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
-      const token = localStorage.getItem("ownerToken");
-      const parsedToken = token ? JSON.parse(token) : null;
-
-      if (!parsedToken?.accessToken) {
-        console.error("No valid token found!");
-        return;
-      }
-
-      const config = {
-        headers: {
-          "Content-Type": "application/json",
-          authorization: parsedToken?.accessToken || "",
-        },
-      };
-
-      await axios.patch(
-        `${import.meta.env.VITE_API_BASE_URL}/api/trucks/${selectedVehicle?.id}`,
-        editTruckDetails,
-        config
-      );
+    
+      await updateTruck(selectedVehicle!.id, editTruckDetails);
 
       setIsEditPopupOpen(false);
     } catch (error) {

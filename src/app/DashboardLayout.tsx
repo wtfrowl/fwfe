@@ -6,7 +6,7 @@ import { RiSteering2Fill } from "react-icons/ri";
 import { AuthContext } from "../context/AuthContext";
 import { NotificationBell } from "./components/NotificationBell";
 import { FaTruck } from "react-icons/fa";
-import { MdDashboard } from "react-icons/md";
+import { MdAnalytics, MdDashboard } from "react-icons/md";
 import { TbPackages } from "react-icons/tb";
 import { GiPathDistance, GiTyre } from "react-icons/gi";
 import { HiOutlineDocumentText } from "react-icons/hi";
@@ -40,19 +40,11 @@ const DashboardLayout: React.FC = () => {
   // 1. Get the global tracking state and controls
   const { isTracking, startTracking, stopTracking, error } = useTracking();
 
-  const isOwner = location.pathname.startsWith("/owner");
-  const { ownerLogout, driverLogout } = useContext(AuthContext);
-
-  const tokenKey = (isOwner ? "ownerToken" : "driverToken");
-  const tokenRaw = localStorage.getItem(tokenKey);
-  let token: { firstName: string; _id: string } | null = null;
-  if (tokenRaw) {
-    try {
-      token = JSON.parse(tokenRaw);
-    } catch {
-      token = null;
-    }
-  }
+ 
+  const { ownerLogout, driverLogout, user } = useContext(AuthContext);
+   const isOwner = location.pathname.startsWith("/owner") && user?.role === "owner";
+  const userD:any = localStorage.getItem("user");
+  
 
   // 2. Create a toggle handler
   const handleToggleTracking = () => {
@@ -74,13 +66,13 @@ const DashboardLayout: React.FC = () => {
   };
 
   useEffect(() => {
-    if (!token) {
+    if (!userD) {
       navigate(isOwner ? "/owner-login" : "/driver-login");
     }
-    document.title = token
-      ? `Welcome ${token.firstName} - ${isOwner ? "Owner" : "Driver"} Dashboard`
+    document.title = user
+      ? `Welcome ${user ?user.firstName:userD?.firstName} - ${isOwner ? "Owner" : "Driver"} Dashboard`
       : "Please Login";
-  }, [token, navigate, isOwner]);
+  }, [user, navigate, isOwner]);
 
   // --- STYLE HELPER FOR NAV LINKS ---
   // This ensures both mobile and desktop links look consistent
@@ -125,10 +117,10 @@ const DashboardLayout: React.FC = () => {
       <NotificationBell />
     </div>
             
-            {token ? (
+            {user ? (
               <div className="flex items-center gap-3">
                 <span className="hidden md:block text-sm md:text-lg font-medium text-gray-700">
-                  Welcome, {token.firstName}
+                  Welcome, {user.firstName}
                 </span>
                 <BiLogOut
                   className="h-6 w-6 text-gray-500 cursor-pointer md:hidden hover:text-red-500"
@@ -154,12 +146,16 @@ const DashboardLayout: React.FC = () => {
           <NavLink className={navLinkClasses} to="" end>
             <MdDashboard className="mr-2 text-xl" /> Dashboard
           </NavLink>
+  {isOwner && (<>
+           <NavLink className={navLinkClasses} to="analytics">
+            <MdAnalytics className="mr-2 text-xl" /> Analytics
+          </NavLink>
 
-          {isOwner && (
+        
             <NavLink className={navLinkClasses} to="loads">
               <TbPackages className="mr-2 text-xl" /> Loads
             </NavLink>
-          )}
+          </>)}
 
           <NavLink className={navLinkClasses} to="mytrucks">
             <FaTruck className="mr-2 text-xl" /> My Trucks
@@ -201,16 +197,24 @@ const DashboardLayout: React.FC = () => {
                   </NavLink>
                 </li>
 
+                 {isOwner && (<>
+           <li>
+                   <NavLink className={navLinkClasses} to="analytics">
+            <MdAnalytics className="mr-2 text-xl" /> Analytics
+          </NavLink></li>
+            <li>
+                <NavLink className={navLinkClasses} to="drivers">
+             <RiSteering2Fill  className="mr-2 text-xl" /> Drivers
+          </NavLink>
+          </li>
+          </>)}
+
                 <li>
                   <NavLink className={navLinkClasses} to="mytrucks">
                     <FaTruck className="mr-3 text-xl" /> My Trucks
                   </NavLink>
                 </li>
-          <li>
-                <NavLink className={navLinkClasses} to="drivers">
-             <RiSteering2Fill  className="mr-2 text-xl" /> Drivers
-          </NavLink>
-          </li>
+        
 
                 {isOwner && (
                   <li>

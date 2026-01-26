@@ -2,13 +2,13 @@
 
 import { useState, useMemo, useEffect, useContext } from "react";
 import { FaPlus, FaSearch } from "react-icons/fa";
-import axios from "axios";
 import { AuthContext } from "../../context/AuthContext";
 // You will need to create/import these similar to your Truck components
 import { DriverTable } from "./components/Driver-Table"; 
 import { AddDriverModal } from "./components/AddDriverModal"; 
 import { StatusTab } from "../trucks/components/status-tab"; // Reusing your existing component
 import DriverTableSkeleton from "./components/Driver-Table-Skeleton"; // Optional skeleton
+import { getDrivers } from "../../api";
 
 const ITEMS_PER_PAGE = 6;
 
@@ -34,7 +34,6 @@ export default function DriversPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [addDriverModalOpen, setAddDriverModalOpen] = useState(false);
-  const [userRole, setUserRole] = useState<"owner" | "driver" | null>(null);
   const { role } = useContext(AuthContext);
 
   const statuses = [
@@ -51,36 +50,11 @@ export default function DriversPage() {
       setLoading(true);
       setError(null);
       try {
-        const ownerToken = localStorage.getItem("ownerToken");
-        let token = "";
-
-        if (ownerToken) {
-          const parsed = JSON.parse(ownerToken);
-          token = parsed.accessToken;
-          setUserRole("owner");
-        } else {
-           const driverToken = localStorage.getItem("driverToken");
-           if(driverToken) {
-             token = JSON.parse(driverToken).accessToken;
-             setUserRole("driver");
-           }
-        }
-
-        if (!token) throw new Error("No valid token found");
-
-        const config = {
-          headers: {
-            "Content-Type": "application/json",
-            authorization: token,
-          },
-        };
-
-        // CORRECT ENDPOINT based on your snippet
-        const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/driver/list`, config);
+        const response:any= await getDrivers();
 
         // ⚠️ CRITICAL FIX HERE: 
         // Your API returns the array directly, so we map 'response.data', not 'response.data.drivers'
-        const rawData = Array.isArray(response.data) ? response.data : response.data.drivers || [];
+        const rawData = Array.isArray(response) ? response : response?.drivers || [];
 
         const sanitizedDrivers: Driver[] = rawData.map((d: any) => ({
           id: d._id || d.id, // Handle both _id and id
@@ -161,7 +135,7 @@ export default function DriversPage() {
         <div className="bg-white rounded-lg shadow">
           
           {/* Add Driver Modal */}
-          {userRole === "owner" && (
+          {role === "owner" && (
             <AddDriverModal
               isOpen={addDriverModalOpen}
               onClose={() => setAddDriverModalOpen(false)}
@@ -173,7 +147,7 @@ export default function DriversPage() {
           <div className="px-6 py-4 border-b border-gray-200">
             <div className="flex justify-between items-center">
               <h1 className="text-2xl font-semibold">My Drivers</h1>
-              {userRole === "owner" && (
+              {role === "owner" && (
                 <button
                   onClick={() => setAddDriverModalOpen(true)}
                   className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 flex items-center gap-2"
@@ -256,7 +230,7 @@ export default function DriversPage() {
           ) : (
             <>
               {paginatedDrivers.length > 0 ? (
-                <DriverTable drivers={paginatedDrivers} userRole={role} />
+                <DriverTable drivers={paginatedDrivers} role={role} />
               ) : (
                 <div className="flex justify-center items-center h-64">
                   <p className="text-gray-500">No Drivers Found. Add one to get started.</p>

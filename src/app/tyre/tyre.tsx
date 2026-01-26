@@ -7,9 +7,9 @@ import { TyreTable } from "./components/tyre-table";
 import { AddTyreModal } from "./modals/AddTyreModal"; 
 
 import { FaPlus, FaSearch } from "react-icons/fa";
-import axios from "axios";
 import { LoadingSpinner } from "../trips/components/loading-spinner";
 import { AuthContext } from "../../context/AuthContext";
+import { getTyres } from "../../api";
 
 // --- Type Definition ---
 export interface Tyre {
@@ -50,34 +50,18 @@ export default function Tyre() {
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
-  // --- Helper: Get Token ---
-  const getAuthConfig = () => {
-    const token = localStorage.getItem("ownerToken") || localStorage.getItem("driverToken");
-    let parsedToken: any = "";
-    if (token) parsedToken = JSON.parse(token);
-    return {
-      headers: {
-        "Content-Type": "application/json",
-        authorization: parsedToken ? parsedToken?.accessToken : "",
-      },
-    };
-  };
-
   // --- Fetch Tyres ---
   const fetchTyres = async () => {
     setLoading(true);
     setError(null);
     try {
-      const config = getAuthConfig();
+
       
       // Using POST as per your controller logic for 'getAllByOwner'
       // If your backend route is strictly GET, change this to axios.get
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_BASE_URL}/api/tyre/list`, 
-        config
-      );
+      const response:any= await getTyres()
 
-      setTyres(response.data);
+      setTyres(response);
     } catch (err: any) {
       console.error("Error fetching tyres:", err);
       setError("Failed to fetch tyre inventory.");

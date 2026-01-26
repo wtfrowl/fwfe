@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { api } from "../services/api";
 import { Document } from "../types/docs";
 import { useNavigate, useParams } from "react-router-dom";
 import { LoadingSpinner } from "../../trips/components/loading-spinner";
@@ -10,6 +9,7 @@ import {
   FaTruck, FaUser, FaWhatsapp, FaHistory, FaExternalLinkAlt, 
   FaCheck
 } from "react-icons/fa";
+import { getDocumentById, getDocumentHistory } from "../../../api";
 
 export default function DocumentPreviewPage() {
   const { id } = useParams() as { id: string };
@@ -52,7 +52,7 @@ export default function DocumentPreviewPage() {
   const fetchDocument = async () => {
     try {
       setLoading(true);
-      const res = await api.documents.getById(id);
+      const res = await getDocumentById(id);
       setDocument(res as unknown as Document);
     } catch (err) {
       setError("Failed to load document.");
@@ -73,7 +73,7 @@ export default function DocumentPreviewPage() {
 
     try {
       // Assuming api.documents.fetchDocsHistory calls your new controller method
-      const res = await api.documents.fetchDocsHistory(id, historyPage, ITEMS_PER_PAGE);
+      const res = await getDocumentHistory(id, historyPage, ITEMS_PER_PAGE);
       
       if (res?.length < ITEMS_PER_PAGE) setHasMoreHistory(false);
       
@@ -138,7 +138,7 @@ export default function DocumentPreviewPage() {
                 if (!document.downloadUrl.includes("cloudinary.com")) {
                     e.preventDefault();
                     try {
-                        const response = await fetch(document.downloadUrl);
+                        const response:any= await fetch(document.downloadUrl);
                         if (!response.ok) throw new Error("Network response was not ok");
                         
                         const blob = await response.blob();
