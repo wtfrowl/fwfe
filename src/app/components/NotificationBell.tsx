@@ -32,12 +32,12 @@ export const NotificationBell = () => {
 
     const roomPrefix = role === "owner" ? "owner" : "driver";
 
-    if (!user.id) {
+    if (!user?.id) {
       console.warn(`❌ No _id found in ${roomPrefix} token. Skipping socket connection.`);
       return;
     }
 
-    const roomId = `${roomPrefix}-${user.id}`;
+    const roomId = `${roomPrefix}-${user?.id}`;
     console.log("Connecting to socket... as", roomPrefix);
     socket.connect();
     console.log("➡️ Joining room:", roomId);
