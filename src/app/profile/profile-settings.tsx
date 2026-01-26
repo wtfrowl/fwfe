@@ -31,35 +31,37 @@ export default function ProfileSettings() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
    const { user,role }:any = useContext(AuthContext);
-  useEffect(() => {
-    const fetchProfileData = async () => {
-      setIsLoading(true);
-      setError(null);
-      if (!user || !role) {     
-        setError("No valid session found. Please login again.");
-        setIsLoading(false);
-        return;
+useEffect(() => {
+  const fetchProfileData = async () => {
+    setIsLoading(true);
+    setError(null);
+
+    // WAIT for auth to restore after refresh
+    if (!user || !role) {
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      let response: any = {};
+      if (role === "driver") {
+        response = await getDriverProfile();
+      } else {
+        response = await getOwnerProfile();
       }
 
-      try {
-        let response:any = {}
-        if(role === 'driver'){
-          response = await getDriverProfile();
-        }else{
-          response = await getOwnerProfile();
-        }
-         
-        setProfileData(response);
-      } catch (err) {
-        console.error("Error fetching profile data:", err);
-        setError("Failed to load profile data. Please try again later.");
-      } finally {
-        setIsLoading(false);
-      }
-    };
+      setProfileData(response);
+    } catch (err) {
+      console.error("Error fetching profile data:", err);
+      setError("Failed to load profile data. Please try again later.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    fetchProfileData();
-  }, []);
+  fetchProfileData();
+}, [user, role]);
+
 
   const handleProfileUpdate = async (data: ProfileData) => {
     const toBeSentData = {
