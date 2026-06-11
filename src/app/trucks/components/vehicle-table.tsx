@@ -34,9 +34,8 @@ export function VehicleTable({ vehicles, userRole }: VehicleTableProps) {
   const handleEditFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
-    
-      await updateTruck(selectedVehicle!.id, editTruckDetails);
-
+      if (!selectedVehicle) return;
+      await updateTruck(selectedVehicle.id, editTruckDetails);
       setIsEditPopupOpen(false);
     } catch (error) {
       console.error("Failed to update the truck:", error);
@@ -82,7 +81,6 @@ export function VehicleTable({ vehicles, userRole }: VehicleTableProps) {
 
   return (
     <div className="overflow-x-auto">
-      {/* Desktop Table */}
       <table className="w-full hidden md:table">
         <thead className="bg-gray-50">
           <tr>
@@ -91,7 +89,6 @@ export function VehicleTable({ vehicles, userRole }: VehicleTableProps) {
             <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">STATUS</th>
             <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">HEALTH RATE</th>
             <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">ALERT TYPE</th>
-             {/* {userRole === "owner" && (   <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">ACTIONS</th> )} */}
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-200">
@@ -100,7 +97,7 @@ export function VehicleTable({ vehicles, userRole }: VehicleTableProps) {
             const statusColor = getStatusColor(vehicle.status);
 
             return (
-              <tr  onClick={() => navigate(`${vehicle.registrationNumber}`)} key={vehicle.id} className="bg-white hover:bg-gray-50 cursor-pointer">
+              <tr onClick={() => navigate(`${vehicle.registrationNumber}`)} key={vehicle.id} className="bg-white hover:bg-gray-50 cursor-pointer">
                 <td className="px-4 py-4 flex items-center gap-3">
                   <div className="p-2 bg-gray-100 rounded-full">
                     <VehicleIcon className="w-5 h-5 text-gray-600" />
@@ -117,97 +114,47 @@ export function VehicleTable({ vehicles, userRole }: VehicleTableProps) {
                 <td className="px-4 py-4">
                   <AlertBadge type={vehicle.alertType} />
                 </td>
-              {/* {userRole === "owner" && (  <td className="px-4 py-4 flex gap-2">
-                  <button
-                    className="text-sm text-gray-600 hover:text-gray-900"
-                    onClick={() => handleEditButtonClick(vehicle)}
-                  >
-                    <FaCog className="w-5 h-5 inline-block" /> Edit
-                  </button>
-                  <button
-                    className="text-sm text-gray-600 hover:text-gray-900"
-                    onClick={() => navigate(`${vehicle.registrationNumber}`)}
-                  >
-                    <FaInfoCircle className="w-5 h-5 inline-block" /> View
-                  </button>
-                </td>)} */}
               </tr>
-          
             );
           })}
         </tbody>
       </table>
- {/* Edit Truck Popup */}
- {isEditPopupOpen && (
-  <div className="fixed top-0 left-0 w-full h-full bg-black bg-opacity-50 flex items-center justify-center">
-    <div className="bg-white p-6 rounded-lg shadow-lg w-[400px]">
-      <h2 className="text-lg font-medium mb-4">Edit Truck</h2>
-      <form onSubmit={handleEditFormSubmit}>
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-1">
-            Registration Number
-          </label>
-          <input
-            type="text"
-            name="registrationNumber"
-            value={editTruckDetails.registrationNumber}
-            onChange={handleEditFormChange}
-            className="w-full border rounded-md p-2"
-            required
-          />
+
+      {isEditPopupOpen && (
+        <div className="fixed top-0 left-0 w-full h-full bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="bg-white p-6 rounded-lg shadow-lg w-[400px]">
+            <h2 className="text-lg font-medium mb-4">Edit Truck</h2>
+            <form onSubmit={handleEditFormSubmit}>
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-1">Registration Number</label>
+                <input type="text" name="registrationNumber" value={editTruckDetails.registrationNumber} onChange={handleEditFormChange} className="w-full border rounded-md p-2" required />
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-1">Model</label>
+                <input type="text" name="model" value={editTruckDetails.model} onChange={handleEditFormChange} className="w-full border rounded-md p-2" required />
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-1">Capacity</label>
+                <input type="text" name="capacity" value={editTruckDetails.capacity} onChange={handleEditFormChange} className="w-full border rounded-md p-2" required />
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-1">Availability</label>
+                <input type="checkbox" name="available" checked={editTruckDetails.available} onChange={handleEditFormChange} />
+                {editTruckDetails.available ? "Available" : "Not Available"}
+              </div>
+              <div className="flex justify-end gap-2">
+                <button type="button" className="px-4 py-2 bg-gray-500 text-white rounded-md" onClick={() => setIsEditPopupOpen(false)}>
+                  Cancel
+                </button>
+                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-md">
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-1">Model</label>
-          <input
-            type="text"
-            name="model"
-            value={editTruckDetails.model}
-            onChange={handleEditFormChange}
-            className="w-full border rounded-md p-2"
-            required
-          />
-        </div>
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-1">Capacity</label>
-          <input
-            type="text"
-            name="capacity"
-            value={editTruckDetails.capacity}
-            onChange={handleEditFormChange}
-            className="w-full border rounded-md p-2"
-            required
-          />
-        </div>
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-1">Availability</label>
-          <input
-            type="checkbox"
-            name="Available"
-            checked={editTruckDetails.available}
-            onChange={handleEditFormChange}
-          />
-          {editTruckDetails.available?"Available":"Not Available"}  
-        </div>
-        <div className="flex justify-end gap-2">
-          <button
-            type="button"
-            className="px-4 py-2 bg-gray-500 text-white rounded-md"
-            onClick={() => setIsEditPopupOpen(false)}
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            className="px-4 py-2 bg-blue-600 text-white rounded-md"
-          >
-            Save Changes
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-)}
-      {/* Mobile View */}
+      )}
+
       <div className="md:hidden space-y-4">
         {vehicles.map((vehicle) => (
           <div key={vehicle.id} className="p-4 border rounded-lg bg-white shadow">
@@ -218,9 +165,7 @@ export function VehicleTable({ vehicles, userRole }: VehicleTableProps) {
                 </div>
                 <span className="font-medium">{vehicle.registrationNumber}</span>
               </div>
-              <span className={`text-sm font-medium ${getStatusColor(vehicle.status)}`}>
-                {vehicle.status}
-              </span>
+              <span className={`text-sm font-medium ${getStatusColor(vehicle.status)}`}>{vehicle.status}</span>
             </div>
             <p className="text-gray-600 text-sm">Type: {vehicle.type}</p>
             <p className="text-gray-600 text-sm">Capacity: {vehicle.capacity}</p>
@@ -228,20 +173,16 @@ export function VehicleTable({ vehicles, userRole }: VehicleTableProps) {
             <HealthBar value={vehicle.healthRate} />
             <p className="text-gray-600 text-sm">Alert Type:</p>
             <AlertBadge type={vehicle.alertType} />
-           {userRole === "owner" && (    <div className="flex gap-3 mt-2">
-              <button
-                className="text-sm text-blue-600 font-medium"
-                onClick={() => handleEditButtonClick(vehicle)}
-              >
-                Edit
-              </button>
-              <button
-                className="text-sm text-gray-600 font-medium"
-                onClick={() => navigate(`${vehicle.registrationNumber}`)}
-              >
-                View Details
-              </button>
-            </div>)}
+            {userRole === "owner" && (
+              <div className="flex gap-3 mt-2">
+                <button className="text-sm text-blue-600 font-medium" onClick={() => handleEditButtonClick(vehicle)}>
+                  Edit
+                </button>
+                <button className="text-sm text-gray-600 font-medium" onClick={() => navigate(`${vehicle.registrationNumber}`)}>
+                  View Details
+                </button>
+              </div>
+            )}
           </div>
         ))}
       </div>

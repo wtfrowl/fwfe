@@ -34,14 +34,12 @@ export const AddTruckModal = ({
     setError(null);
 
     try {
-     
-
-     const payload :any= {
+      const payload = {
         registrationNumber: form.registrationNumber,
         model: form.model,
         capacity: parseFloat(form.capacity),
         lastMaintenance: form.lastMaintenance,
-        status: "Available", // <-- Forced here
+        status: "Available",
         currentLocation: {
           lat: parseFloat(form.currentLat),
           lng: parseFloat(form.currentLng),
@@ -66,128 +64,60 @@ export const AddTruckModal = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-    <div className="bg-white p-6 rounded-lg w-full max-w-4xl shadow-lg">
-  <h2 className="text-xl font-semibold mb-4">Add Truck</h2>
+      <div className="bg-white p-6 rounded-lg w-full max-w-4xl shadow-lg">
+        <h2 className="text-xl font-semibold mb-4">Add Truck</h2>
 
-  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-    {/* Registration Number */}
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">Registration Number</label>
-      <input
-        type="text"
-        name="registrationNumber"
-        value={form.registrationNumber}
-        onChange={handleChange}
-        className="w-full px-3 py-2 border rounded"
-        placeholder="E.g., RJ14GA1234"
-      />
-    </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Registration Number</label>
+            <input type="text" name="registrationNumber" value={form.registrationNumber} onChange={handleChange} className="w-full px-3 py-2 border rounded" placeholder="E.g., RJ14GA1234" />
+          </div>
 
-    {/* Truck Model */}
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">Truck Model</label>
-      <input
-        type="text"
-        name="model"
-        value={form.model}
-        onChange={handleChange}
-        className="w-full px-3 py-2 border rounded"
-        placeholder="E.g., Tata 4018"
-      />
-    </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Truck Model</label>
+            <input type="text" name="model" value={form.model} onChange={handleChange} className="w-full px-3 py-2 border rounded" placeholder="E.g., Tata 4018" />
+          </div>
 
-    {/* Capacity */}
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">Capacity (in tons)</label>
-      <input
-        type="number"
-        name="capacity"
-        value={form.capacity}
-        onChange={handleChange}
-        className="w-full px-3 py-2 border rounded"
-        placeholder="E.g., 14"
-      />
-    </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Capacity (in tons)</label>
+            <input type="number" name="capacity" value={form.capacity} onChange={handleChange} className="w-full px-3 py-2 border rounded" placeholder="E.g., 14" />
+          </div>
 
-    {/* Last Maintenance */}
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">Last Maintenance Date</label>
-      <input
-        type="date"
-        name="lastMaintenance"
-        value={form.lastMaintenance}
-        onChange={handleChange}
-        className="w-full px-3 py-2 border rounded"
-      />
-    </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Last Maintenance Date</label>
+            <input type="date" name="lastMaintenance" value={form.lastMaintenance} onChange={handleChange} className="w-full px-3 py-2 border rounded" />
+          </div>
 
-    {/* Latitude */}
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">Current Latitude</label>
-      <input
-        type="number"
-        name="currentLat"
-        value={form.currentLat}
-        onChange={handleChange}
-        className="w-full px-3 py-2 border rounded"
-        placeholder="E.g., 26.9124"
-      />
-    </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Current Latitude</label>
+            <input type="number" name="currentLat" value={form.currentLat} onChange={handleChange} className="w-full px-3 py-2 border rounded" placeholder="E.g., 26.9124" />
+          </div>
 
-    {/* Longitude */}
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">Current Longitude</label>
-      <input
-        type="number"
-        name="currentLng"
-        value={form.currentLng}
-        onChange={handleChange}
-        className="w-full px-3 py-2 border rounded"
-        placeholder="E.g., 75.7873"
-      />
-    </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Current Longitude</label>
+            <input type="number" name="currentLng" value={form.currentLng} onChange={handleChange} className="w-full px-3 py-2 border rounded" placeholder="E.g., 75.7873" />
+          </div>
 
-    {/* Available From */}
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">Available From</label>
-      <input
-        type="date"
-        name="availableFrom"
-        value={form.availableFrom}
-        onChange={handleChange}
-        className="w-full px-3 py-2 border rounded"
-      />
-    </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Available From</label>
+            <input type="date" name="availableFrom" value={form.availableFrom} onChange={handleChange} className="w-full px-3 py-2 border rounded" />
+          </div>
 
-    {/* Available Till */}
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">Available Till</label>
-      <input
-        type="date"
-        name="availableTill"
-        value={form.availableTill}
-        onChange={handleChange}
-        className="w-full px-3 py-2 border rounded"
-      />
-    </div>
-  </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Available Till</label>
+            <input type="date" name="availableTill" value={form.availableTill} onChange={handleChange} className="w-full px-3 py-2 border rounded" />
+          </div>
+        </div>
 
-  {/* Error Message */}
-  {error && <p className="text-red-500 mt-4">{error}</p>}
+        {error && <p className="text-red-500 mt-4">{error}</p>}
 
-  {/* Actions */}
-  <div className="flex justify-end gap-2 mt-6">
-    <button onClick={onClose} className="px-4 py-2 bg-gray-300 rounded">Cancel</button>
-    <button
-      onClick={handleSubmit}
-      disabled={loading}
-      className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-    >
-      {loading ? "Adding..." : "Add Truck"}
-    </button>
-  </div>
-</div>
-
+        <div className="flex justify-end gap-2 mt-6">
+          <button onClick={onClose} className="px-4 py-2 bg-gray-300 rounded">Cancel</button>
+          <button onClick={handleSubmit} disabled={loading} className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+            {loading ? "Adding..." : "Add Truck"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 };

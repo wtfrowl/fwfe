@@ -1,5 +1,8 @@
-import { ReactNode } from "react";
-import { useLocation, Navigate } from "react-router-dom";
+import { ReactNode, useContext } from "react";
+import { Navigate, useLocation } from "react-router-dom";
+import { AuthContext } from "./context/AuthContext";
+import { LoadingState } from "./components/ui/LoadingState";
+import { getLoginPath } from "./utils/auth";
 
 interface ProtectedRouteProps {
   role: "owner" | "driver";
@@ -8,13 +11,16 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute = ({ role, children }: ProtectedRouteProps) => {
   const location = useLocation();
-  const tokenKey = role === "owner" ? "ownerToken" : "driverToken";
-  const token = localStorage.getItem(tokenKey);
+  const { isAuthenticated, isReady, role: currentRole } = useContext(AuthContext);
 
-  if (!token) {
+  if (!isReady) {
+    return <LoadingState label="Checking your FleetWise session..." />;
+  }
+
+  if (!isAuthenticated || currentRole !== role) {
     return (
       <Navigate
-        to={role === "owner" ? "/owner-login" : "/driver-login"}
+        to={getLoginPath(role)}
         state={{ from: location }}
         replace
       />

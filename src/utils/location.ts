@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
+import { getStoredSession } from './auth';
 
 // The API endpoint on your backend
 const LOCATION_API_ENDPOINT =`${import.meta.env.VITE_API_BASE_URL}/api/driver/updateLocation`; // Make sure this path is correct
@@ -9,19 +10,8 @@ const LOCATION_API_ENDPOINT =`${import.meta.env.VITE_API_BASE_URL}/api/driver/up
 export const useDriverTracking = () => {
     // Utility to get token + role
 const getAuthDetails = (): { token: string; role: "owner" | "driver" | null } => {
-  const ownerToken = localStorage.getItem("ownerToken");
-  if (ownerToken) {
-
-    return { token: ownerToken, role: "owner" };
-  }
-
-  const driverToken = localStorage.getItem("driverToken");
-  if (driverToken) {
-   
-    return { token: driverToken, role: "driver" };
-  }
-
-  return { token: "", role: null };
+  const session = getStoredSession();
+  return { token: session.token ?? "", role: session.role };
 };
       const { token } = getAuthDetails();
   const [isTracking, setIsTracking] = useState(false);

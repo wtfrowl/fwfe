@@ -16,7 +16,7 @@ export function AddTripModal({ isOpen, onClose, onAdd, trucks, drivers, load }: 
   const { user, role } = useContext(AuthContext)
   const isDriver = role === "driver"
 
-  const currentDriver = isDriver ? drivers.find(d => d._id === user._id) : null
+  const currentDriver = isDriver && user ? drivers.find((d) => d._id === user._id) : null
   const isDriverAvailable = currentDriver?.availability !== false
   const [isAdding, setIsAdding] = useState(false);
   const [selectedDriverValue, setSelectedDriverValue] = useState(""); // new state

@@ -1,7 +1,9 @@
-import { useState, useEffect } from "react";
+import { useContext, useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import axios, { AxiosError } from "axios";
 import truckIcon from "../assets/truck.svg";
+import { AuthContext } from "../context/AuthContext";
+import { getHomePath } from "../utils/auth";
 
 interface ErrorMessage {
   [key: string]: string;
@@ -14,10 +16,7 @@ export default function Signup() {
   const location = useLocation();
   const navigate = useNavigate();
   const isDriver = location.pathname === "/driver-signup";
-  const themeColor = isDriver ? "blue" : "pink";
-
-  const tokenKey= (isDriver ? "driverToken" : "ownerToken");
-  const token = localStorage.getItem(tokenKey);
+  const { isAuthenticated, role } = useContext(AuthContext);
   const [errMsg, setErrMsg] = useState<ErrorMessage>({});
   const [signupData, setSignupData] = useState<any>({
     firstName: "",
@@ -33,8 +32,10 @@ export default function Signup() {
 
   useEffect(() => {
     document.title = isDriver ? "Driver Signup" : "Owner Signup";
-    if (token) navigate(isDriver ? "/driver-dashboard" : "/owner-dashboard");
-  }, []);
+    if (isAuthenticated && role) {
+      navigate(getHomePath(role), { replace: true });
+    }
+  }, [isAuthenticated, isDriver, navigate, role]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSignupData({ ...signupData, [e.target.name]: e.target.value });
@@ -81,19 +82,19 @@ export default function Signup() {
             onClick={() =>
               navigate(isDriver ? "/driver-login" : "/owner-login")
             }
-            className={`text-${themeColor}-600 font-semibold cursor-pointer hover:underline`}
+            className="cursor-pointer font-semibold text-blue-600 hover:underline"
           >
             Login Here
           </span>
         </div>
       </header>
 
-      <div className={`pt-24 min-h-screen bg-gradient-to-br from-${themeColor}-50 to-gray-100`}>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-gray-100 pt-24">
         <div className="container m-auto md:mt-6 px-6 md:px-12 xl:px-40">
           <div className="max-w-3xl mx-auto">
             <div className="rounded-xl bg-white shadow-xl border border-gray-200">
               <div className="p-6 sm:p-10">
-                <h2 className={`text-2xl font-bold text-${themeColor}-700 mb-4 text-center`}>
+                <h2 className="mb-4 text-center text-2xl font-bold text-blue-700">
                   {isDriver ? "Driver Signup" : "Owner Signup"}
                 </h2>
                 <form onSubmit={handleSignup}>
@@ -145,7 +146,7 @@ export default function Signup() {
                   <p className="text-sm text-gray-600">
                     Already have an Account?{" "}
                     <span
-                      className={`font-medium text-${themeColor}-600 cursor-pointer hover:underline`}
+                      className="cursor-pointer font-medium text-blue-600 hover:underline"
                       onClick={() =>
                         navigate(isDriver ? "/driver-login" : "/owner-login")
                       }

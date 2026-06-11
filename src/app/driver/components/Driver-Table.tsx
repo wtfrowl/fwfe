@@ -1,6 +1,6 @@
 import React from "react";
-import { useNavigate } from "react-router-dom"; // Ensure you have react-router-dom installed
-import type { Driver } from "../Drivers"; // Adjust path if needed
+import { useNavigate } from "react-router-dom";
+import type { Driver } from "../Drivers";
 
 interface DriverTableProps {
   drivers: Driver[];
@@ -11,41 +11,24 @@ export const DriverTable: React.FC<DriverTableProps> = ({ drivers }) => {
   const navigate = useNavigate();
 
   const handleRowClick = (driverId: string) => {
-    // Navigate to the dynamic detail route
     navigate(`${driverId}`);
   };
 
   return (
-    <div className="overflow-x-auto shadow  md:rounded-lg">
+    <div className="overflow-x-auto shadow md:rounded-lg">
       <table className="min-w-full divide-y divide-gray-200">
         <thead className="bg-gray-50">
           <tr>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Name
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Contact / License
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Location
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Trips
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Status
-            </th>
-            {/* REMOVED: Actions Column Header */}
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact / License</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trips</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
           {drivers.map((driver) => (
-            <tr 
-              key={driver.id} 
-              onClick={() => handleRowClick(driver.id)}
-              className="hover:bg-blue-50 transition-colors cursor-pointer group"
-            >
-              {/* Name */}
+            <tr key={driver.id} onClick={() => handleRowClick(driver.id)} className="hover:bg-blue-50 transition-colors cursor-pointer group">
               <td className="px-6 py-4 whitespace-nowrap">
                 <div className="flex items-center">
                   <div className="h-10 w-10 flex-shrink-0">
@@ -62,37 +45,27 @@ export const DriverTable: React.FC<DriverTableProps> = ({ drivers }) => {
                 </div>
               </td>
 
-              {/* Contact Info */}
               <td className="px-6 py-4 whitespace-nowrap">
                 <div className="text-sm text-gray-900">{driver.contactNumber}</div>
                 <div className="text-xs text-gray-500">Lic: {driver.license}</div>
               </td>
 
-              {/* Location */}
               <td className="px-6 py-4 whitespace-nowrap">
                 <div className="text-sm text-gray-900">{driver.city}</div>
                 <div className="text-xs text-gray-500">{driver.state}</div>
               </td>
 
-              {/* Trips */}
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {driver.totalTrips}
-              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{driver.totalTrips}</td>
 
-              {/* Status Badge */}
               <td className="px-6 py-4 whitespace-nowrap">
                 <span
                   className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                    driver.status === "Available"
-                      ? "bg-green-100 text-green-800"
-                      : "bg-red-100 text-red-800"
+                    driver.status === "Available" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
                   }`}
                 >
                   {driver.status}
                 </span>
               </td>
-
-              {/* REMOVED: Actions Column Data */}
             </tr>
           ))}
         </tbody>

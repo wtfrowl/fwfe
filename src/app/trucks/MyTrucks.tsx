@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, useContext } from "react";
+import { useState, useMemo, useEffect, useContext, useCallback } from "react";
 import { StatusTab } from "./components/status-tab";
 import { VehicleTable } from "./components/vehicle-table";
 import type { Vehicle, VehicleStatus } from "./types/vehicle";
@@ -21,8 +21,8 @@ export default function TrucksPage() {
   const [error, setError] = useState<string | null>(null);
   const [addTruckModalOpen, setAddTruckModalOpen] = useState(false);
   const [userRole, setUserRole] = useState<"owner" | "driver" | null>(null);
-  const { role } = useContext(AuthContext)
-  const statuses: { label: string; value: VehicleStatus }[] = [
+  const { role } = useContext(AuthContext);
+  const statuses: { label: string; value: VehicleStatus | "ALL" }[] = [
     { label: "ALL STATUSES", value: "ALL" },
     { label: "EN ROUTE", value: "En Route" },
     { label: "AVAILABLE", value: "Available" },
@@ -31,56 +31,54 @@ export default function TrucksPage() {
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
-  // Fetch vehicles
-  useEffect(() => {
-    const fetchVehicles = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-
+  const fetchVehicles = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
       setUserRole(role as "owner" | "driver");
-      const response:any= await getTrucks();
-        const sanitizedVehicles = response.trucks.map((vehicle: Partial<Vehicle>) => ({
-          id: vehicle._id,
-          registrationNumber: vehicle.registrationNumber || undefined,
-          type: vehicle.model || "Truck",
-          status: vehicle.status || undefined,
-          healthRate: vehicle.healthRate || "80",
-          alertType: vehicle.alertType || "All Good",
-          available: vehicle.available ?? false,
-          model: vehicle.model || "Truck",
-          capacity: vehicle.capacity || "NA",
-        }));
+      const response = (await getTrucks()) as unknown as { trucks: Array<Partial<Vehicle> & { _id?: string }> };
+      const sanitizedVehicles = response.trucks.map((vehicle) => ({
+        id: vehicle._id,
+        registrationNumber: vehicle.registrationNumber || undefined,
+        type: vehicle.model || "Truck",
+        status: vehicle.status || undefined,
+        healthRate: vehicle.healthRate || "80",
+        alertType: vehicle.alertType || "All Good",
+        available: vehicle.available ?? false,
+        model: vehicle.model || "Truck",
+        capacity: vehicle.capacity || "NA",
+      })) as Vehicle[];
 
-        setVehicles(sanitizedVehicles);
-      } catch (err) {
-        console.error("Error fetching vehicles:", err);
-        setError("Failed to fetch vehicles. Please try again.");
-      } finally {
-        setLoading(false);
-      }
-    };
+      setVehicles(sanitizedVehicles);
+    } catch (err) {
+      console.error("Error fetching vehicles:", err);
+      setError("Failed to fetch vehicles. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }, [role]);
 
+  useEffect(() => {
     fetchVehicles();
-  }, []);
+  }, [fetchVehicles]);
 
   const filteredVehicles = useMemo(() => {
     return vehicles.filter((vehicle) => {
       if (activeStatus !== "ALL" && vehicle.status !== activeStatus) return false;
-      if (searchQuery && !vehicle.registrationNumber?.toLowerCase().includes(searchQuery.toLowerCase()))
-        return false;
+      if (searchQuery && !vehicle.registrationNumber?.toLowerCase().includes(searchQuery.toLowerCase())) return false;
       return true;
     });
   }, [activeStatus, searchQuery, vehicles]);
 
   const totalPages = Math.ceil(filteredVehicles.length / ITEMS_PER_PAGE);
 
-  useMemo(() => {
+  useEffect(() => {
     setCurrentPage(1);
   }, [activeStatus, searchQuery]);
 
-  const handleRefresh = () => {
+  const handleRefresh = async () => {
     setAddTruckModalOpen(false);
+    await fetchVehicles();
   };
 
   const paginatedVehicles = useMemo(() => {
@@ -106,24 +104,15 @@ export default function TrucksPage() {
     <div className="min-h-screen bg-gray-50 ">
       <div className="mx-auto space-y-6">
         <div className="bg-white rounded-lg shadow">
-          {/* Truck Add Modal */}
           {userRole === "owner" && (
-            <AddTruckModal
-              isOpen={addTruckModalOpen}
-              onClose={() => setAddTruckModalOpen(false)}
-              onTruckAdded={handleRefresh}
-            />
+            <AddTruckModal isOpen={addTruckModalOpen} onClose={() => setAddTruckModalOpen(false)} onTruckAdded={handleRefresh} />
           )}
 
-          {/* Header */}
           <div className="px-6 py-4 border-b border-gray-200">
             <div className="flex justify-between items-center">
               <h1 className="text-2xl font-semibold">My Trucks</h1>
               {userRole === "owner" && (
-                <button
-                  onClick={() => setAddTruckModalOpen(true)}
-                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 flex items-center gap-2"
-                >
+                <button onClick={() => setAddTruckModalOpen(true)} className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 flex items-center gap-2">
                   <FaPlus className="w-4 h-4" />
                   Add Trucks
                 </button>
@@ -131,7 +120,6 @@ export default function TrucksPage() {
             </div>
           </div>
 
-          {/* Status Tabs */}
           <div className="border-b border-gray-200">
             <div className="hidden md:flex">
               {statuses.map((status) => (
@@ -146,10 +134,7 @@ export default function TrucksPage() {
             </div>
 
             <div className="md:hidden relative">
-              <button
-                onClick={() => setDropdownOpen(!dropdownOpen)}
-                className="w-full px-4 py-2 text-left bg-gray-100 border rounded-md"
-              >
+              <button onClick={() => setDropdownOpen(!dropdownOpen)} className="w-full px-4 py-2 text-left bg-gray-100 border rounded-md">
                 {statuses.find((s) => s.value === activeStatus)?.label}
               </button>
 
@@ -162,9 +147,7 @@ export default function TrucksPage() {
                         setActiveStatus(status.value);
                         setDropdownOpen(false);
                       }}
-                      className={`block w-full px-4 py-2 text-left ${
-                        activeStatus === status.value ? "bg-gray-200" : "hover:bg-gray-100"
-                      }`}
+                      className={`block w-full px-4 py-2 text-left ${activeStatus === status.value ? "bg-gray-200" : "hover:bg-gray-100"}`}
                     >
                       {status.label} ({statusCounts[status.value]})
                     </button>
@@ -174,7 +157,6 @@ export default function TrucksPage() {
             </div>
           </div>
 
-          {/* Search */}
           <div className="p-4 border-b border-gray-200">
             <div className="flex items-center justify-between">
               <div className="flex-1 max-w-sm">
@@ -192,57 +174,47 @@ export default function TrucksPage() {
             </div>
           </div>
 
-          {/* Error / Loading */}
           {error && <p className="text-red-500 text-center">{error}</p>}
           {loading ? (
-          <VehicleTableSkeleton/>
+            <VehicleTableSkeleton />
           ) : (
             <>
-             { paginatedVehicles.length > 0 ? <VehicleTable vehicles={paginatedVehicles} userRole={role} />: <div className="flex justify-center items-center h-64">
+              {paginatedVehicles.length > 0 ? (
+                <VehicleTable vehicles={paginatedVehicles} userRole={role} />
+              ) : (
+                <div className="flex justify-center items-center h-64">
                   <p className="text-gray-500">No Trucks, Add Now</p>
-                </div> }
+                </div>
+              )}
 
-              {/* Pagination */}
-                { paginatedVehicles.length > 0 && <div className="px-4 py-3 border-t border-gray-200">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm text-gray-700">
-                    Showing{" "}
-                    <span className="font-medium">{(currentPage - 1) * ITEMS_PER_PAGE + 1}</span> -{" "}
-                    <span className="font-medium">
-                      {Math.min(currentPage * ITEMS_PER_PAGE, filteredVehicles.length)}
-                    </span>{" "}
-                    of <span className="font-medium">{filteredVehicles.length}</span>
-                  </p>
-                  <div className="flex gap-2">
-                    <button
-                      className="px-3 py-1 text-sm border rounded hover:bg-gray-50 disabled:opacity-50 disabled:hover:bg-white"
-                      onClick={() => handlePageChange(currentPage - 1)}
-                      disabled={currentPage === 1}
-                    >
-                      &larr;
-                    </button>
-                    {[...Array(totalPages)].map((_, i) => (
-                      <button
-                        key={i + 1}
-                        className={`px-3 py-1 text-sm border rounded hover:bg-gray-50 ${
-                          currentPage === i + 1 ? "bg-blue-50 text-blue-600" : ""
-                        }`}
-                        onClick={() => handlePageChange(i + 1)}
-                      >
-                        {i + 1}
+              {paginatedVehicles.length > 0 && (
+                <div className="px-4 py-3 border-t border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-gray-700">
+                      Showing <span className="font-medium">{(currentPage - 1) * ITEMS_PER_PAGE + 1}</span> -{" "}
+                      <span className="font-medium">{Math.min(currentPage * ITEMS_PER_PAGE, filteredVehicles.length)}</span> of{" "}
+                      <span className="font-medium">{filteredVehicles.length}</span>
+                    </p>
+                    <div className="flex gap-2">
+                      <button className="px-3 py-1 text-sm border rounded hover:bg-gray-50 disabled:opacity-50 disabled:hover:bg-white" onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1}>
+                        &larr;
                       </button>
-                    ))}
-                    <button
-                      className="px-3 py-1 text-sm border rounded hover:bg-gray-50 disabled:opacity-50 disabled:hover:bg-white"
-                      onClick={() => handlePageChange(currentPage + 1)}
-                      disabled={currentPage === totalPages}
-                    >
-                      &rarr;
-                    </button>
+                      {[...Array(totalPages)].map((_, i) => (
+                        <button
+                          key={i + 1}
+                          className={`px-3 py-1 text-sm border rounded hover:bg-gray-50 ${currentPage === i + 1 ? "bg-blue-50 text-blue-600" : ""}`}
+                          onClick={() => handlePageChange(i + 1)}
+                        >
+                          {i + 1}
+                        </button>
+                      ))}
+                      <button className="px-3 py-1 text-sm border rounded hover:bg-gray-50 disabled:opacity-50 disabled:hover:bg-white" onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages}>
+                        &rarr;
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-}
+              )}
             </>
           )}
         </div>

@@ -1,4 +1,6 @@
-import axios from 'axios';
+import axios from "axios";
+import { clearStoredSession, emitAuthLogout, getStoredSession, getLoginPath } from "../utils/auth";
+import { cleanupSocketOnLogout } from "../utils/socket";
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,
@@ -10,9 +12,7 @@ const api = axios.create({
 
 api.interceptors.request.use(
   (config) => {
-    const ownerToken = localStorage.getItem('ownerToken');
-    const driverToken = localStorage.getItem('driverToken');
-    const token = ownerToken || driverToken;
+    const { token } = getStoredSession();
 
     if (token) {
       config.headers.Authorization = `${token}`;
@@ -24,6 +24,11 @@ api.interceptors.request.use(
   }
 );
 
+const isPublicAuthRequest = (url?: string) => {
+  if (!url) return false;
+  return /\/api\/(owner|driver)(\/login|\/signup)?$/i.test(url) || /\/api\/(owner|driver)\/login$/i.test(url);
+};
+
 api.interceptors.response.use(
   (response) => {
     return response.data;
@@ -32,19 +37,15 @@ api.interceptors.response.use(
     const { response } = error;
     if (response) {
       const { status } = response;
-      if (status === 401) {
-        // Handle unauthorized access, e.g., redirect to login
-        localStorage.removeItem('ownerToken');
-        localStorage.removeItem('driverToken');
-        localStorage.removeItem('user');
-        const currentPath = window.location.pathname;
-        if (currentPath.includes('owner')) {
-          window.location.href = '/owner-login';
-        } else if (currentPath.includes('driver')) {
-          window.location.href = '/driver-login';
-        } else {
-          window.location.href = '/';
-        }
+      const requestUrl = error.config?.url as string | undefined;
+      const { role } = getStoredSession();
+      const shouldRedirectForAuth = status === 401 && !isPublicAuthRequest(requestUrl) && Boolean(role);
+
+      if (shouldRedirectForAuth) {
+        clearStoredSession();
+        cleanupSocketOnLogout();
+        emitAuthLogout(role);
+        window.location.href = getLoginPath(role);
       }
       if (status === 403) {
         // Handle forbidden access
@@ -60,7 +61,7 @@ api.interceptors.response.use(
     } else {
         // Handle network errors
         return Promise.reject({
-            message: 'Network error, please try again later.',
+            message: "Network error, please try again later.",
             statusCode: 500,
         });
     }

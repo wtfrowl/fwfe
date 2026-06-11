@@ -1,8 +1,5 @@
-// src/pages/Dashboard.tsx
 import { useContext, useEffect, useState } from "react";
 import { AuthContext } from "../../context/AuthContext";
-
-// Shared components
 import { MetricCard } from "./components/metric-card";
 import { RevenueChart } from "./components/revenue-chart";
 import { ExpensesChart } from "./components/expenses-chart";
@@ -11,11 +8,6 @@ import { MetricsChart } from "./components/metrics-chart";
 import { LoadingSpinner } from "../trips/components/loading-spinner";
 import { getDashboardData } from "../../api/dashboard.api";
 
-//# we gonna make i 
-// gonna do kit 
-
-
-// --- Types for API Response ---
 interface DateKey {
   year: number;
   month?: number;
@@ -26,7 +18,7 @@ interface ChartPoint {
   dateKey: DateKey;
   value: number;
 }
- 
+
 interface DashboardResponse {
   summary: {
     revenue: number;
@@ -50,15 +42,14 @@ interface DashboardResponse {
 type Period = "DAY" | "MONTH" | "YEAR";
 
 export default function Dashboard() {
-  const { role } = useContext(AuthContext); // "owner" | "driver"
+  const { role } = useContext(AuthContext);
   const [activePeriod, setActivePeriod] = useState<Period>("MONTH");
   const [data, setData] = useState<DashboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // --- Helper: Format Data for Recharts (Shared Logic) ---
   const formatChartData = (rawData: ChartPoint[] = []) => {
     const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    
+
     return rawData.map((item) => {
       let label = "";
       const { year, month, day } = item.dateKey;
@@ -72,21 +63,19 @@ export default function Dashboard() {
       }
 
       return {
-        name: label, // X-Axis Label
-        value: item.value || 0, // Y-Axis Value
+        name: label,
+        value: item.value || 0,
       };
     });
   };
 
-  // --- Fetch Data ---
   useEffect(() => {
-    if (!role || role === 'driver') return;
+    if (!role || role === "driver") return;
 
     const fetchDashboardData = async () => {
       setLoading(true);
       try {
-        const response:any= await getDashboardData({ period: activePeriod });
-
+        const response = (await getDashboardData({ period: activePeriod })) as DashboardResponse;
         setData(response);
       } catch (error) {
         console.error("Error fetching dashboard stats:", error);
@@ -96,80 +85,55 @@ export default function Dashboard() {
     };
 
     fetchDashboardData();
-  }, [role, activePeriod]); // Re-fetch when period changes
+  }, [role, activePeriod]);
 
-  /* ---------- OWNER DASHBOARD ---------- */
   const renderOwnerDashboard = () => {
     if (loading || !data) {
       return <div className="h-96 flex items-center justify-center"><LoadingSpinner /></div>;
     }
 
-    // Prepare data slices
-    //const revenueData = formatChartData(data.charts.revenue);
-    const distanceData = formatChartData(data.charts.distance); // Renames 'value' to 'distance' internally if needed
+    const distanceData = formatChartData(data.charts.distance);
     const expenseData = formatChartData(data.charts.expenses);
     const fuelData = formatChartData(data.charts.fuel);
     const idleData = formatChartData(data.charts.idle);
-    // 1. Format Helper (Assumes API returns standard keys)
-    const formatData = (items: any[]) => items.map(item => {
+    const formatData = (items: ChartPoint[]) =>
+      items.map((item) => {
         const { year, month, day } = item.dateKey;
         const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-        let label = activePeriod === "YEAR" ? `${year}` 
-          : activePeriod === "MONTH" ? (monthNames[month - 1] || "N/A") 
-          : `${day}/${month}`;
+        const label = activePeriod === "YEAR" ? `${year}` : activePeriod === "MONTH" ? (month ? monthNames[month - 1] || "N/A" : "N/A") : `${day}/${month}`;
         return { ...item, name: label };
-    });
+      });
 
     const revenueList = formatData(data.charts.revenue);
     const expenseList = formatData(data.charts.expenses);
-    // 2. MERGE Revenue + Expenses to calculate Income (Profit) for the Chart
-    // This creates the single array with { name, revenue, income } that the chart needs
     const mergedRevenueData = revenueList.map((revItem) => {
-      const expenseItem = expenseList.find(e => e.name === revItem.name) || { value: 0 };
+      const expenseItem = expenseList.find((e) => e.name === revItem.name) || { value: 0 };
       const expenseVal = expenseItem.value || 0;
       return {
         name: revItem.name,
         revenue: revItem.value,
-        income: revItem.value - expenseVal // Calculated Income (Profit)
+        income: revItem.value - expenseVal,
       };
     });
 
-    // Prepare Distance specific structure (if DistanceChart expects 'distance' key)
-    const formattedDistance = distanceData.map(d => ({ ...d, distance: d.value }));
+    const formattedDistance = distanceData.map((d) => ({ ...d, distance: d.value }));
 
     return (
       <>
-        {/* 1. Metric Cards (Summary Data) */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <MetricCard title="Total Expenses" value={`₹${data.summary.totalExpenses.toLocaleString()}`} icon="expenses" loading={false} />
-          <MetricCard title="Profit" value={`₹${data.summary.profit.toLocaleString()}`} icon="profit" loading={false} />
-          <MetricCard title="Revenue" value={`₹${data.summary.revenue.toLocaleString()}`} icon="revenue" loading={false} />
-          <MetricCard title="Idle Cost" value={`₹${data.summary.idleCost.toLocaleString()}`} icon="labour" loading={false} />
+          <MetricCard title="Total Expenses" value={`Rs ${data.summary.totalExpenses.toLocaleString()}`} icon="expenses" loading={false} />
+          <MetricCard title="Profit" value={`Rs ${data.summary.profit.toLocaleString()}`} icon="profit" loading={false} />
+          <MetricCard title="Revenue" value={`Rs ${data.summary.revenue.toLocaleString()}`} icon="revenue" loading={false} />
+          <MetricCard title="Idle Cost" value={`Rs ${data.summary.idleCost.toLocaleString()}`} icon="labour" loading={false} />
         </div>
 
-        {/* 2. Main Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Revenue Chart now receives data via props */}
-         <RevenueChart 
-             data={mergedRevenueData} 
-             activePeriod={activePeriod} 
-             setActivePeriod={setActivePeriod} 
-          />
-          {/* Expenses Chart receives Time Series + Categories */}
-          <ExpensesChart 
-             data={expenseData} 
-             categories={data.charts.expenseCategories} 
-          />
+          <RevenueChart data={mergedRevenueData} activePeriod={activePeriod} setActivePeriod={setActivePeriod} />
+          <ExpensesChart data={expenseData} categories={data.charts.expenseCategories} />
         </div>
 
-        {/* 3. Secondary Charts */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Distance Chart needs period control + data */}
-          <DistanceChart
-            activePeriod={activePeriod}
-            setActivePeriod={setActivePeriod} // Controls the main dashboard state
-            data={formattedDistance}
-          />
+          <DistanceChart activePeriod={activePeriod} setActivePeriod={setActivePeriod} data={formattedDistance} />
           <MetricsChart title="Idle Cost" data={idleData} color="#F59E0B" />
           <MetricsChart title="Fuel Cost" data={fuelData} color="#3B82F6" />
         </div>
@@ -177,7 +141,6 @@ export default function Dashboard() {
     );
   };
 
-  /* ---------- DRIVER DASHBOARD (Static for now) ---------- */
   const renderDriverDashboard = () => (
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -186,7 +149,7 @@ export default function Dashboard() {
         <MetricCard title="Fuel Used" value="2,400 L" icon="fuel" loading={false} />
       </div>
       <div className="p-6 bg-white rounded shadow text-center text-gray-500">
-         Driver analytics coming soon...
+        Driver analytics coming soon...
       </div>
     </>
   );

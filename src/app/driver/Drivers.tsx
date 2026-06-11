@@ -1,18 +1,16 @@
 "use client";
 
-import { useState, useMemo, useEffect, useContext } from "react";
+import { useState, useMemo, useEffect, useContext, useCallback } from "react";
 import { FaPlus, FaSearch } from "react-icons/fa";
 import { AuthContext } from "../../context/AuthContext";
-// You will need to create/import these similar to your Truck components
-import { DriverTable } from "./components/Driver-Table"; 
-import { AddDriverModal } from "./components/AddDriverModal"; 
-import { StatusTab } from "../trucks/components/status-tab"; // Reusing your existing component
-import DriverTableSkeleton from "./components/Driver-Table-Skeleton"; // Optional skeleton
+import { DriverTable } from "./components/Driver-Table";
+import { AddDriverModal } from "./components/AddDriverModal";
+import { StatusTab } from "../trucks/components/status-tab";
+import DriverTableSkeleton from "./components/Driver-Table-Skeleton";
 import { getDrivers } from "../../api";
 
 const ITEMS_PER_PAGE = 6;
 
-// Define the Driver Type based on your Schema
 export interface Driver {
   id: string;
   firstName: string;
@@ -20,10 +18,10 @@ export interface Driver {
   contactNumber: string;
   license: string;
   totalTrips: number;
-  availability: boolean; // mapped from availability
+  availability: boolean;
   city: string;
   state: string;
-  status: "Available" | "Unavailable"; // Derived helper for UI
+  status: "Available" | "Unavailable";
 }
 
 export default function DriversPage() {
@@ -37,62 +35,56 @@ export default function DriversPage() {
   const { role } = useContext(AuthContext);
 
   const statuses = [
-    { label: "ALL DRIVERS", value: "ALL" },
-    { label: "AVAILABLE", value: "Available" },
-    { label: "UNAVAILABLE", value: "Unavailable" },
+    { label: "ALL DRIVERS", value: "ALL" as const },
+    { label: "AVAILABLE", value: "Available" as const },
+    { label: "UNAVAILABLE", value: "Unavailable" as const },
   ];
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
-  // Fetch Drivers
-  useEffect(() => {
-    const fetchDrivers = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const response:any= await getDrivers();
+  const fetchDrivers = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = (await getDrivers()) as Array<Record<string, unknown>> | { drivers?: Array<Record<string, unknown>> };
+      const rawData = Array.isArray(response) ? response : response?.drivers || [];
 
-        // ⚠️ CRITICAL FIX HERE: 
-        // Your API returns the array directly, so we map 'response.data', not 'response.data.drivers'
-        const rawData = Array.isArray(response) ? response : response?.drivers || [];
+      const sanitizedDrivers: Driver[] = rawData.map((d) => ({
+        id: String(d._id || d.id),
+        firstName: String(d.firstName || ""),
+        lastName: String(d.lastName || ""),
+        contactNumber: String(d.contactNumber || ""),
+        license: String(d.license || ""),
+        totalTrips: Number(d.totalTrips || 0),
+        availability: Boolean(d.availability),
+        city: String(d.city || "N/A"),
+        state: String(d.state || "N/A"),
+        status: d.availability ? "Available" : "Unavailable",
+      }));
 
-        const sanitizedDrivers: Driver[] = rawData.map((d: any) => ({
-          id: d._id || d.id, // Handle both _id and id
-          firstName: d.firstName,
-          lastName: d.lastName,
-          contactNumber: d.contactNumber,
-          license: d.license,
-          totalTrips: d.totalTrips || 0,
-          availability: d.availability,
-          city: d.city || "N/A",
-          state: d.state || "N/A",
-          // Derive status string for the UI badge
-          status: d.availability ? "Available" : "Unavailable", 
-        }));
-
-        setDrivers(sanitizedDrivers);
-      } catch (err) {
-        console.error("Error fetching drivers:", err);
-        setError("Failed to fetch drivers. Please try again.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchDrivers();
+      setDrivers(sanitizedDrivers);
+    } catch (err) {
+      console.error("Error fetching drivers:", err);
+      setError("Failed to fetch drivers. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchDrivers();
+  }, [fetchDrivers]);
+
   const filteredDrivers = useMemo(() => {
     return drivers.filter((driver) => {
-      // 1. Filter by Status Tab
       if (activeStatus !== "ALL" && driver.status !== activeStatus) return false;
 
-      // 2. Filter by Search (Name OR Phone)
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
         const fullName = `${driver.firstName} ${driver.lastName}`.toLowerCase();
         const matchesName = fullName.includes(query);
         const matchesPhone = driver.contactNumber.includes(query);
-        
+
         if (!matchesName && !matchesPhone) return false;
       }
       return true;
@@ -101,14 +93,13 @@ export default function DriversPage() {
 
   const totalPages = Math.ceil(filteredDrivers.length / ITEMS_PER_PAGE);
 
-  useMemo(() => {
+  useEffect(() => {
     setCurrentPage(1);
   }, [activeStatus, searchQuery]);
 
-  const handleRefresh = () => {
-    // You might want to re-trigger the fetch here
+  const handleRefresh = async () => {
     setAddDriverModalOpen(false);
-    // simpler way: window.location.reload() or abstract fetchDrivers out
+    await fetchDrivers();
   };
 
   const paginatedDrivers = useMemo(() => {
@@ -116,11 +107,11 @@ export default function DriversPage() {
     return filteredDrivers.slice(startIndex, startIndex + ITEMS_PER_PAGE);
   }, [filteredDrivers, currentPage]);
 
-  const statusCounts :any= useMemo(() => {
+  const statusCounts = useMemo(() => {
     return {
       ALL: drivers.length,
-      "Available": drivers.filter((d) => d.status === "Available").length,
-      "Unavailable": drivers.filter((d) => d.status === "Unavailable").length,
+      Available: drivers.filter((d) => d.status === "Available").length,
+      Unavailable: drivers.filter((d) => d.status === "Unavailable").length,
     };
   }, [drivers]);
 
@@ -133,25 +124,15 @@ export default function DriversPage() {
     <div className="min-h-screen bg-gray-50">
       <div className="mx-auto space-y-6">
         <div className="bg-white rounded-lg shadow">
-          
-          {/* Add Driver Modal */}
           {role === "owner" && (
-            <AddDriverModal
-              isOpen={addDriverModalOpen}
-              onClose={() => setAddDriverModalOpen(false)}
-              onDriverAdded={handleRefresh}
-            />
+            <AddDriverModal isOpen={addDriverModalOpen} onClose={() => setAddDriverModalOpen(false)} onDriverAdded={handleRefresh} />
           )}
 
-          {/* Header */}
           <div className="px-6 py-4 border-b border-gray-200">
             <div className="flex justify-between items-center">
               <h1 className="text-2xl font-semibold">My Drivers</h1>
               {role === "owner" && (
-                <button
-                  onClick={() => setAddDriverModalOpen(true)}
-                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 flex items-center gap-2"
-                >
+                <button onClick={() => setAddDriverModalOpen(true)} className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 flex items-center gap-2">
                   <FaPlus className="w-4 h-4" />
                   Add Driver
                 </button>
@@ -159,26 +140,15 @@ export default function DriversPage() {
             </div>
           </div>
 
-          {/* Status Tabs */}
           <div className="border-b border-gray-200">
             <div className="hidden md:flex">
               {statuses.map((status) => (
-                <StatusTab
-                  key={status.value}
-                  label={status.label}
-                  active={activeStatus === status.value}
-                  onClick={() => setActiveStatus(status.value as any)}
-                  count={statusCounts[status.value]}
-                />
+                <StatusTab key={status.value} label={status.label} active={activeStatus === status.value} onClick={() => setActiveStatus(status.value)} count={statusCounts[status.value]} />
               ))}
             </div>
 
-            {/* Mobile Dropdown */}
             <div className="md:hidden relative p-2">
-              <button
-                onClick={() => setDropdownOpen(!dropdownOpen)}
-                className="w-full px-4 py-2 text-left bg-gray-100 border rounded-md"
-              >
+              <button onClick={() => setDropdownOpen(!dropdownOpen)} className="w-full px-4 py-2 text-left bg-gray-100 border rounded-md">
                 {statuses.find((s) => s.value === activeStatus)?.label}
               </button>
 
@@ -188,14 +158,12 @@ export default function DriversPage() {
                     <button
                       key={status.value}
                       onClick={() => {
-                        setActiveStatus(status.value as any);
+                        setActiveStatus(status.value);
                         setDropdownOpen(false);
                       }}
-                      className={`block w-full px-4 py-2 text-left ${
-                        activeStatus === status.value ? "bg-gray-200" : "hover:bg-gray-100"
-                      }`}
+                      className={`block w-full px-4 py-2 text-left ${activeStatus === status.value ? "bg-gray-200" : "hover:bg-gray-100"}`}
                     >
-                      {status.label} ({statusCounts[status?.value]})
+                      {status.label} ({statusCounts[status.value]})
                     </button>
                   ))}
                 </div>
@@ -203,7 +171,6 @@ export default function DriversPage() {
             </div>
           </div>
 
-          {/* Search */}
           <div className="p-4 border-b border-gray-200">
             <div className="flex items-center justify-between">
               <div className="flex-1 max-w-sm">
@@ -221,12 +188,10 @@ export default function DriversPage() {
             </div>
           </div>
 
-          {/* Error / Loading / Data */}
           {error && <p className="text-red-500 text-center py-4">{error}</p>}
-          
+
           {loading ? (
-             // You can reuse VehicleTableSkeleton or create DriverTableSkeleton
-             <DriverTableSkeleton />
+            <DriverTableSkeleton />
           ) : (
             <>
               {paginatedDrivers.length > 0 ? (
@@ -237,46 +202,30 @@ export default function DriversPage() {
                 </div>
               )}
 
-              {/* Pagination */}
               {paginatedDrivers.length > 0 && (
                 <div className="px-4 py-3 border-t border-gray-200">
                   <div className="flex items-center justify-between">
                     <p className="text-sm text-gray-700">
-                      Showing{" "}
-                      <span className="font-medium">{(currentPage - 1) * ITEMS_PER_PAGE + 1}</span> -{" "}
-                      <span className="font-medium">
-                        {Math.min(currentPage * ITEMS_PER_PAGE, filteredDrivers.length)}
-                      </span>{" "}
-                      of <span className="font-medium">{filteredDrivers.length}</span>
+                      Showing <span className="font-medium">{(currentPage - 1) * ITEMS_PER_PAGE + 1}</span> -{" "}
+                      <span className="font-medium">{Math.min(currentPage * ITEMS_PER_PAGE, filteredDrivers.length)}</span> of{" "}
+                      <span className="font-medium">{filteredDrivers.length}</span>
                     </p>
                     <div className="flex gap-2">
-                      <button
-                        className="px-3 py-1 text-sm border rounded hover:bg-gray-50 disabled:opacity-50 disabled:hover:bg-white"
-                        onClick={() => handlePageChange(currentPage - 1)}
-                        disabled={currentPage === 1}
-                      >
+                      <button className="px-3 py-1 text-sm border rounded hover:bg-gray-50 disabled:opacity-50 disabled:hover:bg-white" onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1}>
                         &larr;
                       </button>
-                      
-                      {/* Simplified Pagination for larger lists */}
+
                       {[...Array(totalPages)].map((_, i) => (
-                         // Hiding pages if too many, logic can be improved
-                         <button
-                           key={i + 1}
-                           className={`px-3 py-1 text-sm border rounded hover:bg-gray-50 ${
-                             currentPage === i + 1 ? "bg-blue-50 text-blue-600" : ""
-                           }`}
-                           onClick={() => handlePageChange(i + 1)}
-                         >
-                           {i + 1}
-                         </button>
+                        <button
+                          key={i + 1}
+                          className={`px-3 py-1 text-sm border rounded hover:bg-gray-50 ${currentPage === i + 1 ? "bg-blue-50 text-blue-600" : ""}`}
+                          onClick={() => handlePageChange(i + 1)}
+                        >
+                          {i + 1}
+                        </button>
                       ))}
 
-                      <button
-                        className="px-3 py-1 text-sm border rounded hover:bg-gray-50 disabled:opacity-50 disabled:hover:bg-white"
-                        onClick={() => handlePageChange(currentPage + 1)}
-                        disabled={currentPage === totalPages}
-                      >
+                      <button className="px-3 py-1 text-sm border rounded hover:bg-gray-50 disabled:opacity-50 disabled:hover:bg-white" onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages}>
                         &rarr;
                       </button>
                     </div>

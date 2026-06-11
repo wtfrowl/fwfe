@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useRef, useCallback, useEffect } from 'react';
+import { getStoredSession } from '../utils/auth';
 
 // --- Configuration ---
 const LOCATION_API_ENDPOINT = `${import.meta.env.VITE_API_BASE_URL}/api/driver/updateLocation`;
@@ -16,12 +17,8 @@ const getDistanceFromLatLonInMeters = (lat1: number, lon1: number, lat2: number,
 };
 
 const getAuthDetails = (): { token: string; role: "owner" | "driver" | null } => {
-  if (typeof window === 'undefined') return { token: "", role: null };
-  const ownerToken = localStorage.getItem("ownerToken");
-  if (ownerToken) return { token: JSON.parse(ownerToken).accessToken, role: "owner" };
-  const driverToken = localStorage.getItem("driverToken");
-  if (driverToken) return { token: JSON.parse(driverToken).accessToken, role: "driver" };
-  return { token: "", role: null };
+  const session = getStoredSession();
+  return { token: session.token ?? "", role: session.role };
 };
 
 // --- Context Definition ---
