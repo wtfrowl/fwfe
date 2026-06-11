@@ -1,17 +1,12 @@
-
-import { TruckAnalytics } from "../../../types/analytics";
 import { DataTable } from "../../../reuse/DataTable/DataTable";
 import { MoneyCell, ProfitBadge } from "../../../reuse/DataTable/Cells";
+import { TruckAnalytics } from "../../../types/analytics";
 
-export default function TruckAnalyticsTable({
-  data,
-}: {
-  data: TruckAnalytics[];
-}) {
+export default function TruckAnalyticsTable({ data }: { data: TruckAnalytics[] }) {
   return (
     <DataTable
-      title="🚚 Truck Performance"
-      subtitle="Profitability & efficiency per truck"
+      title="Truck Performance"
+      subtitle="Profitability and efficiency per truck"
       data={data}
       columns={[
         {
@@ -28,6 +23,12 @@ export default function TruckAnalyticsTable({
         },
         { key: "totalTrips", header: "Trips", align: "center" },
         {
+          key: "totalDistance",
+          header: "Distance",
+          align: "right",
+          render: (t) => `${t.totalDistance.toLocaleString()} km`,
+        },
+        {
           key: "totalRevenue",
           header: "Revenue",
           align: "right",
@@ -40,6 +41,12 @@ export default function TruckAnalyticsTable({
           render: (t) => <MoneyCell value={t.totalExpense} />,
         },
         {
+          key: "dieselExpense",
+          header: "Diesel",
+          align: "right",
+          render: (t) => <MoneyCell value={t.dieselExpense} />,
+        },
+        {
           key: "profit",
           header: "Profit",
           align: "right",
@@ -49,7 +56,17 @@ export default function TruckAnalyticsTable({
           key: "costPerKm",
           header: "Cost / KM",
           align: "right",
-          render: (t) => `₹${t.costPerKm.toFixed(2)}`,
+          render: (t) => `Rs ${t.costPerKm.toFixed(2)}`,
+        },
+        {
+          key: "profitPerKm",
+          header: "Profit / KM",
+          align: "right",
+          render: (t) => (
+            <span className={`font-medium ${t.profitPerKm < 0 ? "text-red-600" : "text-green-600"}`}>
+              Rs {t.profitPerKm.toFixed(2)}
+            </span>
+          ),
         },
       ]}
     />

@@ -2,15 +2,11 @@ import { DataTable } from "../../../reuse/DataTable/DataTable";
 import { MoneyCell, ProfitBadge } from "../../../reuse/DataTable/Cells";
 import { DriverAnalytics } from "../../../types/analytics";
 
-export default function DriverAnalyticsTable({
-  data,
-}: {
-  data: DriverAnalytics[];
-}) {
+export default function DriverAnalyticsTable({ data }: { data: DriverAnalytics[] }) {
   return (
     <DataTable<DriverAnalytics>
-      title="🧑‍✈️ Driver Performance"
-      subtitle="Efficiency, profitability & workload per driver"
+      title="Driver Performance"
+      subtitle="Efficiency, profitability, and workload per driver"
       data={data}
       columns={[
         {
@@ -21,9 +17,7 @@ export default function DriverAnalyticsTable({
               <div className="font-medium">
                 {d.driver.firstName} {d.driver.lastName}
               </div>
-              <div className="text-xs text-gray-500">
-                {d.driver.contactNumber}
-              </div>
+              <div className="text-xs text-gray-500">{d.driver.contactNumber}</div>
             </div>
           ),
         },
@@ -39,10 +33,22 @@ export default function DriverAnalyticsTable({
           render: (d) => <MoneyCell value={d.totalRevenue} />,
         },
         {
+          key: "totalDistance",
+          header: "Distance",
+          align: "right",
+          render: (d) => `${d.totalDistance.toLocaleString()} km`,
+        },
+        {
           key: "profit",
           header: "Profit",
           align: "right",
           render: (d) => <ProfitBadge value={d.profit} />,
+        },
+        {
+          key: "routes",
+          header: "Routes",
+          align: "center",
+          render: (d) => d.routes.length,
         },
         {
           key: "avgTripDurationHours",
@@ -54,7 +60,7 @@ export default function DriverAnalyticsTable({
           key: "costPerKm",
           header: "Cost / KM",
           align: "right",
-          render: (d) => `₹${d.costPerKm.toFixed(2)}`,
+          render: (d) => `Rs ${d.costPerKm.toFixed(2)}`,
         },
       ]}
     />

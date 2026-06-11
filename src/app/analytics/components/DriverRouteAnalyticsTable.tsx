@@ -1,24 +1,18 @@
 import { DataTable } from "../../../reuse/DataTable/DataTable";
-import {  ProfitBadge } from "../../../reuse/DataTable/Cells";
+import { ProfitBadge } from "../../../reuse/DataTable/Cells";
 import { DriverRouteAnalytics } from "../../../types/analytics";
 
-export default function DriverRouteAnalyticsTable({
-  data,
-}: {
-  data: DriverRouteAnalytics[];
-}) {
+export default function DriverRouteAnalyticsTable({ data }: { data: DriverRouteAnalytics[] }) {
   return (
     <DataTable<DriverRouteAnalytics>
-      title="🔀 Driver × Route Analysis"
+      title="Driver x Route Analysis"
       subtitle="Performance of each driver on specific routes"
       data={data}
       columns={[
         {
           key: "route",
           header: "Route",
-          render: (dr) => (
-            <div className="font-medium">{dr.route}</div>
-          ),
+          render: (dr) => <div className="font-medium">{dr.route}</div>,
         },
         {
           key: "driver",
@@ -45,12 +39,8 @@ export default function DriverRouteAnalyticsTable({
           header: "Profit / KM",
           align: "right",
           render: (dr) => (
-            <span
-              className={`font-medium ${
-                dr.profitPerKm < 0 ? "text-red-600" : "text-green-600"
-              }`}
-            >
-              ₹{dr.profitPerKm.toFixed(2)}
+            <span className={`font-medium ${dr.profitPerKm < 0 ? "text-red-600" : "text-green-600"}`}>
+              Rs {dr.profitPerKm.toFixed(2)}
             </span>
           ),
         },

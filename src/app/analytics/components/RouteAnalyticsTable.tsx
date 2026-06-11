@@ -2,23 +2,17 @@ import { DataTable } from "../../../reuse/DataTable/DataTable";
 import { MoneyCell, ProfitBadge } from "../../../reuse/DataTable/Cells";
 import { RouteAnalytics } from "../../../types/analytics";
 
-export default function RouteAnalyticsTable({
-  data,
-}: {
-  data: RouteAnalytics[];
-}) {
+export default function RouteAnalyticsTable({ data }: { data: RouteAnalytics[] }) {
   return (
     <DataTable<RouteAnalytics>
-      title="🛣️ Route Analytics"
-      subtitle="Profitability & cost efficiency per route"
+      title="Route Analytics"
+      subtitle="Profitability and cost efficiency per route"
       data={data}
       columns={[
         {
           key: "route",
           header: "Route",
-          render: (r) => (
-            <div className="font-medium">{r.route}</div>
-          ),
+          render: (r) => <div className="font-medium">{r.route}</div>,
         },
         {
           key: "totalTrips",
@@ -38,6 +32,12 @@ export default function RouteAnalyticsTable({
           render: (r) => <MoneyCell value={r.totalExpense} />,
         },
         {
+          key: "totalDistance",
+          header: "Distance",
+          align: "right",
+          render: (r) => `${r.totalDistance.toLocaleString()} km`,
+        },
+        {
           key: "profit",
           header: "Profit",
           align: "right",
@@ -47,19 +47,15 @@ export default function RouteAnalyticsTable({
           key: "costPerKm",
           header: "Cost / KM",
           align: "right",
-          render: (r) => `₹${r.costPerKm.toFixed(2)}`,
+          render: (r) => `Rs ${r.costPerKm.toFixed(2)}`,
         },
         {
           key: "profitPerKm",
           header: "Profit / KM",
           align: "right",
           render: (r) => (
-            <span
-              className={`font-medium ${
-                r.profitPerKm < 0 ? "text-red-600" : "text-green-600"
-              }`}
-            >
-              ₹{r.profitPerKm.toFixed(2)}
+            <span className={`font-medium ${r.profitPerKm < 0 ? "text-red-600" : "text-green-600"}`}>
+              Rs {r.profitPerKm.toFixed(2)}
             </span>
           ),
         },
