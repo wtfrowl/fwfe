@@ -558,7 +558,10 @@ const TripInfo: React.FC = () => {
       {/* --- Expenses Table --- */}
       <div className="overflow-hidden rounded-card border border-hairline bg-surface shadow-[var(--shadow-raised)]">
         <h2 className="font-medium p-4 border-b bg-canvas-sunken text-ink-secondary">Operating Expenses</h2>
-        <table className="w-full text-sm">
+
+        {/* --- Desktop --- */}
+        <div className="hidden overflow-x-auto md:block">
+          <table className="w-full text-sm">
             <thead>
               <tr className="bg-canvas-sunken border-b">
                 <th className="text-left p-4">Type</th>
@@ -571,17 +574,25 @@ const TripInfo: React.FC = () => {
             <tbody>
               {currentExpenses.map((expense) => (
                 <tr key={expense._id} className="border-b last:border-0 hover:bg-canvas-sunken">
-                  <td className="p-4 flex items-center font-medium capitalize">
-                    {getExpenseIcon(expense.expenseType)} {expense.expenseType.replace(/_/g, ' ')}
+                  {/* The icon+label flex lives in a span, not on the td: `display:flex`
+                      on a cell drops it out of the table layout and breaks column sizing. */}
+                  <td className="p-4 font-medium capitalize">
+                    <span className="flex items-center whitespace-nowrap">
+                      {getExpenseIcon(expense.expenseType)} {expense.expenseType.replace(/_/g, ' ')}
+                    </span>
                   </td>
-                  <td className="p-4 font-semibold">₹{expense.amount}</td>
-                  <td className="p-4 text-ink-tertiary">{expense.quantity ? `${expense.quantity} L` : "-"}</td>
-                  <td className="p-4 text-ink-secondary truncate max-w-xs">{expense.description || "-"}</td>
+                  <td className="p-4 font-semibold tabular-nums">₹{expense.amount}</td>
+                  <td className="p-4 text-ink-tertiary tabular-nums">{expense.quantity ? `${expense.quantity} L` : "-"}</td>
+                  {/* max-width on a td is only a hint under auto table layout, so the
+                      truncation has to happen on a block child instead. */}
+                  <td className="p-4 text-ink-secondary">
+                    <span className="block max-w-xs truncate">{expense.description || "-"}</span>
+                  </td>
                   <td className="p-4">
                      <button
                       onClick={() => { if (userRole === "owner" && !expense.isApproved) handleApproveExpense(expense._id) }}
                       disabled={(userRole === "owner" && expense.isApproved) || userRole !== "owner"}
-                      className={`px-3 py-1 rounded-chip text-xs border ${expense.isApproved ? "bg-canvas-sunken text-ink-quaternary" : "bg-surface text-accent border-accent/25"}`}
+                      className={`px-3 py-1 rounded-chip text-xs border whitespace-nowrap ${expense.isApproved ? "bg-canvas-sunken text-ink-quaternary" : "bg-surface text-accent border-accent/25"}`}
                     >
                       {expense.isApproved ? "Approved" : "Approve"}
                     </button>
@@ -591,7 +602,50 @@ const TripInfo: React.FC = () => {
               {expenses.length === 0 && <tr><td colSpan={5} className="p-8 text-center text-ink-quaternary">No expenses recorded yet.</td></tr>}
             </tbody>
           </table>
-          
+        </div>
+
+        {/* --- Mobile ---
+            Five columns of p-4 cells cannot fit a phone: the row overflowed the
+            card, which is `overflow-hidden`, so the Approve button was clipped
+            away entirely and owners could not approve an expense on mobile. */}
+        <div className="space-y-3 p-3 md:hidden">
+          {currentExpenses.map((expense) => (
+            <div
+              key={expense._id}
+              className="rounded-card border border-hairline bg-surface p-4 shadow-[var(--shadow-hairline)]"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <span className="flex min-w-0 items-center font-medium capitalize text-ink">
+                  {getExpenseIcon(expense.expenseType)}
+                  <span className="truncate">{expense.expenseType.replace(/_/g, ' ')}</span>
+                </span>
+                <span className="shrink-0 font-semibold tabular-nums text-ink">₹{expense.amount}</span>
+              </div>
+
+              {expense.quantity ? (
+                <p className="mt-1 text-sm tabular-nums text-ink-tertiary">{expense.quantity} L</p>
+              ) : null}
+
+              {expense.description ? (
+                <p className="mt-1 text-sm leading-snug text-ink-secondary">{expense.description}</p>
+              ) : null}
+
+              <div className="mt-3 flex justify-end border-t border-hairline pt-3">
+                <button
+                  onClick={() => { if (userRole === "owner" && !expense.isApproved) handleApproveExpense(expense._id) }}
+                  disabled={(userRole === "owner" && expense.isApproved) || userRole !== "owner"}
+                  className={`rounded-chip border px-3 py-1.5 text-xs ${expense.isApproved ? "bg-canvas-sunken text-ink-quaternary" : "bg-surface text-accent border-accent/25"}`}
+                >
+                  {expense.isApproved ? "Approved" : "Approve"}
+                </button>
+              </div>
+            </div>
+          ))}
+          {expenses.length === 0 && (
+            <p className="p-8 text-center text-ink-quaternary">No expenses recorded yet.</p>
+          )}
+        </div>
+
           {/* Pagination */}
           {expenses.length > 0 && (
             <div className="flex justify-between items-center p-4 border-t bg-canvas-sunken">
