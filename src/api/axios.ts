@@ -53,10 +53,18 @@ api.interceptors.response.use(
       if (status >= 500) {
         // Handle server errors
       }
+      /* express-validator answers with `{ errors: [{ msg, path }] }` and no
+         `message`, so every failed validation used to surface as the useless
+         "An error occurred". Read the first one: it names the field the
+         person actually has to fix. */
+      const validation = Array.isArray(response.data?.errors)
+        ? response.data.errors[0]?.msg
+        : undefined;
+
       return Promise.reject({
-        message: response.data.message || 'An error occurred',
+        message: response.data?.message || validation || 'An error occurred',
         statusCode: status,
-        details: response.data.details,
+        details: response.data?.details ?? response.data?.errors,
       });
     } else {
         // Handle network errors

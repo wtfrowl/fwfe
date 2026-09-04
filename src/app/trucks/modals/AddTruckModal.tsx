@@ -5,6 +5,11 @@ import { Button } from "../../../components/ui/Button";
 import { FormField } from "../../../components/ui/FormField";
 import { inputClasses } from "../../../components/ui/inputStyles";
 import { InlineMessage } from "../../../components/ui/InlineMessage";
+import {
+  AXLE_LAYOUTS,
+  DEFAULT_LAYOUT_ID,
+  wheelCountFor,
+} from "../../tyre/lib/tyre-standards";
 
 const EMPTY = {
   registrationNumber: "",
@@ -15,6 +20,11 @@ const EMPTY = {
   currentLng: "",
   availableFrom: "",
   availableTill: "",
+  /* How many wheels the truck runs on. Asked for at registration because the
+     whole tyre side is generated from it — the fitting diagram, the legal
+     position codes, "8 of 10 hubs filled". Guessing it later from however many
+     tyres happen to be fitted is how a 12-wheeler ends up drawn as a 10. */
+  axleLayout: DEFAULT_LAYOUT_ID,
 };
 
 export const AddTruckModal = ({
@@ -30,7 +40,9 @@ export const AddTruckModal = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
@@ -62,6 +74,7 @@ export const AddTruckModal = ({
           Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : undefined,
         availableFrom: form.availableFrom,
         availableTill: form.availableTill,
+        axleLayout: form.axleLayout,
       });
 
       setForm(EMPTY);
@@ -134,6 +147,28 @@ export const AddTruckModal = ({
               placeholder="14"
               required
             />
+          </FormField>
+
+          <FormField
+            label="Wheel configuration"
+            htmlFor="axleLayout"
+            hint={`${wheelCountFor(form.axleLayout)} road wheels — sets the tyre positions`}
+            required
+          >
+            <select
+              id="axleLayout"
+              name="axleLayout"
+              value={form.axleLayout}
+              onChange={handleChange}
+              className={inputClasses}
+              required
+            >
+              {AXLE_LAYOUTS.map((layout) => (
+                <option key={layout.id} value={layout.id}>
+                  {layout.label} · {layout.drive}
+                </option>
+              ))}
+            </select>
           </FormField>
 
           <FormField label="Last maintenance" htmlFor="lastMaintenance">

@@ -12,7 +12,7 @@ export default defineConfig({
     // 2. Add the VitePWA plugin configuration
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png'],
+      includeAssets: ['icon/favicon.ico', 'icon/apple-touch-icon.png', 'icon/favicon-16x16.png', 'icon/favicon-32x32.png'],
       manifest: {
         name: 'FleetWise',
         short_name: 'Fleetz',
@@ -20,17 +20,17 @@ export default defineConfig({
         theme_color: '#ffffff',
         icons: [
           {
-            src: 'pwa-192x192.png', // Must be in your 'public' folder
+            src: '/icon/android-chrome-192x192.png',
             sizes: '192x192',
             type: 'image/png'
           },
           {
-            src: 'pwa-512x512.png', // Must be in your 'public' folder
+            src: '/icon/android-chrome-512x512.png',
             sizes: '512x512',
             type: 'image/png'
           },
           {
-            src: 'pwa-512x512.png', // Maskable icon
+            src: '/icon/android-chrome-512x512.png', // Maskable icon
             sizes: '512x512',
             type: 'image/png',
             purpose: 'maskable'

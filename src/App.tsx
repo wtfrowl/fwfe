@@ -9,7 +9,7 @@ import TripDetails from './app/trips/tripdetails/tripdetails.tsx';
 import Documents from './app/docs/documents.tsx';
 import DashboardLayout from './app/DashboardLayout.tsx';
 import ProtectedRoute from './ProtectedRoute.tsx';
-import DocumentPreviewPage from './app/docs/components/document-preview.tsx';
+import DocumentDetailPage from './app/docs/components/DocumentDetail.tsx';
 import TruckDetails from './app/trucks/truckDetails/truck-details.tsx';
 import WebHome from './main/WebHome.tsx';
 import Login from './app/AppLogin.tsx';
@@ -48,7 +48,7 @@ export const routes: RouteObject[] = [
        { path: "tyre/:id", element: <TyreDetailsPage /> },
       { path: "trips/:id", element: <TripDetails /> },
       { path: "mydocs", element: <Documents /> },
-      { path: "mydocs/documents/:id", element: <DocumentPreviewPage /> },
+      { path: "mydocs/documents/:id", element: <DocumentDetailPage /> },
       { path: "owner-profile", element: <ProfileSettings /> },
     ],
   },
@@ -64,7 +64,7 @@ export const routes: RouteObject[] = [
       { path: "mytrucks", element: <OwnerTrucks /> },
       { path: "mytrucks/:regNo", element: <TruckDetails /> },
       { path: "mydocs", element: <Documents /> },
-      { path: "mydocs/documents/:id", element: <DocumentPreviewPage /> },
+      { path: "mydocs/documents/:id", element: <DocumentDetailPage /> },
       { path: "trips", element: <Trips /> },
       { path: "trips/:id", element: <TripDetails /> },
       { path: "driver-profile", element: <ProfileSettings /> },

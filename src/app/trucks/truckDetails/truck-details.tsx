@@ -6,33 +6,18 @@ import {
   FaEdit, FaCalendarAlt, FaWeightHanging 
 } from "react-icons/fa";
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { LoadingSpinner } from "../../trips/components/loading-spinner";
-import {removeDriver, assignDriver, dismountTyre, getDrivers, getTruckByRegNo, getTyres, mountTyre, updateTruck } from "../../../api";
-import { Sheet } from "../../../motion/Sheet";
+import { removeDriver, assignDriver, getDrivers, getTruckByRegNo, updateTruck } from "../../../api";
+import { TruckTyrePanel } from "../../tyre/components/TruckTyrePanel";
 import { ConfirmDialog } from "../../../components/ui/ConfirmDialog";
-import { Button } from "../../../components/ui/Button";
-import { FormField } from "../../../components/ui/FormField";
 import { InlineMessage } from "../../../components/ui/InlineMessage";
 import { StatusBadge } from "../../../components/ui/StatusBadge";
 import {
   DetailPage,
   DetailHeader,
 } from "../../../components/ui/DetailPage";
-import { inputClasses, inputClassesCompact } from "../../../components/ui/inputStyles";
-
-// --- Types ---
-interface Tyre {
-  _id: string;
-  tyreNumber: string;
-  brand: string;
-  model: string;
-  size: string;
-  currentTreadDepth: number;
-  status: string;
-  position?: string;
-  currentTruckId?: string | { _id: string }; 
-}
+import { inputClassesCompact } from "../../../components/ui/inputStyles";
 
 // Matches your Mongoose Schema
 interface TruckProfile {
@@ -53,6 +38,8 @@ interface TruckProfile {
   driverId?: string[];
   totalKm?: number;
   available?: boolean;
+  /** Which wheel positions this vehicle has. Drives the fitting diagram. */
+  axleLayout?: string | null;
 }
 
 // --- NEW: SKELETON LOADER COMPONENT ---
@@ -184,7 +171,6 @@ const TruckDetailsSkeleton = () => {
 
 export default function TruckDetails() {
   const { regNo } = useParams();
-  const navigate = useNavigate();
 
   // --- Main State ---
   const [truckDetails, setTruckDetails] = useState<Partial<TruckProfile>>({});
@@ -199,23 +185,10 @@ export default function TruckDetails() {
   // --- Driver/Tyre State ---
   const [drivers, setDrivers] = useState<any[]>([]);
   const [selectedDriver, setSelectedDriver] = useState<string>("");
-  const [allTyres, setAllTyres] = useState<Tyre[]>([]);
-  const [mountedTyres, setMountedTyres] = useState<Tyre[]>([]);
-  const [spareTyres, setSpareTyres] = useState<Tyre[]>([]);
-  
   // --- Modal/Action State ---
   /* Replaces five native alert() dialogs. A browser alert cannot be styled,
      blocks the whole tab, and drops the user out of the product's voice. */
   const [banner, setBanner] = useState<string | null>(null);
-  const [isMountModalOpen, setIsMountModalOpen] = useState(false);
-  const [isMounting, setIsMounting] = useState(false);
-
-  const [mountForm, setMountForm] = useState({
-    tyreId: "",
-    position: "Front-Left",
-    currentKm: 0,
-    notes: ""
-  });
   const [isRemoveDriverModalOpen, setIsRemoveDriverModalOpen] = useState(false);
   const [driverToRemove, setDriverToRemove] = useState<{ id: string, name: string } | null>(null);
   const [isRemovingDriver, setIsRemovingDriver] = useState(false);
@@ -229,36 +202,14 @@ export default function TruckDetails() {
 
   useEffect(() => {
     if (regNo) {
-      fetchTruckDetails().then(() => fetchTyres());
+      fetchTruckDetails();
     }
   }, [regNo]);
-
-  // Filter Tyres Logic
-  useEffect(() => {
-    if (truckDetails._id && allTyres.length > 0) {
-      const mounted = allTyres.filter((t: any) => {
-        const tTruckId = t.currentTruckId?._id || t.currentTruckId;
-        return tTruckId === truckDetails._id && t.status === "Mounted";
-      });
-      setMountedTyres(mounted);
-      const spares = allTyres.filter(t => t.status === "Spare");
-      setSpareTyres(spares);
-    }
-  }, [allTyres, truckDetails]);
-
 
   const fetchDriver = async () => {
     try {
       const driversData = await getDrivers()
       setDrivers(driversData as any[]);
-    } catch (error) { console.error(error); }
-  };
-
-  const fetchTyres = async () => {
-    try {
-     
-      const response:any= await getTyres();
-      setAllTyres(response);
     } catch (error) { console.error(error); }
   };
 
@@ -268,10 +219,6 @@ export default function TruckDetails() {
  const response:any= await    getTruckByRegNo(regNo!);
       setTruckDetails(response);
       setTruckForm(response); // Initialize edit form
-      
-      if (response.totalKm) {
-        setMountForm(prev => ({ ...prev, currentKm: response.totalKm }));
-      }
     } catch (err: any) {
       console.error("Truck details fetch failed:", err);
       setError("Failed to fetch truck details.");
@@ -316,45 +263,21 @@ export default function TruckDetails() {
     }
   };
 
-  // --- TYRE ACTIONS ---
-  const handleMountSubmit = async () => {
-    setIsMounting(true);
-    if (!mountForm.tyreId) return setBanner("Choose a tyre to mount first.");
-
+  /* The axle configuration decides which hubs exist, so it belongs to the
+     truck rather than to any one tyre. Saved optimistically: the diagram
+     redraws on the next paint, and a failed save puts the old value back. */
+  const handleAxleLayoutChange = async (axleLayout: string) => {
+    const previous = truckDetails.axleLayout;
+    setTruckDetails((prev) => ({ ...prev, axleLayout }));
     try {
-      await mountTyre({ ...mountForm, truckId: truckDetails._id });
-
-      setIsMountModalOpen(false);
-      setMountForm({ 
-        tyreId: "", 
-        position: "Front-Left", 
-        currentKm: truckDetails.totalKm || 0, 
-        notes: "" 
-      });
-      
-      fetchTyres(); 
-      fetchTruckDetails(); 
-    } catch (error: any) {
-      setBanner(error.response?.data?.message || "Could not mount that tyre.");
-    } finally {
-      setIsMounting(false);
+      await updateTruck(truckDetails._id!, { axleLayout });
+    } catch (error) {
+      console.error(error);
+      setTruckDetails((prev) => ({ ...prev, axleLayout: previous }));
+      setBanner("Could not save the axle configuration. Please try again.");
     }
   };
 
-  const handleDismount = async (tyreId: string) => {
-    if (!confirm("Are you sure you want to dismount this tyre?")) return;
-    const reason = prompt("Enter Reason (Rotation, Puncture, Retread, Scrap):", "Rotation");
-    if (!reason) return; 
-
-    try {
-    await dismountTyre({ tyreId, truckId: truckDetails._id, reason });
-      fetchTyres();
-      fetchTruckDetails();
-    } catch (error: any) {
-      setBanner(error.response?.data?.message || "Could not dismount that tyre.");
-    }
-  };
-  
   const handleRemoveDriver = async () => {
     if (!driverToRemove) return;
     setIsRemovingDriver(true);
@@ -541,59 +464,21 @@ export default function TruckDetails() {
           {loading ? <LoadingSpinner/> : <CurrentTripCard trip={truckDetails.currentTrip} />}
         </div>
 
-        {/* --- 3. TYRE MANAGEMENT --- */}
-        <div className="rounded-card border border-hairline bg-surface shadow-[var(--shadow-raised)] p-4 sm:p-6 relative">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold flex items-center gap-2">
-               <span className="p-1 bg-ink/6 rounded-chip text-ink-secondary">🛞</span> Tyre Config
-            </h3>
-            <button 
-              onClick={() => setIsMountModalOpen(true)}
-              className="text-sm bg-accent-soft text-accent px-3 py-1.5 rounded-chip hover:bg-accent-soft font-medium border border-accent/25"
-            >
-              + Mount
-            </button>
-          </div>
-
-          {mountedTyres.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {mountedTyres.map((tyre) => (
-                <div 
-                  key={tyre._id} 
-                  className="border rounded-control p-4 hover:shadow-[var(--shadow-raised)] transition-shadow relative group bg-surface cursor-pointer hover:border-accent/30"
-                  onClick={() => navigate(`/owner-home/tyre/${tyre._id}`)}
-                >
-                  <div className="flex justify-between items-start mb-2">
-                    <span className="bg-ink text-white text-xs px-2 py-1 rounded-chip font-semibold truncate max-w-[60%]">
-                      {tyre.position || "Pos N/A"}
-                    </span>
-                    
-                    <span className={`text-xs font-semibold ${tyre.currentTreadDepth > 5 ? "text-positive-ink" : "text-critical"}`}>
-                        {tyre.currentTreadDepth}mm
-                    </span>
-                  </div>
-                  
-                  <h4 className="font-semibold text-ink text-sm truncate">{tyre.brand}</h4>
-                  <p className="text-xs text-ink-tertiary font-medium truncate">{tyre.model}</p>
-                  <p className="text-xs text-ink-quaternary mb-2 truncate">{tyre.tyreNumber}</p>
-                  
-                  <div className="mt-3 pt-2 border-t flex justify-end">
-                    <button 
-                      className="text-critical text-xs hover:text-critical-ink font-medium border border-critical/25 px-2 py-1 rounded-chip hover:bg-critical-soft transition-colors z-10"
-                      onClick={(e) => { e.stopPropagation(); handleDismount(tyre._id); }}
-                    >
-                      Dismount
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8 bg-canvas-sunken rounded-control border-2 border-dashed border-hairline">
-              <p className="text-ink-tertiary text-sm">No tyres currently mounted.</p>
-            </div>
-          )}
-        </div>
+        {/* --- 3. TYRES ---
+            The vehicle itself is the control: tap a hub to fit, move or take
+            off the tyre on it. Everything about how that works lives in the
+            tyre feature, not here. */}
+        {truckDetails._id && (
+          <TruckTyrePanel
+            truck={{
+              _id: truckDetails._id,
+              registrationNumber: truckDetails.registrationNumber ?? regNo ?? "",
+              axleLayout: truckDetails.axleLayout ?? null,
+              totalKm: truckDetails.totalKm ?? null,
+            }}
+            onLayoutChange={handleAxleLayoutChange}
+          />
+        )}
 
         {/* --- 4. DRIVER & HISTORY --- */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -654,85 +539,6 @@ export default function TruckDetails() {
 
       </div>
       
-      <Sheet
-        open={isMountModalOpen}
-        onClose={() => setIsMountModalOpen(false)}
-        title="Mount tyre"
-        description="Fit a spare tyre to a position on this truck."
-        size="md"
-        footer={
-          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-            <Button variant="secondary" onClick={() => setIsMountModalOpen(false)} disabled={isMounting}>
-              Cancel
-            </Button>
-            <Button onClick={handleMountSubmit} disabled={!mountForm.tyreId} loading={isMounting}>
-              Confirm mount
-            </Button>
-          </div>
-        }
-      >
-        <div className="space-y-4">
-          <FormField
-            label="Spare tyre"
-            htmlFor="mount-tyre"
-            error={spareTyres.length === 0 ? "You have no spare tyres in inventory." : undefined}
-            required
-          >
-            <select
-              id="mount-tyre"
-              className={inputClasses}
-              value={mountForm.tyreId}
-              onChange={(e) => setMountForm({ ...mountForm, tyreId: e.target.value })}
-            >
-              <option value="">Choose a tyre</option>
-              {spareTyres.map((tyre) => (
-                <option key={tyre._id} value={tyre._id}>
-                  {tyre.tyreNumber} — {tyre.brand} ({tyre.size})
-                </option>
-              ))}
-            </select>
-          </FormField>
-
-          <FormField label="Position" htmlFor="mount-position" required>
-            <select
-              id="mount-position"
-              className={inputClasses}
-              value={mountForm.position}
-              onChange={(e) => setMountForm({ ...mountForm, position: e.target.value })}
-            >
-              <option value="Front-Left">Front left</option>
-              <option value="Front-Right">Front right</option>
-              <option value="Rear-Left-Outer">Rear left outer</option>
-              <option value="Rear-Left-Inner">Rear left inner</option>
-              <option value="Rear-Right-Outer">Rear right outer</option>
-              <option value="Rear-Right-Inner">Rear right inner</option>
-              <option value="Stepney">Stepney</option>
-            </select>
-          </FormField>
-
-          <FormField label="Current odometer" htmlFor="mount-km" hint="In kilometres">
-            <input
-              id="mount-km"
-              type="number"
-              min="0"
-              className={inputClasses}
-              value={mountForm.currentKm}
-              onChange={(e) => setMountForm({ ...mountForm, currentKm: Number(e.target.value) })}
-            />
-          </FormField>
-
-          <FormField label="Notes" htmlFor="mount-notes">
-            <input
-              id="mount-notes"
-              className={inputClasses}
-              placeholder="New purchase mount"
-              value={mountForm.notes}
-              onChange={(e) => setMountForm({ ...mountForm, notes: e.target.value })}
-            />
-          </FormField>
-        </div>
-      </Sheet>
-
       <ConfirmDialog
         open={isRemoveDriverModalOpen}
         title="Remove this driver?"

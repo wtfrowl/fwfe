@@ -6,6 +6,9 @@ import { cn } from "../../utils/cn";
 const toneClasses = {
   error: "border-critical/25 bg-critical-soft text-critical-ink",
   info: "border-accent/20 bg-accent-soft text-accent-ink",
+  /* Not an error and not a confirmation: something the user should weigh
+     before continuing, such as fitting a drive tyre to a steer axle. */
+  warning: "border-caution/30 bg-caution-soft text-caution-ink",
   success: "border-positive/25 bg-positive-soft text-positive-ink",
 };
 

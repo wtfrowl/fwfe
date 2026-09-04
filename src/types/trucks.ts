@@ -8,6 +8,8 @@ export interface ITruck {
     name: string;
   };
   status: 'active' | 'inactive' | 'in-shop';
+  /** Which wheel positions the vehicle has — see tyre-standards AXLE_LAYOUTS. */
+  axleLayout?: string | null;
   // Add other properties as needed
 }
 
