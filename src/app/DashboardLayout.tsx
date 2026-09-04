@@ -16,6 +16,8 @@ import { ImLocation2 } from "react-icons/im";
 import { useTracking } from "../context/TrackingContext";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { getLoginPath } from "../utils/auth";
+import { RealtimeProvider } from "../context/RealtimeContext";
+import { ToastHost } from "../components/ui/Toast";
 import { spring } from "../motion/springs";
 import { cn } from "../utils/cn";
 
@@ -107,7 +109,7 @@ const DashboardLayout: React.FC = () => {
   }, [user, isOwner]);
 
   return (
-    <>
+    <RealtimeProvider>
       {/* Chrome is a translucent layer the content scrolls beneath, not an
           opaque strip that eats the top of the page. */}
       <header className="material-regular sticky top-0 z-30 border-b border-hairline/70">
@@ -209,7 +211,8 @@ const DashboardLayout: React.FC = () => {
         onCancel={() => setShowLogoutConfirm(false)}
       />
       <ScrollRestoration />
-    </>
+      <ToastHost />
+    </RealtimeProvider>
   );
 };
 
