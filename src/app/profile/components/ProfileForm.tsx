@@ -1,25 +1,29 @@
-import { useState, useEffect } from "react"
-import { FiCamera, FiTrash2, FiSave } from "react-icons/fi"
+import { useState, useEffect } from "react";
+import { FiSave } from "react-icons/fi";
+import { Button } from "../../../components/ui/Button";
+import { FormField } from "../../../components/ui/FormField";
+import { inputClasses } from "../../../components/ui/inputStyles";
 
 interface ProfileData {
-  _id?: string
-  firstName: string
-  lastName: string
-  age: number
-  contactNumber: string
-  street: string
-  city: string
-  state: string
-  role?: string
-  totalTrucks?: number
+  _id?: string;
+  firstName: string;
+  lastName: string;
+  age: number;
+  contactNumber: string;
+  street: string;
+  city: string;
+  state: string;
+  role?: string;
+  totalTrucks?: number;
 }
 
 interface ProfileFormProps {
-  initialData: ProfileData | null
-  onSubmit: (data: ProfileData) => Promise<void>
+  initialData: ProfileData | null;
+  onSubmit: (data: ProfileData) => Promise<void>;
+  saving?: boolean;
 }
 
-export function ProfileForm({ initialData, onSubmit }: ProfileFormProps) {
+export function ProfileForm({ initialData, onSubmit, saving = false }: ProfileFormProps) {
   const [profileData, setProfileData] = useState<ProfileData>({
     firstName: "",
     lastName: "",
@@ -28,160 +32,137 @@ export function ProfileForm({ initialData, onSubmit }: ProfileFormProps) {
     street: "",
     city: "",
     state: "",
-  })
+  });
 
   useEffect(() => {
-    if (initialData) {
-      setProfileData(initialData)
-    }
-  }, [initialData])
+    if (initialData) setProfileData(initialData);
+  }, [initialData]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.name === "age" ? Number.parseInt(e.target.value) : e.target.value
-    setProfileData({ ...profileData, [e.target.name]: value })
-  }
+    const { name, value } = e.target;
+    /* `parseInt("")` is NaN, which React renders as an empty controlled input
+       that can never be typed into again. */
+    const parsed = name === "age" ? (value === "" ? 0 : Number.parseInt(value, 10) || 0) : value;
+    setProfileData((prev) => ({ ...prev, [name]: parsed }));
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    onSubmit(profileData)
-  }
+    e.preventDefault();
+    onSubmit(profileData);
+  };
+
+  const initials =
+    `${profileData.firstName?.[0] ?? ""}${profileData.lastName?.[0] ?? ""}`.toUpperCase() || "?";
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-4 mb-8">
-        <div className="relative">
-          <img
-            src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-FKLZQgI28uCjqaBW8AAzuP903CyhrA.png"
-            alt="Profile"
-            className="w-24 h-24 rounded-full object-cover"
-          />
-          <button type="button" className="absolute bottom-0 right-0 p-2 bg-blue-600 rounded-full text-white">
-            <FiCamera size={16} />
-          </button>
+      {/* The avatar block used to show a hardcoded stock photograph of a
+          stranger from a Vercel blob URL, with Upload / Delete / camera
+          buttons wired to nothing. Initials are honest and always correct. */}
+      <div className="flex items-center gap-4 border-b border-hairline pb-6">
+        <div className="grid h-16 w-16 shrink-0 place-items-center rounded-full bg-accent-soft text-xl font-semibold text-accent-ink">
+          {initials}
         </div>
-        <div className="flex space-x-3">
-          <button type="button" className="px-4 py-2 bg-blue-600 text-white rounded-lg">
-            Upload New
-          </button>
-          <button type="button" className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg flex items-center space-x-2">
-            <FiTrash2 />
-            <span>Delete avatar</span>
-          </button>
+        <div className="min-w-0">
+          <p className="truncate text-lg font-semibold text-ink">
+            {profileData.firstName} {profileData.lastName}
+          </p>
+          <p className="text-sm text-ink-secondary">
+            {profileData.role === "driver" ? "Driver" : "Fleet owner"}
+            {profileData.totalTrucks !== undefined ? ` · ${profileData.totalTrucks} trucks` : ""}
+          </p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-        <div>
-          <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-1">
-            First Name <span className="text-red-500">*</span>
-          </label>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <FormField label="First name" htmlFor="firstName" required>
           <input
             id="firstName"
-            type="text"
             name="firstName"
             value={profileData.firstName}
             onChange={handleChange}
-            className="w-full p-2 border rounded-lg"
+            className={inputClasses}
             required
           />
-        </div>
-        <div>
-          <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-1">
-            Last Name <span className="text-red-500">*</span>
-          </label>
+        </FormField>
+
+        <FormField label="Last name" htmlFor="lastName" required>
           <input
             id="lastName"
-            type="text"
             name="lastName"
             value={profileData.lastName}
             onChange={handleChange}
-            className="w-full p-2 border rounded-lg"
+            className={inputClasses}
             required
           />
-        </div>
-      </div>
+        </FormField>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-        <div>
-          <label htmlFor="age" className="block text-sm font-medium text-gray-700 mb-1">
-            Age
-          </label>
+        <FormField label="Age" htmlFor="age">
           <input
             id="age"
             type="number"
             name="age"
-            value={profileData.age}
+            min="18"
+            value={profileData.age || ""}
             onChange={handleChange}
-            className="w-full p-2 border rounded-lg"
+            className={inputClasses}
           />
-        </div>
-        <div>
-          <label htmlFor="contactNumber" className="block text-sm font-medium text-gray-700 mb-1">
-            Contact Number <span className="text-red-500">*</span>
-          </label>
+        </FormField>
+
+        {/* Disabled without explanation reads as broken; saying why reads as
+            deliberate. */}
+        <FormField
+          label="Contact number"
+          htmlFor="contactNumber"
+          hint="Contact support to change this"
+        >
           <input
             id="contactNumber"
             type="tel"
             name="contactNumber"
             value={profileData.contactNumber}
             disabled
-            className="w-full p-2 border rounded-lg"
-           
+            className={inputClasses}
           />
-        </div>
+        </FormField>
       </div>
 
-      <div>
-        <label htmlFor="street" className="block text-sm font-medium text-gray-700 mb-1">
-          Street Address
-        </label>
+      <FormField label="Street address" htmlFor="street">
         <input
           id="street"
-          type="text"
           name="street"
           value={profileData.street}
           onChange={handleChange}
-          className="w-full p-2 border rounded-lg"
+          className={inputClasses}
         />
-      </div>
+      </FormField>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-        <div>
-          <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-1">
-            City
-          </label>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <FormField label="City" htmlFor="city">
           <input
             id="city"
-            type="text"
             name="city"
             value={profileData.city}
             onChange={handleChange}
-            className="w-full p-2 border rounded-lg"
+            className={inputClasses}
           />
-        </div>
-        <div>
-          <label htmlFor="state" className="block text-sm font-medium text-gray-700 mb-1">
-            State
-          </label>
+        </FormField>
+
+        <FormField label="State" htmlFor="state">
           <input
             id="state"
-            type="text"
             name="state"
             value={profileData.state}
             onChange={handleChange}
-            className="w-full p-2 border rounded-lg"
+            className={inputClasses}
           />
-        </div>
+        </FormField>
       </div>
 
-      <button
-        type="submit"
-        className="w-full py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
-      >
-        <FiSave />
-        Save Changes
-      </button>
+      <Button type="submit" loading={saving} className="w-full sm:w-auto">
+        {!saving && <FiSave className="h-4 w-4" />}
+        Save changes
+      </Button>
     </form>
-  )
+  );
 }
-

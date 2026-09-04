@@ -1,16 +1,20 @@
-import { ReactNode } from "react";
+import type { ReactNode } from "react";
 import { cn } from "../../utils/cn";
 
 const toneClasses = {
-  success: "bg-emerald-50 text-emerald-700 ring-emerald-200",
-  warning: "bg-amber-50 text-amber-700 ring-amber-200",
-  danger: "bg-rose-50 text-rose-700 ring-rose-200",
-  info: "bg-sky-50 text-sky-700 ring-sky-200",
-  neutral: "bg-slate-100 text-slate-700 ring-slate-200",
+  success: "bg-positive-soft text-positive-ink ring-positive/25",
+  warning: "bg-caution-soft text-caution-ink ring-caution/30",
+  danger: "bg-critical-soft text-critical-ink ring-critical/25",
+  info: "bg-accent-soft text-accent-ink ring-accent/20",
+  neutral: "bg-ink/6 text-ink-secondary ring-ink/10",
 } as const;
 
 type Tone = keyof typeof toneClasses;
 
+/**
+ * Status must survive being read at a glance in a dense table, so it carries
+ * tone AND a ring — colour alone is not a signal for everyone looking at it.
+ */
 export function StatusBadge({
   children,
   tone = "neutral",
@@ -23,7 +27,8 @@ export function StatusBadge({
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset",
+        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset",
+        "text-caption whitespace-nowrap",
         toneClasses[tone],
         className
       )}

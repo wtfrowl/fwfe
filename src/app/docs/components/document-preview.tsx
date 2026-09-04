@@ -10,6 +10,14 @@ import {
   FaCheck
 } from "react-icons/fa";
 import { getDocumentById, getDocumentHistory } from "../../../api";
+import { Button } from "../../../components/ui/Button";
+import { InlineMessage } from "../../../components/ui/InlineMessage";
+import { StatusBadge } from "../../../components/ui/StatusBadge";
+import {
+  DetailPage,
+  DetailHeader,
+  BackButton,
+} from "../../../components/ui/DetailPage";
 
 export default function DocumentPreviewPage() {
   const { id } = useParams() as { id: string };
@@ -95,8 +103,40 @@ export default function DocumentPreviewPage() {
     const expiry = document.expiryDate
       ? new Date(document.expiryDate).toLocaleDateString()
       : "N/A";
-    const text = `🛻 Truck ID: ${document.truckId}\n📄 Document: ${document.type}\n📅 Expiry: ${expiry}\n🔗 ${document.viewUrl}`;
+    const text = `🛻 Truck ID: ${document.truckId}\nDocument: ${document.type}\n📅 Expiry: ${expiry}\n🔗 ${document.viewUrl}`;
     return `https://wa.me/?text=${encodeURIComponent(text)}`;
+  };
+
+  const handleDownload = async () => {
+    if (!document) return;
+
+    /* Cloudinary serves a download-flagged URL directly; anything else is
+       fetched as a blob so the file saves instead of navigating away. */
+    if (document.downloadUrl.includes("cloudinary.com")) {
+      window.open(getDownloadUrl(document.downloadUrl, downloadName), "_blank", "noopener,noreferrer");
+      return;
+    }
+
+    try {
+      const response = await fetch(document.downloadUrl);
+      if (!response.ok) throw new Error("Network response was not ok");
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      /* `globalThis.document` on purpose: the component's own `document`
+         state shadows the DOM one, and the original code relied on that
+         shadowing by accident. */
+      const link = globalThis.document.createElement("a");
+      link.href = url;
+      link.download = downloadName;
+      globalThis.document.body.appendChild(link);
+      link.click();
+      globalThis.document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Blob download failed, falling back to a new tab:", err);
+      window.open(document.downloadUrl, "_blank", "noopener,noreferrer");
+    }
   };
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
@@ -108,92 +148,81 @@ export default function DocumentPreviewPage() {
 
   if (loading) {
     return (
-      <div className="h-screen flex justify-center items-center">
-        <LoadingSpinner />
-      </div>
+      <DetailPage>
+        <header className="flex items-start gap-3">
+          <div className="h-9 w-9 shrink-0 animate-pulse rounded-full bg-ink/8" />
+          <div className="space-y-2">
+            <div className="h-8 w-56 animate-pulse rounded-chip bg-ink/8" />
+            <div className="h-4 w-40 animate-pulse rounded-chip bg-ink/8" />
+          </div>
+        </header>
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+          <div className="h-[65vh] animate-pulse rounded-card bg-ink/6 lg:col-span-2" />
+          <div className="h-64 animate-pulse rounded-card bg-ink/6" />
+        </div>
+      </DetailPage>
     );
   }
 
   if (error || !document) {
     return (
-      <div className="h-screen flex justify-center items-center text-red-500">
-        {error || "Document not found."}
-      </div>
+      <DetailPage>
+        <div className="flex items-center gap-3">
+          <BackButton />
+          <h1 className="text-2xl font-semibold text-ink">Document</h1>
+        </div>
+        <InlineMessage tone="error">{error || "We couldn't find that document."}</InlineMessage>
+      </DetailPage>
     );
   }
 
   return (
-    <div className="bg-gray-100 min-h-screen py-6 px-4 md:px-10">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-          <h1 className="text-2xl font-bold text-gray-800">
-            📄 {document.name} <span className="text-sm font-normal text-gray-500 ml-2">(v{document.version})</span>
-          </h1>
-          <div className="flex flex-wrap gap-3">
-            <a
-              href={getDownloadUrl(document.downloadUrl, downloadName)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm cursor-pointer"
-              onClick={async (e) => {
-                if (!document.downloadUrl.includes("cloudinary.com")) {
-                    e.preventDefault();
-                    try {
-                        const response:any= await fetch(document.downloadUrl);
-                        if (!response.ok) throw new Error("Network response was not ok");
-                        
-                        const blob = await response.blob();
-                        const url = window.URL.createObjectURL(blob);
-                        const link: any = document.createElement('a');
-                        link.href = url;
-                        link.download = downloadName; 
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-                        window.URL.revokeObjectURL(url);
-                    } catch (error) {
-                        console.error("Blob download failed, falling back to new tab:", error);
-                        window.open(document.downloadUrl, "_blank");
-                    }
-                }
-              }}
+    <DetailPage>
+      <DetailHeader
+        title={document.name}
+        subtitle={document.type ? `${document.type} document` : undefined}
+        badge={<StatusBadge tone="neutral">v{document.version}</StatusBadge>}
+        actions={
+          <>
+            <Button
+              variant="secondary"
+              onClick={() => window.open(getWhatsappShareUrl(), "_blank", "noopener,noreferrer")}
             >
-              <FaDownload /> Download Now
-            </a>
-            <a
-              href={getWhatsappShareUrl()}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition text-sm"
-            >
-              <FaWhatsapp /> Share
-            </a>
-          </div>
-        </div>
+              <FaWhatsapp className="h-3.5 w-3.5" />
+              Share
+            </Button>
+            <Button onClick={handleDownload}>
+              <FaDownload className="h-3.5 w-3.5" />
+              Download
+            </Button>
+          </>
+        }
+      />
 
         {/* Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Column */}
-          <div className="lg:col-span-2 bg-white rounded-2xl shadow p-4 md:p-6 space-y-4">
-            <div className="border rounded-xl overflow-hidden h-[65vh] bg-gray-200 shadow-inner">
+          <div className="lg:col-span-2 rounded-card border border-hairline bg-surface p-5 shadow-[var(--shadow-raised)] space-y-4">
+            <div className="border rounded-card overflow-hidden h-[65vh] bg-ink/8 ">
               {document.viewUrl?.endsWith(".pdf") ? (
                 <iframe
                   src={document.viewUrl}
-                  className="w-full h-full"
+ className="w-full h-full"
                   title="PDF Preview"
                 />
               ) : (
                 <img
                   src={document.viewUrl}
                   alt="Document"
-                  className="w-full h-full object-contain"
+ className="w-full h-full object-contain"
                 />
               )}
             </div>
 
             {document.notes && (
-              <div className="bg-gray-50 border rounded-lg p-4">
-                <h2 className="text-gray-700 font-semibold mb-2">📝 Notes</h2>
-                <pre className="text-sm text-gray-600 whitespace-pre-wrap">
+              <div className="bg-canvas-sunken border rounded-control p-4">
+                <h2 className="mb-2 font-semibold text-ink">Notes</h2>
+                <pre className="text-sm text-ink-secondary whitespace-pre-wrap">
                   {document.notes}
                 </pre>
               </div>
@@ -204,24 +233,24 @@ export default function DocumentPreviewPage() {
           <div className="flex flex-col gap-4">
 
             {/* Document Status Section */}
-            <div className={`bg-white rounded-xl shadow p-4 flex items-center gap-4 border-l-4 
-              ${new Date(document.expiryDate) < new Date() ? 'border-red-500' 
-                : new Date(document.expiryDate).getTime() - Date.now() <= 7 * 86400000 ? 'border-yellow-500' 
-                : 'border-green-500'}`}>
+            <div className={`rounded-card border border-hairline bg-surface p-4 shadow-[var(--shadow-raised)] flex items-center gap-4 border-l-4 
+              ${new Date(document.expiryDate) < new Date() ? 'border-critical' 
+                : new Date(document.expiryDate).getTime() - Date.now() <= 7 * 86400000 ? 'border-caution' 
+                : 'border-positive'}`}>
               <div className={`p-3 rounded-full 
-                ${new Date(document.expiryDate) < new Date() ? 'bg-red-100 text-red-600' 
-                  : new Date(document.expiryDate).getTime() - Date.now() <= 7 * 86400000 ? 'bg-yellow-100 text-yellow-800' 
-                  : 'bg-green-100 text-green-600'}`}>
+                ${new Date(document.expiryDate) < new Date() ? 'bg-critical-soft text-critical-ink' 
+                  : new Date(document.expiryDate).getTime() - Date.now() <= 7 * 86400000 ? 'bg-caution-soft text-caution-ink' 
+                  : 'bg-positive-soft text-positive-ink'}`}>
                 <FaCalendarAlt className="text-xl" />
               </div>
               <div className="min-w-0">
-                <p className="text-sm text-gray-500">Document Status</p>
-                <p className="text-base font-semibold text-gray-800">
+                <p className="text-sm text-ink-tertiary">Document Status</p>
+                <p className="text-base font-semibold text-ink">
                   {new Date(document.expiryDate) < new Date() ? '❌ Expired' 
                     : new Date(document.expiryDate).getTime() - Date.now() <= 7 * 86400000 ? '⚠️ Expiring Soon' 
                     : '✅ Valid'}
                 </p>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-ink-tertiary">
                   {new Date(document.expiryDate).toLocaleDateString()}
                 </p>
               </div>
@@ -229,73 +258,73 @@ export default function DocumentPreviewPage() {
 
             {/* Info Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="bg-white rounded-xl shadow p-4 flex items-center gap-4">
-                <div className="bg-blue-100 text-blue-600 p-3 rounded-full">
+              <div className="rounded-card border border-hairline bg-surface p-4 shadow-[var(--shadow-raised)] flex items-center gap-4">
+                <div className="bg-accent-soft text-accent p-3 rounded-full">
                   <FaTruck className="text-xl" />
                 </div>
                 <div className="min-w-0 break-words">
-                  <p className="text-sm text-gray-500">Truck ID</p>
-                  <p className="font-semibold text-gray-800 break-words whitespace-normal">{document.truckId}</p>
+                  <p className="text-sm text-ink-tertiary">Truck ID</p>
+                  <p className="font-semibold text-ink break-words whitespace-normal">{document.truckId}</p>
                 </div>
               </div>
-              <div className="bg-white rounded-xl shadow p-4 flex items-center gap-4">
-                <div className="bg-indigo-100 text-indigo-600 p-3 rounded-full">
+              <div className="rounded-card border border-hairline bg-surface p-4 shadow-[var(--shadow-raised)] flex items-center gap-4">
+                <div className="bg-accent-soft text-accent p-3 rounded-full">
                   <FaFileAlt className="text-xl" />
                 </div>
                 <div className="min-w-0 break-words">
-                  <p className="text-sm text-gray-500">Type</p>
-                  <p className="font-semibold text-gray-800 break-words whitespace-normal">{document.type}</p>
+                  <p className="text-sm text-ink-tertiary">Type</p>
+                  <p className="font-semibold text-ink break-words whitespace-normal">{document.type}</p>
                 </div>
               </div>
-              <div className="bg-white rounded-xl shadow p-4 flex items-center gap-4">
-                <div className="bg-green-100 text-green-600 p-3 rounded-full">
+              <div className="rounded-card border border-hairline bg-surface p-4 shadow-[var(--shadow-raised)] flex items-center gap-4">
+                <div className="bg-positive-soft text-positive-ink p-3 rounded-full">
                   <FaCalendarAlt className="text-xl" />
                 </div>
                 <div className="min-w-0 break-words">
-                  <p className="text-sm text-gray-500">Uploaded</p>
-                  <p className="font-semibold text-gray-800 break-words whitespace-normal">{new Date(document.uploadedAt).toLocaleString()}</p>
+                  <p className="text-sm text-ink-tertiary">Uploaded</p>
+                  <p className="font-semibold text-ink break-words whitespace-normal">{new Date(document.uploadedAt).toLocaleString()}</p>
                 </div>
               </div>
               {document.expiryDate && (
-                <div className="bg-white rounded-xl shadow p-4 flex items-center gap-4">
-                  <div className="bg-red-100 text-red-600 p-3 rounded-full">
+                <div className="rounded-card border border-hairline bg-surface p-4 shadow-[var(--shadow-raised)] flex items-center gap-4">
+                  <div className="bg-critical-soft text-critical-ink p-3 rounded-full">
                     <FaCalendarAlt className="text-xl" />
                   </div>
                   <div className="min-w-0 break-words">
-                    <p className="text-sm text-gray-500">Expiry Date</p>
-                    <p className="font-semibold text-gray-800 break-words whitespace-normal">{new Date(document.expiryDate).toLocaleDateString()}</p>
+                    <p className="text-sm text-ink-tertiary">Expiry Date</p>
+                    <p className="font-semibold text-ink break-words whitespace-normal">{new Date(document.expiryDate).toLocaleDateString()}</p>
                   </div>
                 </div>
               )}
-              <div className="bg-white rounded-xl shadow p-4 flex items-center gap-4">
-                <div className="bg-purple-100 text-purple-600 p-3 rounded-full">
+              <div className="rounded-card border border-hairline bg-surface p-4 shadow-[var(--shadow-raised)] flex items-center gap-4">
+                <div className="bg-ink/6 text-ink-secondary p-3 rounded-full">
                   <FaUser className="text-xl" />
                 </div>
                 <div className="min-w-0 break-words">
-                  <p className="text-sm text-gray-500">Uploaded By</p>
-                  <p className="font-semibold text-gray-800 break-words whitespace-normal">{document.uploadedBy}</p>
+                  <p className="text-sm text-ink-tertiary">Uploaded By</p>
+                  <p className="font-semibold text-ink break-words whitespace-normal">{document.uploadedBy}</p>
                 </div>
               </div>
-              <div className="bg-white rounded-xl shadow p-4 flex items-center gap-4">
-                <div className="bg-pink-100 text-pink-600 p-3 rounded-full">
+              <div className="rounded-card border border-hairline bg-surface p-4 shadow-[var(--shadow-raised)] flex items-center gap-4">
+                <div className="bg-ink/6 text-ink-secondary p-3 rounded-full">
                   <FaIdCard className="text-xl" />
                 </div>
                 <div className="min-w-0 break-words">
-                  <p className="text-sm text-gray-500">Uploader ID</p>
-                  <p className="font-semibold text-gray-800 break-words whitespace-normal">{document.ownerId}</p>
+                  <p className="text-sm text-ink-tertiary">Uploader ID</p>
+                  <p className="font-semibold text-ink break-words whitespace-normal">{document.ownerId}</p>
                 </div>
               </div>
             </div>
 
           {/* --- REVAMPED: DOCUMENT HISTORY SECTION --- */}
             <div
-              className="bg-white rounded-2xl shadow-sm border border-gray-100 max-h-[400px] overflow-y-auto flex flex-col"
+ className="rounded-card border border-hairline bg-surface shadow-[var(--shadow-raised)] max-h-[400px] overflow-y-auto flex flex-col"
               onScroll={handleScroll}
             >
-              <div className="p-4 border-b border-gray-100 bg-gray-50/50 sticky top-0 backdrop-blur-sm z-10">
-                <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-                   <FaHistory className="text-blue-500"/> Version History
-                   <span className="text-xs font-normal text-gray-500 bg-white px-2 py-0.5 rounded-full border">
+              <div className="p-4 border-b border-hairline bg-canvas-sunken/50 sticky top-0 backdrop-blur-sm z-10">
+                <h2 className="text-base font-semibold text-ink flex items-center gap-2">
+                   <FaHistory className="text-accent"/> Version History
+                   <span className="text-xs font-normal text-ink-tertiary bg-surface px-2 py-0.5 rounded-full border">
                      {historyDocs.length} Found
                    </span>
                 </h2>
@@ -304,8 +333,8 @@ export default function DocumentPreviewPage() {
               <div className="p-3">
                 {historyDocs.length === 0 ? (
                   <div className="text-center py-8 flex flex-col items-center justify-center opacity-50">
-                     <FaFileAlt className="text-4xl mb-2 text-gray-300"/>
-                     <p className="text-sm text-gray-500">No other versions available.</p>
+                     <FaFileAlt className="text-4xl mb-2 text-ink-quaternary"/>
+                     <p className="text-sm text-ink-tertiary">No other versions available.</p>
                   </div>
                 ) : (
                   <ul className="space-y-3">
@@ -319,28 +348,28 @@ export default function DocumentPreviewPage() {
                       return (
                         <li
                           key={doc._id}
-                          className="group relative flex items-center gap-4 p-3 rounded-xl border border-gray-100 bg-white hover:border-blue-200 hover:shadow-md transition-all duration-200 cursor-pointer"
+ className="group relative flex items-center gap-4 p-3 rounded-card border border-hairline bg-surface hover:border-accent/25 hover:shadow-[var(--shadow-raised)] transition-all duration-200 cursor-pointer"
                           onClick={() => navigate(`/owner-home/mydocs/documents/${doc._id}`)}
                         >
                           {/* Left: Version Box */}
-                          <div className={`flex flex-col items-center justify-center w-12 h-12 rounded-lg border shadow-sm flex-shrink-0 
+                          <div className={`flex flex-col items-center justify-center w-12 h-12 rounded-control border shadow-[var(--shadow-hairline)] flex-shrink-0 
                             ${isNewer 
-                              ? 'bg-blue-600 border-blue-600 text-white' 
-                              : 'bg-gray-50 border-gray-200 text-gray-600'
+                              ? 'bg-accent border-accent text-white' 
+                              : 'bg-canvas-sunken border-hairline text-ink-secondary'
                             }`}
                           >
-                             <span className="text-[10px] font-bold uppercase tracking-wider opacity-80">Ver</span>
-                             <span className="text-lg font-bold leading-none">{doc.version}</span>
+                             <span className="text-[10px] font-semibold uppercase tracking-wider opacity-80">Ver</span>
+                             <span className="text-base font-semibold leading-none">{doc.version}</span>
                           </div>
 
                           {/* Middle: Info */}
                           <div className="flex-1 min-w-0">
                              <div className="flex items-center gap-2">
-                                <p className="text-sm font-bold text-gray-800 truncate">
+                                <p className="text-sm font-semibold text-ink truncate">
                                    {new Date(doc.uploadedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                                 </p>
                                 {isNewer && (
-                                  <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-700 uppercase tracking-wide">
+                                  <span className="px-1.5 py-0.5 rounded-chip text-[10px] font-semibold bg-accent-soft text-accent-ink uppercase tracking-wide">
                                     Newest
                                   </span>
                                 )}
@@ -349,12 +378,12 @@ export default function DocumentPreviewPage() {
                              {/* Expiry Row */}
                              <div className="flex items-center gap-2 mt-1">
                                 {expiryDate ? (
-                                  <div className={`flex items-center gap-1.5 text-xs font-medium ${isExpired ? 'text-red-500' : 'text-green-600'}`}>
+                                  <div className={`flex items-center gap-1.5 text-xs font-medium ${isExpired ? 'text-critical' : 'text-positive-ink'}`}>
                                      {isExpired ? <FaCalendarAlt className="text-[10px]"/> : <FaCheck className="text-[10px]"/>}
                                      <span>{isExpired ? `Expired: ${expiryDate.toLocaleDateString()}` : `Valid: ${expiryDate.toLocaleDateString()}`}</span>
                                   </div>
                                 ) : (
-                                  <div className="flex items-center gap-1.5 text-xs text-gray-400">
+                                  <div className="flex items-center gap-1.5 text-xs text-ink-quaternary">
                                      <FaCalendarAlt className="text-[10px]"/> No Expiry
                                   </div>
                                 )}
@@ -362,7 +391,7 @@ export default function DocumentPreviewPage() {
                           </div>
 
                           {/* Right: Action Arrow */}
-                          <div className="text-gray-300 group-hover:text-blue-600 transition-colors transform group-hover:translate-x-1 duration-200">
+                          <div className="text-ink-quaternary group-hover:text-accent transition-colors transform group-hover:translate-x-1 duration-200">
                              <FaExternalLinkAlt />
                           </div>
                         </li>
@@ -377,7 +406,7 @@ export default function DocumentPreviewPage() {
                   </div>
                 ) : hasMoreHistory && historyDocs.length > 0 && (
                   <div className="text-center mt-2">
-                    <span className="text-xs text-gray-400 italic">Scroll for more history...</span>
+                    <span className="text-xs text-ink-quaternary italic">Scroll for more history...</span>
                   </div>
                 )}
               </div>
@@ -386,7 +415,6 @@ export default function DocumentPreviewPage() {
 
           </div>
         </div>
-      </div>
-    </div>
+    </DetailPage>
   );
 }

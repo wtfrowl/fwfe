@@ -1,24 +1,28 @@
-"use client";
-
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import DriverRouteMap from './components/DriverRouteMap';
-import { 
-  FaArrowLeft, 
-  FaUser, 
-  FaPhone, 
-  FaIdCard, 
-  FaMapMarkerAlt, 
-  FaClock, 
+import { useParams } from "react-router-dom";
+import {
+  FaUser,
+  FaPhone,
+  FaIdCard,
+  FaMapMarkerAlt,
+  FaClock,
   FaRoute,
-  FaStar
 } from "react-icons/fa";
+import DriverRouteMap from "./components/DriverRouteMap";
 import { getDriverById } from "../../api";
+import { StatusBadge } from "../../components/ui/StatusBadge";
+import { InlineMessage } from "../../components/ui/InlineMessage";
+import { RevealGroup, RevealItem } from "../../motion/Reveal";
+import {
+  DetailPage,
+  DetailHeader,
+  BackButton,
+  DetailSection,
+} from "../../components/ui/DetailPage";
 
-// --- Interfaces ---
 interface GeoPoint {
   type: "Point";
-  coordinates: number[]; // [Longitude, Latitude]
+  coordinates: number[]; // [longitude, latitude]
 }
 
 interface Driver {
@@ -43,18 +47,29 @@ interface LocationHistoryItem {
   recordedAt: string;
 }
 
-
+const Row = ({
+  label,
+  value,
+  icon: Icon,
+}: {
+  label: string;
+  value: React.ReactNode;
+  icon?: React.ComponentType<{ className?: string }>;
+}) => (
+  <div className="flex items-center justify-between gap-3 border-b border-hairline/70 pb-2 last:border-0">
+    <span className="flex items-center gap-2 text-sm text-ink-secondary">
+      {Icon ? <Icon className="h-3 w-3" /> : null}
+      {label}
+    </span>
+    <span className="truncate font-medium text-ink">{value}</span>
+  </div>
+);
 
 const DriverDetailsPage = () => {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
-  // const { role } = useContext(AuthContext);
 
   const [driver, setDriver] = useState<Driver | null>(null);
-  
-  // ✅ Initialize as empty array to prevent "not iterable" error on first render
-  const [history, setHistory] = useState<LocationHistoryItem[]>([]); 
-  
+  const [history, setHistory] = useState<LocationHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -62,21 +77,16 @@ const DriverDetailsPage = () => {
     const fetchDriverDetails = async () => {
       try {
         setLoading(true);
-       
-
-        const response:any= await getDriverById(id!);
-
-        console.log("API Response for Driver Details:", response);
-        
-        setDriver(response?.driver);
-        
-        // ✅ 2. Set the history state (with a safety fallback)
-        // If data.locationHistory is undefined, fallback to []
+        setError(null);
+        const response = (await getDriverById(id!)) as unknown as {
+          driver?: Driver;
+          locationHistory?: LocationHistoryItem[];
+        };
+        setDriver(response?.driver ?? null);
         setHistory(response?.locationHistory || []);
-        
       } catch (err) {
         console.error("Error fetching driver details:", err);
-        setError("Failed to load driver information.");
+        setError("Could not load this driver's details.");
       } finally {
         setLoading(false);
       }
@@ -85,174 +95,149 @@ const DriverDetailsPage = () => {
     if (id) fetchDriverDetails();
   }, [id]);
 
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return "Never";
+    const date = new Date(dateString);
+    return Number.isNaN(date.getTime())
+      ? "Unknown"
+      : date.toLocaleString("en-IN", {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+  };
+
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-screen bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
+      <DetailPage>
+        <header className="flex items-start gap-3">
+          <div className="h-9 w-9 shrink-0 animate-pulse rounded-full bg-ink/8" />
+          <div className="space-y-2">
+            <div className="flex items-center gap-2.5">
+              <div className="h-8 w-48 animate-pulse rounded-chip bg-ink/8" />
+              <div className="h-6 w-24 animate-pulse rounded-full bg-ink/8" />
+            </div>
+            <div className="h-4 w-40 animate-pulse rounded-chip bg-ink/8" />
+          </div>
+        </header>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-56 animate-pulse rounded-card bg-ink/6" />
+          ))}
+        </div>
+        <div className="h-[300px] animate-pulse rounded-card bg-ink/6 md:h-[500px]" />
+      </DetailPage>
     );
   }
 
   if (error || !driver) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen bg-gray-50 text-red-500">
-        <p className="text-lg font-semibold">{error || "Driver not found"}</p>
-        <button onClick={() => navigate(-1)} className="mt-4 text-blue-600 hover:underline">Go Back</button>
-      </div>
+      <DetailPage>
+        <div className="flex items-center gap-3">
+          <BackButton />
+          <h1 className="text-2xl font-semibold text-ink">Driver</h1>
+        </div>
+        <InlineMessage tone="error">{error || "We couldn't find that driver."}</InlineMessage>
+      </DetailPage>
     );
   }
 
-  // Helper to format dates
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return "N/A";
-    return new Date(dateString).toLocaleString("en-IN", {
-      day: 'numeric', month: 'short', year: 'numeric',
-      hour: '2-digit', minute: '2-digit'
-    });
-  };
-
   return (
-    <div className="min-h-screen bg-gray-50 pb-10">
-      
-      {/* --- Header --- */}
-  <div className="bg-white border-b">
-        <div className="mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-         <div className="flex items-center gap-3 flex-wrap">
-              <button 
-                onClick={() => navigate(-1)} 
-                className="p-2 hover:bg-gray-100 rounded-full text-gray-600 transition-colors"
-              >
-                <FaArrowLeft />
-              </button>
-              <div>
-                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
-                  {driver.firstName} {driver.lastName}
-                </h1>
-                <p className="text-xs sm:text-sm text-gray-500">Driver ID: {driver._id}</p>
-              </div>
-              </div>
-            </div>
-            
-            {/* Status Badge */}
-            <span className={`px-4 py-1.5 rounded-full text-xs sm:text-sm font-semibold border ${
-              driver.availability 
-                ? "bg-green-50 text-green-700 border-green-200" 
-                : "bg-red-50 text-red-700 border-red-200"
-            }`}>
-              {driver.availability ? "Available" : "On Trip / Busy"}
-            </span>
-          </div>
-        </div>
-      </div>
+    <DetailPage>
+      <DetailHeader
+        title={`${driver.firstName} ${driver.lastName}`}
+        subtitle={`${driver.city}, ${driver.state}`}
+        badge={
+          <StatusBadge tone={driver.availability ? "success" : "warning"}>
+            {driver.availability ? "Available" : "On a trip"}
+          </StatusBadge>
+        }
+      />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-        
-        {/* --- Info Grid --- */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          
-          {/* Card 1: Personal Info */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 flex flex-col justify-between h-full">
-            <div>
-              <h2 className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-4 flex items-center gap-2">
-                <FaUser /> Personal Details
-              </h2>
-              <div className="space-y-3">
-                <div className="flex justify-between border-b border-gray-50 pb-2">
-                  <span className="text-gray-500 text-sm">Age</span>
-                  <span className="font-medium text-gray-900">{driver.age} Years</span>
-                </div>
-                <div className="flex justify-between border-b border-gray-50 pb-2">
-                  <span className="text-gray-500 text-sm flex items-center gap-2"><FaPhone size={12}/> Contact</span>
-                  <span className="font-medium text-gray-900">{driver.contactNumber}</span>
-                </div>
-                <div className="flex justify-between border-b border-gray-50 pb-2">
-                  <span className="text-gray-500 text-sm flex items-center gap-2"><FaIdCard size={12}/> License</span>
-                  <span className="font-medium text-gray-900 truncate max-w-[150px]">{driver.license}</span>
-                </div>
+      <RevealGroup className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <RevealItem className="h-full">
+          <DetailSection title="Personal details" icon={<FaUser />} className="h-full">
+            <div className="flex flex-1 flex-col justify-between">
+              <div className="space-y-2.5">
+                <Row label="Age" value={`${driver.age} years`} />
+                <Row label="Contact" value={driver.contactNumber} icon={FaPhone} />
+                <Row label="Licence" value={driver.license} icon={FaIdCard} />
               </div>
-            </div>
-            <div className="mt-4 pt-2 border-t border-gray-50">
-                <span className="text-gray-500 text-xs block mb-1">Address</span>
-                <span className="text-gray-800 text-sm block leading-snug">
+              <div className="mt-4 border-t border-hairline pt-3">
+                <span className="text-caption block text-xs text-ink-tertiary">Address</span>
+                <span className="mt-0.5 block text-sm leading-snug text-ink-secondary">
                   {driver.street}, {driver.city}, {driver.state}
                 </span>
-            </div>
-          </div>
-
-          {/* Card 2: Performance Stats */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 h-full">
-            <h2 className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-4 flex items-center gap-2">
-              <FaRoute /> Performance
-            </h2>
-            <div className="grid grid-cols-2 gap-4 h-full content-center pb-6">
-              <div className="bg-blue-50 p-4 rounded-lg flex flex-col items-center justify-center text-center">
-                <div className="text-2xl sm:text-3xl font-bold text-blue-600">{driver.totalTrips}</div>
-                <div className="text-xs text-blue-600 font-medium uppercase mt-1">Total Trips</div>
-              </div>
-              <div className="bg-purple-50 p-4 rounded-lg flex flex-col items-center justify-center text-center">
-                <div className="text-2xl sm:text-3xl font-bold text-purple-600 flex items-center gap-1">
-                  4.5 <FaStar size={18} />
-                </div>
-                <div className="text-xs text-purple-600 font-medium uppercase mt-1">Rating</div>
               </div>
             </div>
-          </div>
+          </DetailSection>
+        </RevealItem>
 
-          {/* Card 3: Live Location Status */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 relative overflow-hidden h-full">
-            <div className="absolute top-0 right-0 w-20 h-20 bg-green-500 opacity-10 rounded-bl-full -mr-4 -mt-4"></div>
-            <h2 className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-4 flex items-center gap-2">
-              <FaMapMarkerAlt /> Live Location
-            </h2>
-            
+        <RevealItem className="h-full">
+          <DetailSection title="Performance" icon={<FaRoute />} className="h-full">
+            {/* The old card sat a hardcoded "4.5 ★" next to a real trip count,
+                which makes the real number look invented too. Only the number
+                the API actually returns is shown. */}
+            <div className="flex flex-1 flex-col items-center justify-center py-4 text-center">
+              <div className="text-4xl font-semibold tabular-nums tracking-[-0.02em] text-ink">
+                {driver.totalTrips}
+              </div>
+              <div className="text-caption mt-1 text-sm text-ink-secondary">
+                {driver.totalTrips === 1 ? "trip completed" : "trips completed"}
+              </div>
+            </div>
+          </DetailSection>
+        </RevealItem>
+
+        <RevealItem className="h-full">
+          <DetailSection title="Live location" icon={<FaMapMarkerAlt />} className="h-full">
             {driver.currentLocation ? (
-              <div className="flex flex-col justify-between h-3/4">
-                <div className="mt-2">
-                  <p className="text-2xl sm:text-3xl font-light text-gray-800 break-words">
-                    {driver.currentLocation.coordinates[1].toFixed(4)}, 
+              <div className="flex flex-1 flex-col justify-between">
+                <div>
+                  <p className="text-2xl font-medium tabular-nums text-ink">
+                    {driver.currentLocation.coordinates[1].toFixed(4)}
                   </p>
-                  <p className="text-2xl sm:text-3xl font-light text-gray-800 break-words">
+                  <p className="text-2xl font-medium tabular-nums text-ink">
                     {driver.currentLocation.coordinates[0].toFixed(4)}
                   </p>
-                  <p className="text-xs text-gray-400 mt-1">Latitude, Longitude</p>
+                  <p className="mt-1 text-xs text-ink-tertiary">Latitude, longitude</p>
                 </div>
-                
-                <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600 bg-gray-50 p-3 rounded-lg mt-4">
-                  <FaClock className="text-blue-500 flex-shrink-0" />
-                  <span>Last Updated: <strong>{formatDate(driver.lastLocationUpdate)}</strong></span>
+
+                <div className="mt-4 flex items-center gap-2 rounded-control bg-canvas-sunken p-3 text-sm text-ink-secondary">
+                  <FaClock className="h-3 w-3 shrink-0 text-ink-tertiary" />
+                  <span>
+                    Updated{" "}
+                    <strong className="font-medium text-ink">
+                      {formatDate(driver.lastLocationUpdate)}
+                    </strong>
+                  </span>
                 </div>
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center h-40 text-gray-400">
-                <FaMapMarkerAlt size={32} className="mb-2 opacity-50"/>
-                <p>Location unknown</p>
+              <div className="flex flex-1 flex-col items-center justify-center gap-2 py-8 text-ink-quaternary">
+                <FaMapMarkerAlt className="h-7 w-7" />
+                <p className="text-sm">Location unknown</p>
               </div>
             )}
+          </DetailSection>
+        </RevealItem>
+      </RevealGroup>
+
+      <DetailSection title="Route" icon={<FaRoute />} padded={false}>
+        <div className="h-[300px] w-full md:h-[500px]">
+        {driver.currentLocation ? (
+          <DriverRouteMap history={history} currentLocation={driver.currentLocation} />
+        ) : (
+          <div className="flex h-full flex-col items-center justify-center gap-2 bg-canvas-sunken text-ink-quaternary">
+            <FaMapMarkerAlt className="h-7 w-7" />
+            <p className="text-sm">No location data to map yet</p>
           </div>
+        )}
         </div>
-
-        {/* --- Full Width Map Section --- */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden relative w-full h-[300px] md:h-[500px]">
-          
-          {/* ✅ 3. Pass the fetched history to the map */}
-          {driver.currentLocation ? (
-            <DriverRouteMap 
-              history={history} 
-              currentLocation={driver.currentLocation} 
-            />
-          ) : (
-            <div className="h-full flex items-center justify-center bg-gray-100 text-gray-400">
-              <FaMapMarkerAlt size={32} className="mb-2 opacity-50"/>
-              <p>Location data not available</p>
-            </div>
-          )}
-
-        </div>
-
-      </div>
-    </div>
+      </DetailSection>
+    </DetailPage>
   );
 };
 

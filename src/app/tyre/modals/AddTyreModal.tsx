@@ -1,6 +1,10 @@
 import { useState } from "react";
-import { FaTimes } from "react-icons/fa";
 import { addTyre } from "../../../api";
+import { Sheet } from "../../../motion/Sheet";
+import { Button } from "../../../components/ui/Button";
+import { FormField } from "../../../components/ui/FormField";
+import { inputClasses } from "../../../components/ui/inputStyles";
+import { InlineMessage } from "../../../components/ui/InlineMessage";
 
 interface Props {
   isOpen: boolean;
@@ -8,65 +12,147 @@ interface Props {
   onTyreAdded: () => void;
 }
 
-export function AddTyreModal({ isOpen, onClose, onTyreAdded }: Props) {
-  const [formData, setFormData] = useState({
-    tyreNumber: "", brand: "", model: "", size: "",
-    purchasePrice: "", vendorName: "", initialTreadDepth: 16
-  });
-  const [loading, setLoading] = useState(false);
+const EMPTY = {
+  tyreNumber: "",
+  brand: "",
+  model: "",
+  size: "",
+  purchasePrice: "",
+  vendorName: "",
+  initialTreadDepth: 16,
+};
 
-  if (!isOpen) return null;
+export function AddTyreModal({ isOpen, onClose, onTyreAdded }: Props) {
+  const [formData, setFormData] = useState(EMPTY);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const set = <K extends keyof typeof EMPTY>(key: K, value: (typeof EMPTY)[K]) =>
+    setFormData((prev) => ({ ...prev, [key]: value }));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError(null);
     try {
-      const finalData= { 
-            ...formData,
-            purchaseDate: new Date().toISOString(),
-            decryptedPayload: { id: "TEMP" } // Middleware should handle this
-        }
-     await addTyre(finalData)
+      await addTyre({
+        ...formData,
+        purchaseDate: new Date().toISOString(),
+        decryptedPayload: { id: "TEMP" },
+      });
+      setFormData(EMPTY);
       onTyreAdded();
-      setFormData({ tyreNumber: "", brand: "", model: "", size: "", purchasePrice: "", vendorName: "", initialTreadDepth: 16 });
-    } catch (error) {
-      alert("Failed to add tyre");
+    } catch (err) {
+      console.error("Failed to add tyre:", err);
+      /* This used to be a native `alert()` — a modal browser dialog on top of
+         a modal, that cannot be styled, cannot be dismissed by Escape in the
+         same way, and drops the user out of the app's own language. */
+      setError("Could not add that tyre. Check the details and try again.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg w-full max-w-lg p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold">Add New Tyre</h2>
-          <button onClick={onClose}><FaTimes /></button>
+    <Sheet
+      open={isOpen}
+      onClose={onClose}
+      title="Add tyre"
+      description="Add a tyre to your inventory so it can be mounted and tracked."
+      size="md"
+      footer={
+        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          <Button variant="secondary" onClick={onClose} disabled={loading}>
+            Cancel
+          </Button>
+          <Button form="add-tyre-form" type="submit" loading={loading}>
+            Add to inventory
+          </Button>
         </div>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-             <input placeholder="Tyre Number / ID" className="border p-2 rounded" required 
-                value={formData.tyreNumber} onChange={e => setFormData({...formData, tyreNumber: e.target.value})} />
-             <input placeholder="Size (e.g., 295/80 R22.5)" className="border p-2 rounded" required 
-                value={formData.size} onChange={e => setFormData({...formData, size: e.target.value})} />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-             <input placeholder="Brand" className="border p-2 rounded" required 
-                value={formData.brand} onChange={e => setFormData({...formData, brand: e.target.value})} />
-             <input placeholder="Model" className="border p-2 rounded" required 
-                value={formData.model} onChange={e => setFormData({...formData, model: e.target.value})} />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-             <input type="number" placeholder="Price" className="border p-2 rounded" required 
-                value={formData.purchasePrice} onChange={e => setFormData({...formData, purchasePrice: e.target.value})} />
-             <input type="number" placeholder="Tread Depth (mm)" className="border p-2 rounded" required 
-                value={formData.initialTreadDepth} onChange={e => setFormData({...formData, initialTreadDepth: Number(e.target.value)})} />
-          </div>
-          <button disabled={loading} className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
-            {loading ? "Adding..." : "Add to Inventory"}
-          </button>
-        </form>
-      </div>
-    </div>
+      }
+    >
+      <form id="add-tyre-form" onSubmit={handleSubmit} className="space-y-4">
+        <InlineMessage tone="error">{error}</InlineMessage>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <FormField label="Tyre number" htmlFor="t-number" required>
+            <input
+              id="t-number"
+              className={inputClasses}
+              required
+              value={formData.tyreNumber}
+              onChange={(e) => set("tyreNumber", e.target.value)}
+            />
+          </FormField>
+
+          <FormField label="Size" htmlFor="t-size" hint="e.g. 295/80 R22.5" required>
+            <input
+              id="t-size"
+              className={inputClasses}
+              required
+              value={formData.size}
+              onChange={(e) => set("size", e.target.value)}
+            />
+          </FormField>
+
+          <FormField label="Brand" htmlFor="t-brand" required>
+            <input
+              id="t-brand"
+              className={inputClasses}
+              required
+              value={formData.brand}
+              onChange={(e) => set("brand", e.target.value)}
+            />
+          </FormField>
+
+          <FormField label="Model" htmlFor="t-model" required>
+            <input
+              id="t-model"
+              className={inputClasses}
+              required
+              value={formData.model}
+              onChange={(e) => set("model", e.target.value)}
+            />
+          </FormField>
+
+          <FormField label="Purchase price" htmlFor="t-price" hint="₹" required>
+            <input
+              id="t-price"
+              type="number"
+              min="0"
+              className={inputClasses}
+              required
+              value={formData.purchasePrice}
+              onChange={(e) => set("purchasePrice", e.target.value)}
+            />
+          </FormField>
+
+          <FormField label="Tread depth" htmlFor="t-tread" hint="In millimetres" required>
+            <input
+              id="t-tread"
+              type="number"
+              min="0"
+              step="0.5"
+              className={inputClasses}
+              required
+              value={formData.initialTreadDepth}
+              onChange={(e) => set("initialTreadDepth", Number(e.target.value))}
+            />
+          </FormField>
+        </div>
+
+        {/* `vendorName` was in the form state and sent to the API, but no
+            input ever existed for it — so it always posted empty. */}
+        <FormField label="Vendor" htmlFor="t-vendor" hint="Optional">
+          <input
+            id="t-vendor"
+            className={inputClasses}
+            value={formData.vendorName}
+            onChange={(e) => set("vendorName", e.target.value)}
+            placeholder="Who you bought it from"
+          />
+        </FormField>
+      </form>
+    </Sheet>
   );
 }

@@ -1,13 +1,20 @@
-"use client";
-
 import { useState, useMemo, useEffect, useContext, useCallback } from "react";
-import { FaPlus, FaSearch } from "react-icons/fa";
+import { FaPlus } from "react-icons/fa";
+import { RiSteering2Fill } from "react-icons/ri";
 import { AuthContext } from "../../context/AuthContext";
 import { DriverTable } from "./components/Driver-Table";
 import { AddDriverModal } from "./components/AddDriverModal";
-import { StatusTab } from "../trucks/components/status-tab";
 import DriverTableSkeleton from "./components/Driver-Table-Skeleton";
 import { getDrivers } from "../../api";
+import { PageHeader } from "../../components/ui/PageHeader";
+import { Button } from "../../components/ui/Button";
+import { SearchField } from "../../components/ui/SearchField";
+import { FilterBar } from "../../components/ui/FilterBar";
+import { TableCard } from "../../components/ui/TableCard";
+import { TablePagination } from "../../components/ui/TablePagination";
+import { EmptyState } from "../../components/ui/EmptyState";
+import { InlineMessage } from "../../components/ui/InlineMessage";
+import { SegmentedControl, type Segment } from "../../components/ui/SegmentedControl";
 
 const ITEMS_PER_PAGE = 6;
 
@@ -24,48 +31,46 @@ export interface Driver {
   status: "Available" | "Unavailable";
 }
 
+type StatusFilter = "ALL" | "Available" | "Unavailable";
+
 export default function DriversPage() {
-  const [activeStatus, setActiveStatus] = useState<"ALL" | "Available" | "Unavailable">("ALL");
+  const { role } = useContext(AuthContext);
+  const [activeStatus, setActiveStatus] = useState<StatusFilter>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [drivers, setDrivers] = useState<Driver[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [addDriverModalOpen, setAddDriverModalOpen] = useState(false);
-  const { role } = useContext(AuthContext);
+  const [addOpen, setAddOpen] = useState(false);
 
-  const statuses = [
-    { label: "ALL DRIVERS", value: "ALL" as const },
-    { label: "AVAILABLE", value: "Available" as const },
-    { label: "UNAVAILABLE", value: "Unavailable" as const },
-  ];
-
-  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const isOwner = role === "owner";
 
   const fetchDrivers = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const response = (await getDrivers()) as Array<Record<string, unknown>> | { drivers?: Array<Record<string, unknown>> };
+      const response = (await getDrivers()) as
+        | Array<Record<string, unknown>>
+        | { drivers?: Array<Record<string, unknown>> };
       const rawData = Array.isArray(response) ? response : response?.drivers || [];
 
-      const sanitizedDrivers: Driver[] = rawData.map((d) => ({
-        id: String(d._id || d.id),
-        firstName: String(d.firstName || ""),
-        lastName: String(d.lastName || ""),
-        contactNumber: String(d.contactNumber || ""),
-        license: String(d.license || ""),
-        totalTrips: Number(d.totalTrips || 0),
-        availability: Boolean(d.availability),
-        city: String(d.city || "N/A"),
-        state: String(d.state || "N/A"),
-        status: d.availability ? "Available" : "Unavailable",
-      }));
-
-      setDrivers(sanitizedDrivers);
+      setDrivers(
+        rawData.map((d) => ({
+          id: String(d._id || d.id),
+          firstName: String(d.firstName || ""),
+          lastName: String(d.lastName || ""),
+          contactNumber: String(d.contactNumber || ""),
+          license: String(d.license || ""),
+          totalTrips: Number(d.totalTrips || 0),
+          availability: Boolean(d.availability),
+          city: String(d.city || "N/A"),
+          state: String(d.state || "N/A"),
+          status: d.availability ? "Available" : "Unavailable",
+        }))
+      );
     } catch (err) {
       console.error("Error fetching drivers:", err);
-      setError("Failed to fetch drivers. Please try again.");
+      setError("Could not load your drivers. Check your connection and try again.");
     } finally {
       setLoading(false);
     }
@@ -75,167 +80,133 @@ export default function DriversPage() {
     fetchDrivers();
   }, [fetchDrivers]);
 
+  const statusCounts = useMemo(
+    () => ({
+      ALL: drivers.length,
+      Available: drivers.filter((d) => d.status === "Available").length,
+      Unavailable: drivers.filter((d) => d.status === "Unavailable").length,
+    }),
+    [drivers]
+  );
+
+  const segments: Segment<StatusFilter>[] = [
+    { label: "All", value: "ALL", count: statusCounts.ALL },
+    { label: "Available", value: "Available", count: statusCounts.Available },
+    { label: "Unavailable", value: "Unavailable", count: statusCounts.Unavailable },
+  ];
+
   const filteredDrivers = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
     return drivers.filter((driver) => {
       if (activeStatus !== "ALL" && driver.status !== activeStatus) return false;
-
-      if (searchQuery) {
-        const query = searchQuery.toLowerCase();
-        const fullName = `${driver.firstName} ${driver.lastName}`.toLowerCase();
-        const matchesName = fullName.includes(query);
-        const matchesPhone = driver.contactNumber.includes(query);
-
-        if (!matchesName && !matchesPhone) return false;
-      }
-      return true;
+      if (!query) return true;
+      const fullName = `${driver.firstName} ${driver.lastName}`.toLowerCase();
+      return (
+        fullName.includes(query) ||
+        driver.contactNumber.includes(query) ||
+        driver.license.toLowerCase().includes(query)
+      );
     });
   }, [activeStatus, searchQuery, drivers]);
 
-  const totalPages = Math.ceil(filteredDrivers.length / ITEMS_PER_PAGE);
+  const totalPages = Math.max(1, Math.ceil(filteredDrivers.length / ITEMS_PER_PAGE));
 
   useEffect(() => {
     setCurrentPage(1);
   }, [activeStatus, searchQuery]);
 
+  const paginatedDrivers = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredDrivers.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredDrivers, currentPage]);
+
   const handleRefresh = async () => {
-    setAddDriverModalOpen(false);
+    setAddOpen(false);
     await fetchDrivers();
   };
 
-  const paginatedDrivers = useMemo(() => {
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    return filteredDrivers.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-  }, [filteredDrivers, currentPage]);
-
-  const statusCounts = useMemo(() => {
-    return {
-      ALL: drivers.length,
-      Available: drivers.filter((d) => d.status === "Available").length,
-      Unavailable: drivers.filter((d) => d.status === "Unavailable").length,
-    };
-  }, [drivers]);
-
-  const handlePageChange = (page: number) => {
-    if (page < 1 || page > totalPages) return;
-    setCurrentPage(page);
-  };
-
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="mx-auto space-y-6">
-        <div className="bg-white rounded-lg shadow">
-          {role === "owner" && (
-            <AddDriverModal isOpen={addDriverModalOpen} onClose={() => setAddDriverModalOpen(false)} onDriverAdded={handleRefresh} />
-          )}
+    <div className="mx-auto max-w-7xl space-y-5">
+      <PageHeader
+        title="Drivers"
+        description="Everyone who can be assigned to a trip, and whether they're free right now."
+        actions={
+          isOwner ? (
+            <Button onClick={() => setAddOpen(true)}>
+              <FaPlus className="h-3.5 w-3.5" />
+              Add driver
+            </Button>
+          ) : null
+        }
+      />
 
-          <div className="px-6 py-4 border-b border-gray-200">
-            <div className="flex justify-between items-center">
-              <h1 className="text-2xl font-semibold">My Drivers</h1>
-              {role === "owner" && (
-                <button onClick={() => setAddDriverModalOpen(true)} className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 flex items-center gap-2">
-                  <FaPlus className="w-4 h-4" />
-                  Add Driver
-                </button>
-              )}
-            </div>
-          </div>
+      <InlineMessage tone="error">{error}</InlineMessage>
 
-          <div className="border-b border-gray-200">
-            <div className="hidden md:flex">
-              {statuses.map((status) => (
-                <StatusTab key={status.value} label={status.label} active={activeStatus === status.value} onClick={() => setActiveStatus(status.value)} count={statusCounts[status.value]} />
-              ))}
-            </div>
+      <FilterBar>
+        <SegmentedControl segments={segments} value={activeStatus} onChange={setActiveStatus} />
+        <SearchField
+          placeholder="Search name, phone or licence"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          aria-label="Search drivers"
+        />
+      </FilterBar>
 
-            <div className="md:hidden relative p-2">
-              <button onClick={() => setDropdownOpen(!dropdownOpen)} className="w-full px-4 py-2 text-left bg-gray-100 border rounded-md">
-                {statuses.find((s) => s.value === activeStatus)?.label}
-              </button>
+      {loading ? (
+        <TableCard>
+          <DriverTableSkeleton />
+        </TableCard>
+      ) : paginatedDrivers.length > 0 ? (
+        <TableCard>
+          <DriverTable drivers={paginatedDrivers} role={role} />
+          <TablePagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={filteredDrivers.length}
+            pageSize={ITEMS_PER_PAGE}
+            onPageChange={setCurrentPage}
+          />
+        </TableCard>
+      ) : drivers.length > 0 ? (
+        <EmptyState
+          icon={<RiSteering2Fill />}
+          title="No drivers match those filters"
+          description="Try a different status, or clear the search to see everyone."
+          action={
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setActiveStatus("ALL");
+                setSearchQuery("");
+              }}
+            >
+              Clear filters
+            </Button>
+          }
+        />
+      ) : (
+        <EmptyState
+          icon={<RiSteering2Fill />}
+          title="No drivers yet"
+          description="Add a driver so you can assign them to trips and track their activity."
+          action={
+            isOwner ? (
+              <Button onClick={() => setAddOpen(true)}>
+                <FaPlus className="h-3.5 w-3.5" />
+                Add driver
+              </Button>
+            ) : null
+          }
+        />
+      )}
 
-              {dropdownOpen && (
-                <div className="absolute left-0 mt-2 w-full bg-white border rounded-md shadow-lg z-10">
-                  {statuses.map((status) => (
-                    <button
-                      key={status.value}
-                      onClick={() => {
-                        setActiveStatus(status.value);
-                        setDropdownOpen(false);
-                      }}
-                      className={`block w-full px-4 py-2 text-left ${activeStatus === status.value ? "bg-gray-200" : "hover:bg-gray-100"}`}
-                    >
-                      {status.label} ({statusCounts[status.value]})
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="p-4 border-b border-gray-200">
-            <div className="flex items-center justify-between">
-              <div className="flex-1 max-w-sm">
-                <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="Search by Name or Phone"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                  <FaSearch className="absolute left-3 top-2.5 w-5 h-5 text-gray-400" />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {error && <p className="text-red-500 text-center py-4">{error}</p>}
-
-          {loading ? (
-            <DriverTableSkeleton />
-          ) : (
-            <>
-              {paginatedDrivers.length > 0 ? (
-                <DriverTable drivers={paginatedDrivers} role={role} />
-              ) : (
-                <div className="flex justify-center items-center h-64">
-                  <p className="text-gray-500">No Drivers Found. Add one to get started.</p>
-                </div>
-              )}
-
-              {paginatedDrivers.length > 0 && (
-                <div className="px-4 py-3 border-t border-gray-200">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm text-gray-700">
-                      Showing <span className="font-medium">{(currentPage - 1) * ITEMS_PER_PAGE + 1}</span> -{" "}
-                      <span className="font-medium">{Math.min(currentPage * ITEMS_PER_PAGE, filteredDrivers.length)}</span> of{" "}
-                      <span className="font-medium">{filteredDrivers.length}</span>
-                    </p>
-                    <div className="flex gap-2">
-                      <button className="px-3 py-1 text-sm border rounded hover:bg-gray-50 disabled:opacity-50 disabled:hover:bg-white" onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1}>
-                        &larr;
-                      </button>
-
-                      {[...Array(totalPages)].map((_, i) => (
-                        <button
-                          key={i + 1}
-                          className={`px-3 py-1 text-sm border rounded hover:bg-gray-50 ${currentPage === i + 1 ? "bg-blue-50 text-blue-600" : ""}`}
-                          onClick={() => handlePageChange(i + 1)}
-                        >
-                          {i + 1}
-                        </button>
-                      ))}
-
-                      <button className="px-3 py-1 text-sm border rounded hover:bg-gray-50 disabled:opacity-50 disabled:hover:bg-white" onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages}>
-                        &rarr;
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      </div>
+      {isOwner && (
+        <AddDriverModal
+          isOpen={addOpen}
+          onClose={() => setAddOpen(false)}
+          onDriverAdded={handleRefresh}
+        />
+      )}
     </div>
   );
 }

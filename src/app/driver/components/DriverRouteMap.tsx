@@ -79,18 +79,18 @@ const MapControls = ({
     <div className="absolute bottom-4 right-4 flex flex-col gap-2 z-[400]">
       <button 
         onClick={handleRecenter}
-        className="bg-white p-2 rounded-lg shadow-md hover:bg-gray-50 text-gray-700 border border-gray-200"
+        className="material-thick rounded-control p-2 text-ink-secondary shadow-[var(--shadow-raised)] ring-1 ring-hairline transition-colors duration-150 hover:text-ink"
         title="Center on Truck"
       >
-        <FaCrosshairs size={20} className="text-blue-600" />
+        <FaCrosshairs size={18} className="text-accent" />
       </button>
 
       <button 
         onClick={handleFitBounds}
-        className="bg-white p-2 rounded-lg shadow-md hover:bg-gray-50 text-gray-700 border border-gray-200"
+        className="material-thick rounded-control p-2 text-ink-secondary shadow-[var(--shadow-raised)] ring-1 ring-hairline transition-colors duration-150 hover:text-ink"
         title="Show Full Route"
       >
-        <FaCompressArrowsAlt size={20} className="text-gray-600" />
+        <FaCompressArrowsAlt size={18} className="text-ink-secondary" />
       </button>
     </div>
   );
@@ -117,7 +117,7 @@ const DriverRouteMap: React.FC<DriverRouteMapProps> = ({ history, currentLocatio
   }, [history, currentLocation]);
 
   if (routePath.length === 0) {
-    return <div className="h-full w-full bg-gray-100 flex items-center justify-center">No Route Data</div>;
+    return <div className="flex h-full w-full items-center justify-center bg-canvas-sunken text-sm text-ink-tertiary">No route recorded yet</div>;
   }
 
   const centerPosition = routePath[routePath.length - 1];

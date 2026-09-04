@@ -1,4 +1,5 @@
-import { ReactNode } from "react";
+import type { ReactNode } from "react";
+import { cn } from "../../utils/cn";
 
 export interface Column<T> {
   key: string;
@@ -7,59 +8,78 @@ export interface Column<T> {
   render?: (row: T) => ReactNode;
 }
 
+const alignClass = (align: Column<unknown>["align"]) =>
+  align === "right" ? "text-right" : align === "center" ? "text-center" : "text-left";
+
 export function DataTable<T>({
   title,
   subtitle,
   columns,
   data,
+  emptyMessage = "Nothing to show yet.",
 }: {
   title: string;
   subtitle?: string;
   columns: Column<T>[];
   data: T[];
+  emptyMessage?: string;
 }) {
   return (
-    <div className="bg-white rounded-xl shadow-sm border">
-      <div className="px-6 py-4 border-b">
-        <h2 className="text-lg font-semibold">{title}</h2>
-        {subtitle && <p className="text-sm text-gray-500">{subtitle}</p>}
-      </div>
+    <section className="overflow-hidden rounded-card border border-hairline bg-surface shadow-[var(--shadow-raised)]">
+      <header className="border-b border-hairline px-5 py-4">
+        <h2 className="text-base font-semibold text-ink">{title}</h2>
+        {subtitle && <p className="mt-0.5 text-sm text-ink-secondary">{subtitle}</p>}
+      </header>
 
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50 text-gray-600">
-            <tr>
-              {columns.map((col) => (
-                <th
-                  key={col.key}
-                  className={`px-4 py-3 ${
-                    col.align === "right" ? "text-right" : col.align === "center" ? "text-center" : "text-left"
-                  }`}
-                >
-                  {col.header}
-                </th>
-              ))}
-            </tr>
-          </thead>
-
-          <tbody>
-            {data.map((row, i) => (
-              <tr key={i} className="border-b last:border-none hover:bg-gray-50 transition">
+      {/* An analytics table with no rows used to render as a bare header and
+          an empty white box, which reads as a broken component. */}
+      {data.length === 0 ? (
+        <p className="px-5 py-10 text-center text-sm text-ink-tertiary">{emptyMessage}</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-hairline">
                 {columns.map((col) => (
-                  <td
+                  <th
                     key={col.key}
-                    className={`px-4 py-4 ${
-                      col.align === "right" ? "text-right" : col.align === "center" ? "text-center" : "text-left"
-                    }`}
+                    className={cn(
+                      "text-caption px-4 py-3 text-xs font-semibold uppercase whitespace-nowrap text-ink-tertiary",
+                      alignClass(col.align)
+                    )}
                   >
-                    {col.render ? col.render(row) : (row as Record<string, ReactNode>)[col.key]}
-                  </td>
+                    {col.header}
+                  </th>
                 ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
+            </thead>
+
+            <tbody>
+              {data.map((row, i) => (
+                <tr
+                  key={i}
+                  className="border-b border-hairline/70 transition-colors duration-150 last:border-0 hover:bg-ink/3"
+                >
+                  {columns.map((col) => (
+                    <td
+                      key={col.key}
+                      className={cn(
+                        "px-4 py-3.5 text-ink-secondary",
+                        /* Numbers line up only with tabular figures, and a
+                           right-aligned column is always numeric here. */
+                        col.align === "right" && "tabular-nums",
+                        alignClass(col.align)
+                      )}
+                    >
+                      {col.render ? col.render(row) : (row as Record<string, ReactNode>)[col.key]}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
   );
 }

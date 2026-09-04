@@ -15,19 +15,17 @@ export function TablePagination({
   pageSize,
   onPageChange,
 }: TablePaginationProps) {
-  if (totalItems === 0 || totalPages <= 1) {
-    return null;
-  }
+  if (totalItems === 0 || totalPages <= 1) return null;
 
   const startItem = (currentPage - 1) * pageSize + 1;
   const endItem = Math.min(currentPage * pageSize, totalItems);
 
   return (
-    <div className="flex flex-col gap-3 border-t border-slate-200 bg-white px-4 py-4 md:flex-row md:items-center md:justify-between">
-      <p className="text-sm text-slate-600">
-        Showing <span className="font-semibold text-slate-900">{startItem}</span> to{" "}
-        <span className="font-semibold text-slate-900">{endItem}</span> of{" "}
-        <span className="font-semibold text-slate-900">{totalItems}</span>
+    <div className="flex flex-col gap-3 border-t border-hairline bg-canvas-sunken/50 px-4 py-3.5 md:flex-row md:items-center md:justify-between">
+      <p className="text-sm text-ink-secondary">
+        Showing <span className="font-semibold text-ink">{startItem}</span>–
+        <span className="font-semibold text-ink">{endItem}</span> of{" "}
+        <span className="font-semibold text-ink">{totalItems}</span>
       </p>
       <div className="flex items-center gap-2">
         <Button
@@ -38,7 +36,7 @@ export function TablePagination({
         >
           Previous
         </Button>
-        <span className="rounded-lg bg-slate-100 px-3 py-2 text-sm font-medium text-slate-700">
+        <span className="rounded-control bg-ink/6 px-3 py-1.5 text-sm font-medium tabular-nums text-ink-secondary">
           {currentPage} / {totalPages}
         </span>
         <Button

@@ -12,13 +12,13 @@ export default function DriverRouteAnalyticsTable({ data }: { data: DriverRouteA
         {
           key: "route",
           header: "Route",
-          render: (dr) => <div className="font-medium">{dr.route}</div>,
+          render: (dr) => <div className="font-medium text-ink">{dr.route}</div>,
         },
         {
           key: "driver",
           header: "Driver",
           render: (dr) => (
-            <div className="font-medium">
+            <div className="font-medium text-ink">
               {dr.driver.firstName} {dr.driver.lastName}
             </div>
           ),
@@ -39,8 +39,8 @@ export default function DriverRouteAnalyticsTable({ data }: { data: DriverRouteA
           header: "Profit / KM",
           align: "right",
           render: (dr) => (
-            <span className={`font-medium ${dr.profitPerKm < 0 ? "text-red-600" : "text-green-600"}`}>
-              Rs {dr.profitPerKm.toFixed(2)}
+            <span className={`font-medium ${dr.profitPerKm < 0 ? "text-critical-ink" : "text-positive-ink"}`}>
+              ₹{dr.profitPerKm.toFixed(2)}
             </span>
           ),
         },

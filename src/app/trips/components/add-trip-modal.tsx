@@ -1,427 +1,379 @@
-import { useEffect, useState, useContext } from "react"
-import { FaTimes } from "react-icons/fa"
-import type { Driver, Truck } from "../types/api"
-import { AuthContext } from "../../../context/AuthContext"
+import { useEffect, useState, useContext } from "react";
+import type { Driver, Truck } from "../types/api";
+import { AuthContext } from "../../../context/AuthContext";
+import { Sheet } from "../../../motion/Sheet";
+import { Button } from "../../../components/ui/Button";
+import { FormField } from "../../../components/ui/FormField";
+import { inputClasses } from "../../../components/ui/inputStyles";
+import { InlineMessage } from "../../../components/ui/InlineMessage";
 
 interface AddTripModalProps {
-  isOpen: boolean
-  onClose: () => void
-  onAdd: (tripData: any) => Promise<void>
-  trucks: Truck[]
-  drivers: Driver[]
-  load?: any | null
+  isOpen: boolean;
+  onClose: () => void;
+  onAdd: (tripData: Record<string, unknown>) => Promise<void>;
+  trucks: Truck[];
+  drivers: Driver[];
+  load?: { _id: string; source: string; destination: string; weight: number; price: number; truckId: string; truckReg: string; pickupDate: string; distance?: number } | null;
+}
+
+const EMPTY_FORM = {
+  departureDateTime: "",
+  arrivalDateTime: "",
+  loadingDate: "",
+  departureLocation: "",
+  arrivalLocation: "",
+  totalWeight: "",
+  driverIds: [] as string[],
+  fare: "",
+  registrationNumber: "",
+  transporterName: "",
+  cashAdvance: "",
+  tyreDetails: "",
+  tyreNumber: "",
+  loadId: "",
+  truckId: "",
+  distance: "",
+  driverContactNumber: "",
+};
+
+/** A labelled group of fields. Proximity is what says these belong together. */
+function Fieldset({ legend, children }: { legend: string; children: React.ReactNode }) {
+  return (
+    <fieldset className="space-y-3">
+      <legend className="text-caption mb-2 w-full border-b border-hairline pb-1.5 text-xs font-semibold uppercase text-ink-tertiary">
+        {legend}
+      </legend>
+      {children}
+    </fieldset>
+  );
 }
 
 export function AddTripModal({ isOpen, onClose, onAdd, trucks, drivers, load }: AddTripModalProps) {
-  const { user, role } = useContext(AuthContext)
-  const isDriver = role === "driver"
+  const { user, role } = useContext(AuthContext);
+  const isDriver = role === "driver";
 
-  const currentDriver = isDriver && user ? drivers.find((d) => d._id === user._id) : null
-  const isDriverAvailable = currentDriver?.availability !== false
+  const currentDriver = isDriver && user ? drivers.find((d) => d._id === user._id) : null;
+  const isDriverAvailable = currentDriver?.availability !== false;
+
   const [isAdding, setIsAdding] = useState(false);
-  const [selectedDriverValue, setSelectedDriverValue] = useState(""); // new state
+  const [error, setError] = useState<string | null>(null);
+  const [selectedDriverValue, setSelectedDriverValue] = useState("");
+  const [formData, setFormData] = useState(EMPTY_FORM);
 
-  // Form State
-  const [formData, setFormData]:any = useState({
-    departureDateTime: "",
-    arrivalDateTime: "",
-    loadingDate: "",
-    departureLocation: "",
-    arrivalLocation: "",
-    totalWeight: "",
-    driverIds: [],
-    fare: "",
-    registrationNumber: "",
-    transporterName: "",
-    cashAdvance: "",
-    tyreDetails: "",
-    tyreNumber: "",
-    loadId: "",
-    truckId: "",
-    distance: ""
-  })
+  const set = <K extends keyof typeof EMPTY_FORM>(key: K, value: (typeof EMPTY_FORM)[K]) =>
+    setFormData((prev) => ({ ...prev, [key]: value }));
 
-  // Pre-fill driver info
   useEffect(() => {
     if (isDriver && isDriverAvailable) {
-      setFormData((prev:any) => ({
+      setFormData((prev) => ({
         ...prev,
         driverIds: [],
-        driverContactNumber: String(currentDriver?.contactNumber) || ""
-      }))
+        driverContactNumber: currentDriver?.contactNumber ? String(currentDriver.contactNumber) : "",
+      }));
     }
-  }, [isDriver, isDriverAvailable, currentDriver, user])
+  }, [isDriver, isDriverAvailable, currentDriver]);
 
-  // Pre-fill load info
   useEffect(() => {
-    if (load) {
-      setFormData((prev:any) => ({
-        ...prev,
-        departureLocation: load.source,
-        arrivalLocation: load.destination,
-        totalWeight: String(load.weight),
-        fare: String(load.price),
-        loadId: load._id,
-        truckId: load.truckId,
-        registrationNumber: load.truckReg,
-        departureDateTime: load.pickupDate ? new Date(load.pickupDate).toISOString().slice(0, 16) : "",
-        loadingDate: load.pickupDate ? new Date(load.pickupDate).toISOString().slice(0, 16) : "",
-       distance: load.distance ? String(load.distance) : ""
-      }))
-    }
-  }, [load])
+    if (!load) return;
+    const pickup = load.pickupDate ? new Date(load.pickupDate).toISOString().slice(0, 16) : "";
+    setFormData((prev) => ({
+      ...prev,
+      departureLocation: load.source,
+      arrivalLocation: load.destination,
+      totalWeight: String(load.weight),
+      fare: String(load.price),
+      loadId: load._id,
+      truckId: load.truckId,
+      registrationNumber: load.truckReg,
+      departureDateTime: pickup,
+      loadingDate: pickup,
+      distance: load.distance ? String(load.distance) : "",
+    }));
+  }, [load]);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
     setIsAdding(true);
+    setError(null);
     try {
-      await onAdd(formData)
-      // Reset form
-      setFormData({
-        departureDateTime: "",
-        arrivalDateTime: "",
-        loadingDate: "",
-        departureLocation: "",
-        arrivalLocation: "",
-        totalWeight: "",
-        driverIds: [],
-        fare: "",
-        registrationNumber: "",
-        transporterName: "",
-        cashAdvance: "",
-        tyreDetails: "",
-        tyreNumber: "",
-        loadId: "",
-        truckId: "",
-        distance: ""
-      })
-      setSelectedDriverValue("current");
-      onClose()
-    } catch (error) {
-      console.error("Failed to add trip:", error);
+      await onAdd(formData);
+      setFormData(EMPTY_FORM);
+      setSelectedDriverValue("");
+      onClose();
+    } catch (err) {
+      console.error("Failed to add trip:", err);
+      /* Previously this only reached the console, so a failed submit left the
+         dialog sitting open with no explanation and the user pressing the
+         button again. */
+      setError("Could not create that trip. Check the details and try again.");
     } finally {
       setIsAdding(false);
     }
-  }
+  };
 
-  if (!isOpen) return null
-
-  // Unavailable State
+  /* A driver who cannot act needs an explanation, not a form. Same sheet, same
+     motion — only the content changes. */
   if (isDriver && !isDriverAvailable) {
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-        <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-8 text-center">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">Driver Unavailable</h2>
-          <p className="text-gray-600 mb-8">You are currently marked as unavailable. Please complete your current assignment before creating a new trip.</p>
-          <button
-            onClick={onClose}
-            className="bg-gray-200 text-gray-800 px-6 py-2 rounded-lg hover:bg-gray-300 transition-colors font-medium"
-          >
-            Close
-          </button>
-        </div>
-      </div>
-    )
+      <Sheet
+        open={isOpen}
+        onClose={onClose}
+        title="You're marked unavailable"
+        size="md"
+        footer={
+          <div className="flex justify-end">
+            <Button variant="secondary" onClick={onClose}>
+              Close
+            </Button>
+          </div>
+        }
+      >
+        <p className="text-sm leading-relaxed text-ink-vibrant-secondary">
+          Finish your current assignment before creating a new trip. Once it is marked complete
+          you'll be available again automatically.
+        </p>
+      </Sheet>
+    );
   }
 
+  const availableTrucks = trucks?.filter((t) => t.status === "Available" && t.available === true) ?? [];
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
-      {/* Responsive Width:
-         - Mobile: w-full (max-w-lg)
-         - Desktop: max-w-4xl (Wider to accommodate 2 columns)
-      */}
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg md:max-w-4xl my-4 flex flex-col max-h-[90vh]">
-        
-        {/* Header (Fixed) */}
-        <div className="flex justify-between items-center p-5 border-b sticky top-0 bg-white rounded-t-xl z-10">
-          <div>
-            <h2 className="text-xl font-bold text-gray-800">Create New Trip</h2>
-            <p className="text-sm text-gray-500">Enter logistics and settlement details</p>
-          </div>
-          <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors">
-            <FaTimes className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Scrollable Form Content */}
-        <div className="overflow-y-auto p-6">
-          <form id="add-trip-form" onSubmit={handleSubmit}>
-            
-            {/* Grid Layout: 
-               - 1 Column on Mobile
-               - 2 Columns on Desktop (md+)
-               - Gap to separate the sections
-            */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              
-              {/* --- LEFT COLUMN: LOGISTICS --- */}
-              <div className="space-y-6">
-                
-                {/* 1. Vehicle & Driver */}
-                <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
-                   <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Vehicle & Driver</h3>
-                   <div className="space-y-3">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Select Truck <span className="text-red-500">*</span></label>
-                        <select
-                          className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                          value={formData.registrationNumber}
-                          onChange={(e) => {
-                            const registrationNumber = e.target.value
-                            const truck:any = trucks.find((t) => t.registrationNumber === registrationNumber)
-
-                            setFormData({ ...formData, registrationNumber: registrationNumber, driverIds: [] })
-
-                            if (truck && truck.driverId && truck.driverId.length > 0) {
-                              setSelectedDriverValue("current")
-                            } else {
-                              setSelectedDriverValue("")
-                            }
-                          }}
-                          required
-                        >
-                          <option value="">-- Choose Truck --</option>
-                          {trucks
-                            ?.filter((truck) => truck.status === "Available" && truck.available === true)
-                            .map((truck) => (
-                              <option key={truck._id} value={truck.registrationNumber}>
-                                {truck.registrationNumber}
-                              </option>
-                            ))}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Select Driver <span className="text-red-500">*</span></label>
-                        <select
-                          className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-white focus:ring-2 focus:ring-blue-500 outline-none"
-                          value={selectedDriverValue}
-                          onChange={(e) => {
-                            const selectedValue = e.target.value;
-                            setSelectedDriverValue(selectedValue);
-
-                            if (selectedValue === "current") {
-                              setFormData({ 
-                                ...formData, 
-                                driverIds: [],
-                          
-                              });
-                            } else {
-                              const driver:any = drivers.find(d => d._id === selectedValue);
-                              if (driver) {
-                                setFormData({ 
-                                  ...formData, 
-                                  driverIds: [driver?._id],
-                                  driverContactNumber: String(driver.contactNumber)
-                                });
-                              } else { // for -- Choose Driver --
-                                  setFormData({
-                                      ...formData,
-                                      driverIds: [],
-                           
-                                  })
-                              }
-                            }
-                          }}
-                          
-                          disabled={isDriver}
-                        >
-                          <option value="">-- Choose Driver --</option>
-                          <option value="current">Current</option>
-                          {drivers
-                            .filter((driver) => driver.availability !== false)
-                            .map((driver) => (
-                              <option key={driver._id} value={driver._id}>
-                                {driver.firstName + " " + driver.lastName}
-                              </option>
-                            ))}
-                        </select>
-                      </div>
-                   </div>
-                </div>
-
-                {/* 2. Route Info */}
-                <div>
-                   <h3 className="text-sm font-semibold text-gray-800 mb-3 border-b pb-1">Route Information</h3>
-                   <div className="space-y-3">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Transporter / Client Name</label>
-                        <input
-                          type="text"
-                          className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                          value={formData.transporterName}
-                          onChange={(e) => setFormData({ ...formData, transporterName: e.target.value })}
-                          placeholder="e.g. ABC Logistics Pvt Ltd"
-                        />
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                           <label className="block text-sm font-medium text-gray-700 mb-1">Origin</label>
-                           <input
-                            type="text"
-                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                            value={formData.departureLocation}
-                            onChange={(e) => setFormData({ ...formData, departureLocation: e.target.value })}
-                            required
-                            placeholder="City"
-                           />
-                        </div>
-                        <div>
-                           <label className="block text-sm font-medium text-gray-700 mb-1">Destination</label>
-                           <input
-                            type="text"
-                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                            value={formData.arrivalLocation}
-                            onChange={(e) => setFormData({ ...formData, arrivalLocation: e.target.value })}
-                            required
-                            placeholder="City"
-                           />
-                        </div>
-                      </div>
-                      {/* --- ADDED: DISTANCE FIELD --- */}
-                      <div>
-                         <label className="block text-sm font-medium text-gray-700 mb-1">Estimated Distance (Km)</label>
-                         <input
-                          type="number"
-                          className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                          value={formData.distance}
-                          onChange={(e) => setFormData({ ...formData, distance: e.target.value })}
-                          placeholder="0"
-                         />
-                      </div>
-                   </div>
-                </div>
-
-              </div>
-
-              {/* --- RIGHT COLUMN: DATES & FINANCIALS --- */}
-              <div className="space-y-6">
-                
-                {/* 3. Dates */}
-                <div>
-                   <h3 className="text-sm font-semibold text-gray-800 mb-3 border-b pb-1">Schedule</h3>
-                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Loading Date</label>
-                        <input
-                          type="datetime-local"
-                          className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                          value={formData.loadingDate}
-                          onChange={(e) => setFormData({ ...formData, loadingDate: e.target.value })}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Departure Date <span className="text-red-500">*</span></label>
-                        <input
-                          type="datetime-local"
-                          className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                          value={formData.departureDateTime}
-                          onChange={(e) => setFormData({ ...formData, departureDateTime: e.target.value })}
-                          required
-                        />
-                      </div>
-                   </div>
-                </div>
-
-                {/* 4. Financials & Cargo */}
-                <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
-                    <h3 className="text-xs font-bold text-blue-700 uppercase tracking-wider mb-3">Cargo & Payment</h3>
-                    <div className="space-y-3">
-                        <div className="grid grid-cols-2 gap-3">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Weight (Tons) <span className="text-red-500">*</span></label>
-                                <input
-                                    type="number"
-                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                                    value={formData.totalWeight}
-                                    onChange={(e) => setFormData({ ...formData, totalWeight: e.target.value })}
-                                    required
-                                    placeholder="0"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Trip Fare (₹) <span className="text-red-500">*</span></label>
-                                <input
-                                    type="number"
-                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                                    value={formData.fare}
-                                    onChange={(e) => setFormData({ ...formData, fare: e.target.value })}
-                                    required
-                                    placeholder="0.00"
-                                />
-                            </div>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Cash Advance (₹)</label>
-                            <input
-                                type="number"
-                                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                                value={formData.cashAdvance}
-                                onChange={(e) => setFormData({ ...formData, cashAdvance: e.target.value })}
-                                placeholder="Amount received at start"
-                            />
-                            <p className="text-xs text-gray-500 mt-1">This will be deducted from final settlement.</p>
-                        </div>
-                    </div>
-                </div>
-
-                {/* 5. Extras (Tyres) */}
-                <div>
-                   <h3 className="text-sm font-semibold text-gray-800 mb-3 border-b pb-1">Additional Info</h3>
-                   <div className="grid grid-cols-2 gap-3">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Tyre No. (Opt)</label>
-                            <input
-                                type="text"
-                                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                                value={formData.tyreNumber}
-                                onChange={(e) => setFormData({ ...formData, tyreNumber: e.target.value })}
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Tyre Details</label>
-                            <input
-                                type="text"
-                                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-                                value={formData.tyreDetails}
-                                onChange={(e) => setFormData({ ...formData, tyreDetails: e.target.value })}
-                            />
-                        </div>
-                   </div>
-                </div>
-
-              </div>
-            </div>
-          </form>
-        </div>
-
-        {/* Footer (Fixed) */}
-        <div className="p-5 border-t bg-gray-50 rounded-b-xl flex justify-end gap-3 sticky bottom-0">
-          <button
-            onClick={onClose}
-            className="px-6 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-white transition-colors"
-          >
+    <Sheet
+      open={isOpen}
+      onClose={onClose}
+      title="Create trip"
+      description="Logistics and settlement details."
+      size="xl"
+      footer={
+        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          <Button variant="secondary" onClick={onClose} disabled={isAdding}>
             Cancel
-          </button>
-          <button
-            form="add-trip-form"
-            type="submit"
-            disabled={isAdding}
-            className="px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors shadow-sm disabled:bg-blue-300 disabled:cursor-not-allowed flex items-center"
-          >
-            {isAdding ? (
-              <>
-                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Creating...
-              </>
-            ) : (
-              "Create Trip"
-            )}
-          </button>
+          </Button>
+          <Button form="add-trip-form" type="submit" loading={isAdding}>
+            Create trip
+          </Button>
         </div>
-      </div>
-    </div>
-  )
+      }
+    >
+      <form id="add-trip-form" onSubmit={handleSubmit} className="space-y-6">
+        <InlineMessage tone="error">{error}</InlineMessage>
+
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 md:gap-8">
+          <div className="space-y-6">
+            <Fieldset legend="Vehicle & driver">
+              <FormField label="Truck" htmlFor="trip-truck" required>
+                <select
+                  id="trip-truck"
+                  className={inputClasses}
+                  value={formData.registrationNumber}
+                  onChange={(e) => {
+                    const registrationNumber = e.target.value;
+                    const truck = trucks.find((t) => t.registrationNumber === registrationNumber) as
+                      | (Truck & { driverId?: string[] })
+                      | undefined;
+                    setFormData((prev) => ({ ...prev, registrationNumber, driverIds: [] }));
+                    setSelectedDriverValue(truck?.driverId?.length ? "current" : "");
+                  }}
+                  required
+                >
+                  <option value="">Choose a truck</option>
+                  {availableTrucks.map((truck) => (
+                    <option key={truck._id} value={truck.registrationNumber}>
+                      {truck.registrationNumber}
+                    </option>
+                  ))}
+                </select>
+              </FormField>
+
+              {/* An empty list is a state worth explaining. Silently rendering
+                  a select with one placeholder option leaves the user
+                  wondering whether the page failed. */}
+              {availableTrucks.length === 0 && (
+                <p className="text-xs text-ink-tertiary">
+                  No trucks are currently marked available for dispatch.
+                </p>
+              )}
+
+              <FormField label="Driver" htmlFor="trip-driver" required>
+                <select
+                  id="trip-driver"
+                  className={inputClasses}
+                  value={selectedDriverValue}
+                  disabled={isDriver}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setSelectedDriverValue(value);
+
+                    if (value === "current" || value === "") {
+                      set("driverIds", []);
+                      return;
+                    }
+                    const driver = drivers.find((d) => d._id === value);
+                    if (driver) {
+                      setFormData((prev) => ({
+                        ...prev,
+                        driverIds: [driver._id],
+                        driverContactNumber: String(driver.contactNumber ?? ""),
+                      }));
+                    }
+                  }}
+                >
+                  <option value="">Choose a driver</option>
+                  <option value="current">Truck's current driver</option>
+                  {drivers
+                    .filter((driver) => driver.availability !== false)
+                    .map((driver) => (
+                      <option key={driver._id} value={driver._id}>
+                        {driver.firstName} {driver.lastName}
+                      </option>
+                    ))}
+                </select>
+              </FormField>
+            </Fieldset>
+
+            <Fieldset legend="Route">
+              <FormField label="Transporter or client" htmlFor="trip-transporter">
+                <input
+                  id="trip-transporter"
+                  className={inputClasses}
+                  value={formData.transporterName}
+                  onChange={(e) => set("transporterName", e.target.value)}
+                  placeholder="ABC Logistics Pvt Ltd"
+                />
+              </FormField>
+
+              <div className="grid grid-cols-2 gap-3">
+                <FormField label="Origin" htmlFor="trip-origin" required>
+                  <input
+                    id="trip-origin"
+                    className={inputClasses}
+                    value={formData.departureLocation}
+                    onChange={(e) => set("departureLocation", e.target.value)}
+                    placeholder="City"
+                    required
+                  />
+                </FormField>
+                <FormField label="Destination" htmlFor="trip-destination" required>
+                  <input
+                    id="trip-destination"
+                    className={inputClasses}
+                    value={formData.arrivalLocation}
+                    onChange={(e) => set("arrivalLocation", e.target.value)}
+                    placeholder="City"
+                    required
+                  />
+                </FormField>
+              </div>
+
+              <FormField label="Estimated distance" htmlFor="trip-distance" hint="In kilometres">
+                <input
+                  id="trip-distance"
+                  type="number"
+                  min="0"
+                  className={inputClasses}
+                  value={formData.distance}
+                  onChange={(e) => set("distance", e.target.value)}
+                  placeholder="0"
+                />
+              </FormField>
+            </Fieldset>
+          </div>
+
+          <div className="space-y-6">
+            <Fieldset legend="Schedule">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <FormField label="Loading date" htmlFor="trip-loading">
+                  <input
+                    id="trip-loading"
+                    type="datetime-local"
+                    className={inputClasses}
+                    value={formData.loadingDate}
+                    onChange={(e) => set("loadingDate", e.target.value)}
+                  />
+                </FormField>
+                <FormField label="Departure" htmlFor="trip-departure" required>
+                  <input
+                    id="trip-departure"
+                    type="datetime-local"
+                    className={inputClasses}
+                    value={formData.departureDateTime}
+                    onChange={(e) => set("departureDateTime", e.target.value)}
+                    required
+                  />
+                </FormField>
+              </div>
+            </Fieldset>
+
+            <Fieldset legend="Cargo & payment">
+              <div className="grid grid-cols-2 gap-3">
+                <FormField label="Weight" htmlFor="trip-weight" hint="Tonnes" required>
+                  <input
+                    id="trip-weight"
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    className={inputClasses}
+                    value={formData.totalWeight}
+                    onChange={(e) => set("totalWeight", e.target.value)}
+                    placeholder="0"
+                    required
+                  />
+                </FormField>
+                <FormField label="Trip fare" htmlFor="trip-fare" hint="₹" required>
+                  <input
+                    id="trip-fare"
+                    type="number"
+                    min="0"
+                    className={inputClasses}
+                    value={formData.fare}
+                    onChange={(e) => set("fare", e.target.value)}
+                    placeholder="0"
+                    required
+                  />
+                </FormField>
+              </div>
+
+              <FormField
+                label="Cash advance"
+                htmlFor="trip-advance"
+                hint="Deducted from the final settlement"
+              >
+                <input
+                  id="trip-advance"
+                  type="number"
+                  min="0"
+                  className={inputClasses}
+                  value={formData.cashAdvance}
+                  onChange={(e) => set("cashAdvance", e.target.value)}
+                  placeholder="Amount received at start"
+                />
+              </FormField>
+            </Fieldset>
+
+            <Fieldset legend="Additional">
+              <div className="grid grid-cols-2 gap-3">
+                <FormField label="Tyre number" htmlFor="trip-tyre-no">
+                  <input
+                    id="trip-tyre-no"
+                    className={inputClasses}
+                    value={formData.tyreNumber}
+                    onChange={(e) => set("tyreNumber", e.target.value)}
+                  />
+                </FormField>
+                <FormField label="Tyre details" htmlFor="trip-tyre-details">
+                  <input
+                    id="trip-tyre-details"
+                    className={inputClasses}
+                    value={formData.tyreDetails}
+                    onChange={(e) => set("tyreDetails", e.target.value)}
+                  />
+                </FormField>
+              </div>
+            </Fieldset>
+          </div>
+        </div>
+      </form>
+    </Sheet>
+  );
 }

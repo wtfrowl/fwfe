@@ -20,6 +20,7 @@ import TyreDetailsPage from './app/tyre/components/tyreDetails.tsx';
 import DriversPage from './app/driver/Drivers.tsx';
 import DriverDetailsPage from './app/driver/DriverDetails.tsx';
 import AnalyticsDashboard from './app/analytics/AnalyticsDashboard.tsx';
+import NotFound from './app/NotFound.tsx';
 
 export const routes: RouteObject[] = [
   { path: "/", element: <WebHome /> },
@@ -69,5 +70,5 @@ export const routes: RouteObject[] = [
       { path: "driver-profile", element: <ProfileSettings /> },
     ],
   },
-  { path: "*", element: <div>404 Page Not Found</div> },
+  { path: "*", element: <NotFound /> },
 ];

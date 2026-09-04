@@ -5,8 +5,14 @@ import { RevenueChart } from "./components/revenue-chart";
 import { ExpensesChart } from "./components/expenses-chart";
 import { DistanceChart } from "./components/distance-chart";
 import { MetricsChart } from "./components/metrics-chart";
-import { LoadingSpinner } from "../trips/components/loading-spinner";
+import { LoadingState } from "../../components/ui/LoadingState";
+import { PageHeader } from "../../components/ui/PageHeader";
+import { InlineMessage } from "../../components/ui/InlineMessage";
+import { EmptyState } from "../../components/ui/EmptyState";
+import { RevealGroup, RevealItem } from "../../motion/Reveal";
+import { STATUS } from "../../components/charts/theme";
 import { getDashboardData } from "../../api/dashboard.api";
+import type { Period } from "../../components/charts/ChartCard";
 
 interface DateKey {
   year: number;
@@ -39,126 +45,157 @@ interface DashboardResponse {
   };
 }
 
-type Period = "DAY" | "MONTH" | "YEAR";
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+const rupees = (n: number) => `₹${n.toLocaleString("en-IN")}`;
 
 export default function Dashboard() {
   const { role } = useContext(AuthContext);
   const [activePeriod, setActivePeriod] = useState<Period>("MONTH");
   const [data, setData] = useState<DashboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const formatChartData = (rawData: ChartPoint[] = []) => {
-    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-    return rawData.map((item) => {
-      let label = "";
-      const { year, month, day } = item.dateKey;
-
-      if (activePeriod === "YEAR") {
-        label = `${year}`;
-      } else if (activePeriod === "MONTH") {
-        label = month && monthNames[month - 1] ? monthNames[month - 1] : "N/A";
-      } else {
-        label = `${day}/${month}`;
-      }
-
-      return {
-        name: label,
-        value: item.value || 0,
-      };
-    });
+  /* One label formatter. The old file had two near-identical copies —
+     `formatChartData` and an inline `formatData` — that disagreed about
+     whether the result kept its original fields. */
+  const labelFor = (dateKey: DateKey): string => {
+    const { year, month, day } = dateKey;
+    if (activePeriod === "YEAR") return `${year}`;
+    if (activePeriod === "MONTH") return month ? (MONTHS[month - 1] ?? "N/A") : "N/A";
+    return `${day}/${month}`;
   };
 
+  const toSeries = (points: ChartPoint[] = []) =>
+    points.map((p) => ({ name: labelFor(p.dateKey), value: p.value || 0 }));
+
   useEffect(() => {
-    if (!role || role === "driver") return;
+    if (!role || role === "driver") {
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
 
     const fetchDashboardData = async () => {
       setLoading(true);
+      setError(null);
       try {
         const response = (await getDashboardData({ period: activePeriod })) as DashboardResponse;
-        setData(response);
-      } catch (error) {
-        console.error("Error fetching dashboard stats:", error);
+        /* The old effect had no cancellation, so switching period twice
+           quickly could land the slower response last and show stale data. */
+        if (!cancelled) setData(response);
+      } catch (err) {
+        console.error("Error fetching dashboard stats:", err);
+        if (!cancelled) setError("Could not load your dashboard. Check your connection and try again.");
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
     fetchDashboardData();
+    return () => {
+      cancelled = true;
+    };
   }, [role, activePeriod]);
 
   const renderOwnerDashboard = () => {
-    if (loading || !data) {
-      return <div className="h-96 flex items-center justify-center"><LoadingSpinner /></div>;
+    if (loading) return <LoadingState label="Loading your fleet summary" />;
+    if (error) return <InlineMessage tone="error">{error}</InlineMessage>;
+    if (!data) {
+      return (
+        <EmptyState
+          title="No data yet"
+          description="Once your trucks start logging trips, your revenue, distance and expense summaries will appear here."
+        />
+      );
     }
 
-    const distanceData = formatChartData(data.charts.distance);
-    const expenseData = formatChartData(data.charts.expenses);
-    const fuelData = formatChartData(data.charts.fuel);
-    const idleData = formatChartData(data.charts.idle);
-    const formatData = (items: ChartPoint[]) =>
-      items.map((item) => {
-        const { year, month, day } = item.dateKey;
-        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-        const label = activePeriod === "YEAR" ? `${year}` : activePeriod === "MONTH" ? (month ? monthNames[month - 1] || "N/A" : "N/A") : `${day}/${month}`;
-        return { ...item, name: label };
-      });
+    const revenueSeries = toSeries(data.charts.revenue);
+    const expenseSeries = toSeries(data.charts.expenses);
 
-    const revenueList = formatData(data.charts.revenue);
-    const expenseList = formatData(data.charts.expenses);
-    const mergedRevenueData = revenueList.map((revItem) => {
-      const expenseItem = expenseList.find((e) => e.name === revItem.name) || { value: 0 };
-      const expenseVal = expenseItem.value || 0;
-      return {
-        name: revItem.name,
-        revenue: revItem.value,
-        income: revItem.value - expenseVal,
-      };
-    });
+    /* Net income is revenue minus expenses for the same bucket. Matching by
+       label works because both series were formatted by the same function. */
+    const expenseByLabel = new Map(expenseSeries.map((e) => [e.name, e.value]));
+    const mergedRevenue = revenueSeries.map((r) => ({
+      name: r.name,
+      revenue: r.value,
+      income: r.value - (expenseByLabel.get(r.name) ?? 0),
+    }));
 
-    const formattedDistance = distanceData.map((d) => ({ ...d, distance: d.value }));
+    const distance = toSeries(data.charts.distance).map((d) => ({ ...d, distance: d.value }));
 
     return (
-      <>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <MetricCard title="Total Expenses" value={`Rs ${data.summary.totalExpenses.toLocaleString()}`} icon="expenses" loading={false} />
-          <MetricCard title="Profit" value={`Rs ${data.summary.profit.toLocaleString()}`} icon="profit" loading={false} />
-          <MetricCard title="Revenue" value={`Rs ${data.summary.revenue.toLocaleString()}`} icon="revenue" loading={false} />
-          <MetricCard title="Idle Cost" value={`Rs ${data.summary.idleCost.toLocaleString()}`} icon="labour" loading={false} />
+      <div className="space-y-6">
+        <RevealGroup className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <RevealItem>
+            <MetricCard title="Revenue" value={rupees(data.summary.revenue)} icon="revenue" />
+          </RevealItem>
+          <RevealItem>
+            <MetricCard title="Total expenses" value={rupees(data.summary.totalExpenses)} icon="expenses" />
+          </RevealItem>
+          <RevealItem>
+            <MetricCard title="Profit" value={rupees(data.summary.profit)} icon="profit" />
+          </RevealItem>
+          <RevealItem>
+            <MetricCard title="Idle cost" value={rupees(data.summary.idleCost)} icon="labour" />
+          </RevealItem>
+        </RevealGroup>
+
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <RevenueChart
+            data={mergedRevenue}
+            activePeriod={activePeriod}
+            setActivePeriod={setActivePeriod}
+          />
+          <ExpensesChart categories={data.charts.expenseCategories} />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <RevenueChart data={mergedRevenueData} activePeriod={activePeriod} setActivePeriod={setActivePeriod} />
-          <ExpensesChart data={expenseData} categories={data.charts.expenseCategories} />
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <DistanceChart
+            data={distance}
+            activePeriod={activePeriod}
+            setActivePeriod={setActivePeriod}
+          />
+          <MetricsChart title="Idle cost" data={toSeries(data.charts.idle)} color={STATUS.warning} />
+          <MetricsChart title="Fuel cost" data={toSeries(data.charts.fuel)} color={STATUS.good} />
         </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <DistanceChart activePeriod={activePeriod} setActivePeriod={setActivePeriod} data={formattedDistance} />
-          <MetricsChart title="Idle Cost" data={idleData} color="#F59E0B" />
-          <MetricsChart title="Fuel Cost" data={fuelData} color="#3B82F6" />
-        </div>
-      </>
+      </div>
     );
   };
 
   const renderDriverDashboard = () => (
-    <>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <MetricCard title="Total Trips" value="58" icon="trip" loading={false} />
-        <MetricCard title="Distance Covered" value="14,300 km" icon="distance" loading={false} />
-        <MetricCard title="Fuel Used" value="2,400 L" icon="fuel" loading={false} />
-      </div>
-      <div className="p-6 bg-white rounded shadow text-center text-gray-500">
-        Driver analytics coming soon...
-      </div>
-    </>
+    <div className="space-y-6">
+      <RevealGroup className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <RevealItem>
+          <MetricCard title="Total trips" value="58" icon="trip" />
+        </RevealItem>
+        <RevealItem>
+          <MetricCard title="Distance covered" value="14,300 km" icon="distance" />
+        </RevealItem>
+        <RevealItem>
+          <MetricCard title="Fuel used" value="2,400 L" icon="fuel" />
+        </RevealItem>
+      </RevealGroup>
+
+      <EmptyState
+        title="Driver analytics are on the way"
+        description="Your trip history and earnings breakdown will show up here once driver reporting ships."
+      />
+    </div>
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-8">
-      <div className="mx-auto space-y-6 max-w-7xl">
-        {role === "owner" ? renderOwnerDashboard() : renderDriverDashboard()}
-      </div>
+    <div className="mx-auto max-w-7xl space-y-6">
+      <PageHeader
+        title="Dashboard"
+        description={
+          role === "owner"
+            ? "Revenue, cost and distance across your fleet."
+            : "Your trips and activity at a glance."
+        }
+      />
+      {role === "owner" ? renderOwnerDashboard() : renderDriverDashboard()}
     </div>
   );
 }

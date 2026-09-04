@@ -1,70 +1,165 @@
-import { useEffect, useState } from "react";
-import { api } from "../../app/trips/services/api";
-import { api as apiLoad } from "../services/api";
-import { FiPhone, FiStar, FiTruck, FiInfo } from "react-icons/fi";
+import { useCallback, useEffect, useState } from "react";
+import { FiPhone, FiStar, FiTruck, FiInfo, FiPackage } from "react-icons/fi";
 import { HiOutlineLocationMarker } from "react-icons/hi";
 import { MdCalendarToday } from "react-icons/md";
+import { api } from "../trips/services/api";
+import { api as apiLoad } from "../services/api";
 import { AddTripModal } from "../trips/components/add-trip-modal";
-import { Driver } from "../trips/types/api";
+import type { Driver } from "../trips/types/api";
+import { PageHeader } from "../../components/ui/PageHeader";
+import { Button } from "../../components/ui/Button";
+import { StatusBadge } from "../../components/ui/StatusBadge";
+import { EmptyState } from "../../components/ui/EmptyState";
+import { InlineMessage } from "../../components/ui/InlineMessage";
+import { RevealGroup, RevealItem } from "../../motion/Reveal";
+
+interface Load {
+  _id: string;
+  source: string;
+  destination: string;
+  truckId: string;
+  truckReg: string;
+  truckModel: string;
+  pickupDate: string;
+  weight: number;
+  price: number;
+  matchScore: number;
+  distanceKm: number;
+  status: string;
+  broker: { name: string; contact: string; rating: number };
+}
 
 export default function Loads() {
-  const [loads, setLoads] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
-  const [limit] = useState(5);
+  const [loads, setLoads] = useState<Load[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
-  const [selectedLoad, setSelectedLoad] = useState<any | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedLoad, setSelectedLoad] = useState<Load | null>(null);
 
-  const handleCreateTripClick = (load: any) => {
-    setSelectedLoad(load);
-  };
-
-  const fetchData = async () => {
-    try {
-      const driversData = await api.drivers.list();
-      setDrivers(driversData);
-    } catch (error) {
-      console.error("Error fetching data:", error);
-    }
-  };
-
-  const fetchLoads = async () => {
+  const fetchLoads = useCallback(async () => {
     setLoading(true);
-    fetchData();
+    setError(null);
     try {
-      const data = await apiLoad.loads.allLoadForOwner();
-      setLoads(data.matchedLoads);
+      /* Both requests are independent, so they go together rather than the
+         drivers call being fired and forgotten inside the loads call. */
+      const [loadData, driversData] = await Promise.all([
+        apiLoad.loads.allLoadForOwner(),
+        api.drivers.list(),
+      ]);
+      setLoads(loadData?.matchedLoads ?? []);
+      setDrivers(driversData ?? []);
     } catch (err) {
       console.error("Error fetching loads:", err);
+      setError("Could not load matched loads. Check your connection and try again.");
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchLoads();
-  }, [page]);
+  }, [fetchLoads]);
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <div className="bg-white rounded shadow p-4 mb-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-800">Matched Loads</h1>
-            <p className="text-gray-500">
-              Loads matched to your trucks based on location, availability, and capacity.
-            </p>
-          </div>
+    <div className="mx-auto max-w-7xl space-y-5">
+      <PageHeader
+        title="Matched loads"
+        description="Loads matched to your trucks by location, availability and capacity."
+      />
+
+      <InlineMessage tone="error">{error}</InlineMessage>
+
+      {/* The old pager incremented a page number that was never sent to the
+          API and never used to slice the results, so both arrows just
+          refetched the same list. Removed rather than left looking functional. */}
+
+      {loading ? (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="h-56 animate-pulse rounded-card bg-ink/6" />
+          ))}
         </div>
-      </div>
+      ) : loads.length === 0 ? (
+        <EmptyState
+          icon={<FiPackage />}
+          title="No matched loads right now"
+          description="When a broker posts a load that fits one of your available trucks, it will appear here."
+        />
+      ) : (
+        <RevealGroup className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {loads.map((load) => (
+            <RevealItem key={load._id}>
+              <article className="flex h-full flex-col justify-between rounded-card border border-hairline bg-surface p-5 shadow-[var(--shadow-raised)]">
+                <div className="space-y-3">
+                  <h3 className="flex items-start gap-2 text-base font-semibold text-ink">
+                    <HiOutlineLocationMarker className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
+                    <span>
+                      {load.source} → {load.destination}
+                    </span>
+                  </h3>
+
+                  <p className="flex items-center gap-2 text-sm text-ink-secondary">
+                    <FiTruck className="h-4 w-4 shrink-0 text-ink-tertiary" />
+                    {load.truckModel} ({load.truckReg})
+                  </p>
+
+                  <p className="flex items-center gap-2 text-sm text-ink-secondary">
+                    <MdCalendarToday className="h-4 w-4 shrink-0 text-ink-tertiary" />
+                    {new Date(load.pickupDate).toLocaleDateString("en-IN", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })}
+                  </p>
+
+                  {/* The headline number of the card is the money, so it is
+                      typed like a headline instead of buried in a run-on line
+                      with the weight and the date. */}
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-xl font-semibold tabular-nums tracking-[-0.02em] text-ink">
+                      ₹{load.price.toLocaleString("en-IN")}
+                    </span>
+                    <span className="text-sm text-ink-tertiary">· {load.weight} T</span>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm text-ink-tertiary">
+                    <span className="flex items-center gap-1">
+                      <FiInfo className="h-3.5 w-3.5" />
+                      Match {load.matchScore}
+                    </span>
+                    <span className="tabular-nums">{load.distanceKm} km</span>
+                    <StatusBadge tone="success">{load.status}</StatusBadge>
+                  </div>
+                </div>
+
+                <div className="mt-4 flex items-end justify-between gap-3 border-t border-hairline pt-4">
+                  <div className="min-w-0 text-sm">
+                    <p className="truncate font-semibold text-ink">{load.broker.name}</p>
+                    <p className="flex items-center gap-1.5 text-ink-tertiary">
+                      <FiPhone className="h-3.5 w-3.5" /> {load.broker.contact}
+                    </p>
+                    <p className="flex items-center gap-1.5 text-ink-tertiary">
+                      <FiStar className="h-3.5 w-3.5 text-caution" /> {load.broker.rating}
+                    </p>
+                  </div>
+                  <Button size="sm" onClick={() => setSelectedLoad(load)}>
+                    Add trip
+                  </Button>
+                </div>
+              </article>
+            </RevealItem>
+          ))}
+        </RevealGroup>
+      )}
 
       <AddTripModal
-        isOpen={selectedLoad}
+        /* `isOpen={selectedLoad}` passed an object where a boolean belonged. */
+        isOpen={selectedLoad !== null}
         onClose={() => setSelectedLoad(null)}
         onAdd={async (tripData) => {
           await api.trips.create(tripData);
           setSelectedLoad(null);
-          fetchLoads();
+          await fetchLoads();
         }}
         trucks={
           selectedLoad
@@ -82,104 +177,6 @@ export default function Loads() {
         drivers={drivers}
         load={selectedLoad}
       />
-
-      {loading ? (
-        <div className="space-y-4">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="animate-pulse h-28 w-full bg-gray-200 rounded-xl" />
-          ))}
-        </div>
-      ) :  loads?.length === 0 ? (
-  <div className="bg-white rounded shadow p-6 min-h-50 justify-center items-center flex text-center text-gray-600 font-medium">
-    🚫 No matched loads available at the moment.
-  </div>
-) : (
-  <div className="bg-white rounded shadow p-4">
-    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-      {loads.map((load: any) => (
-    <div
-      key={load._id}
-      className="bg-white rounded-xl shadow-lg border border-gray-200 p-5 flex flex-col justify-between"
-    >
-      <div className="space-y-2">
-        <h3 className="text-lg font-bold text-blue-700 flex items-center gap-2">
-          <HiOutlineLocationMarker className="text-blue-500" />
-          {load.source} → {load.destination}
-        </h3>
-
-        <p className="text-sm text-gray-600 flex items-center gap-2">
-          <FiTruck className="text-purple-500" />
-          {load.truckModel} ({load.truckReg})
-        </p>
-
-        <p className="text-sm text-gray-600 flex items-center gap-2">
-          <MdCalendarToday className="text-purple-400" />
-          Pickup: {new Date(load.pickupDate).toLocaleDateString()} • {load.weight} T • ₹{load.price.toLocaleString()}
-        </p>
-
-        <div className="flex flex-wrap items-center gap-3 text-sm text-gray-500">
-          <span className="flex items-center gap-1">
-            <FiInfo className="text-blue-400" />
-            Match Score: {load.matchScore}
-          </span>
-          <span>Distance: {load.distanceKm} km</span>
-          <span>
-            Status:{" "}
-            <span className="bg-green-100 text-green-800 font-medium px-2 py-0.5 text-xs rounded-full">
-              {load.status}
-            </span>
-          </span>
-        </div>
-      </div>
-
-      <div className="flex items-center justify-between pt-4 border-t mt-4">
-        <div className="text-sm">
-          <p className="text-gray-700 font-semibold">{load.broker.name}</p>
-          <p className="text-gray-500 flex items-center gap-1">
-            <FiPhone className="text-gray-400" /> {load.broker.contact}
-          </p>
-          <p className="text-gray-500 flex items-center gap-1">
-            <FiStar className="text-yellow-500" /> {load.broker.rating}
-          </p>
-        </div>
-        <button
-          onClick={() => handleCreateTripClick(load)}
-          className="text-sm bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg"
-        >
-          Add Trip
-        </button>
-      </div>
-    </div>
-  ))}
-</div>
-
-        </div>
-      )}
-
-   {loads.length !== 0 &&  <div className="mt-8 flex items-center justify-between text-sm">
-        <p className="text-gray-500">
-          Showing {(page - 1) * limit + 1} – {Math.min(page * limit, loads.length)}
-        </p>
-        <div className="flex gap-2">
-          <button
-            className="px-3 py-1 border rounded disabled:opacity-50"
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page === 1}
-          >
-            &larr;
-          </button>
-          <button className="px-3 py-1 border rounded bg-blue-100 text-blue-600" disabled>
-            Page {page}
-          </button>
-          <button
-            className="px-3 py-1 border rounded disabled:opacity-50"
-            onClick={() => setPage((p) => p + 1)}
-            disabled={loads.length < limit}
-          >
-            &rarr;
-          </button>
-        </div>
-      </div>}
     </div>
   );
 }

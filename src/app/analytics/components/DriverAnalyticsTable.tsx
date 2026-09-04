@@ -14,10 +14,10 @@ export default function DriverAnalyticsTable({ data }: { data: DriverAnalytics[]
           header: "Driver",
           render: (d) => (
             <div>
-              <div className="font-medium">
+              <div className="font-medium text-ink">
                 {d.driver.firstName} {d.driver.lastName}
               </div>
-              <div className="text-xs text-gray-500">{d.driver.contactNumber}</div>
+              <div className="text-xs text-ink-tertiary">{d.driver.contactNumber}</div>
             </div>
           ),
         },
@@ -60,7 +60,7 @@ export default function DriverAnalyticsTable({ data }: { data: DriverAnalytics[]
           key: "costPerKm",
           header: "Cost / KM",
           align: "right",
-          render: (d) => `Rs ${d.costPerKm.toFixed(2)}`,
+          render: (d) => `₹${d.costPerKm.toFixed(2)}`,
         },
       ]}
     />

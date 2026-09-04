@@ -1,191 +1,270 @@
-import type { Vehicle } from "../types/vehicle";
-import { HealthBar } from "./health-bar";
-import { AlertBadge } from "./alert-badge";
-import { FaTruck, FaCar, FaShuttleVan } from "react-icons/fa";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { FaTruck, FaCar, FaShuttleVan } from "react-icons/fa";
+import type { IconType } from "react-icons";
+import type { Vehicle, VehicleStatus } from "../types/vehicle";
+import { HealthBar } from "./health-bar";
+import { AlertBadge } from "./alert-badge";
+import { StatusBadge } from "../../../components/ui/StatusBadge";
+import { Button } from "../../../components/ui/Button";
+import { Sheet } from "../../../motion/Sheet";
+import { FormField } from "../../../components/ui/FormField";
+import { inputClasses } from "../../../components/ui/inputStyles";
+import { InlineMessage } from "../../../components/ui/InlineMessage";
 import { updateTruck } from "../../../api";
 
 interface VehicleTableProps {
   vehicles: Vehicle[];
   userRole: "owner" | "driver" | null;
+  /** Lets the page refetch after an edit — the old table saved and then left
+      the list showing the stale row until a manual reload. */
+  onUpdated?: () => void;
 }
 
-export function VehicleTable({ vehicles, userRole }: VehicleTableProps) {
-  const [isEditPopupOpen, setIsEditPopupOpen] = useState(false);
-  const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
-  const [editTruckDetails, setEditTruckDetails] = useState({
+const iconFor: Record<string, IconType> = {
+  Truck: FaTruck,
+  Van: FaShuttleVan,
+  Car: FaCar,
+};
+
+const statusTone: Record<VehicleStatus, "success" | "info" | "danger" | "neutral"> = {
+  ALL: "neutral",
+  Available: "info",
+  "En Route": "success",
+  "Out of Service": "danger",
+};
+
+export function VehicleTable({ vehicles, userRole, onUpdated }: VehicleTableProps) {
+  const navigate = useNavigate();
+  const [editing, setEditing] = useState<Vehicle | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [form, setForm] = useState({
     registrationNumber: "",
     model: "",
     available: false,
     capacity: "",
   });
 
-  const navigate = useNavigate();
-
-  const handleEditFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type, checked } = e.target;
-    setEditTruckDetails((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
-  };
-
-  const handleEditFormSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    try {
-      if (!selectedVehicle) return;
-      await updateTruck(selectedVehicle.id, editTruckDetails);
-      setIsEditPopupOpen(false);
-    } catch (error) {
-      console.error("Failed to update the truck:", error);
-    }
-  };
-
-  const handleEditButtonClick = (vehicle: Vehicle) => {
-    setSelectedVehicle(vehicle);
-    setEditTruckDetails({
+  const openEdit = (vehicle: Vehicle) => {
+    setSaveError(null);
+    setEditing(vehicle);
+    setForm({
       registrationNumber: vehicle.registrationNumber,
       model: vehicle.model,
       available: vehicle.available,
       capacity: vehicle.capacity,
     });
-    setIsEditPopupOpen(true);
   };
 
-  const getVehicleIcon = (type: string) => {
-    switch (type) {
-      case "Truck":
-        return FaTruck;
-      case "Van":
-        return FaShuttleVan;
-      case "Car":
-        return FaCar;
-      default:
-        return FaCar;
-    }
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value, type, checked } = e.target;
+    setForm((prev) => ({ ...prev, [name]: type === "checkbox" ? checked : value }));
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Available":
-        return "text-blue-600";
-      case "En Route":
-        return "text-green-600";
-      case "Out of Service":
-        return "text-red-600";
-      default:
-        return "text-gray-600";
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!editing) return;
+
+    setSaving(true);
+    setSaveError(null);
+    try {
+      await updateTruck(editing.id, form);
+      setEditing(null);
+      onUpdated?.();
+    } catch (err) {
+      console.error("Failed to update the truck:", err);
+      /* The old handler swallowed the failure into console.error and closed
+         the dialog anyway, so a failed save looked exactly like a successful
+         one. */
+      setSaveError("Could not save those changes. Please try again.");
+    } finally {
+      setSaving(false);
     }
   };
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full hidden md:table">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">VEHICLE</th>
-            <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">TYPE</th>
-            <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">STATUS</th>
-            <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">HEALTH RATE</th>
-            <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">ALERT TYPE</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-200">
-          {vehicles.map((vehicle) => {
-            const VehicleIcon = getVehicleIcon(vehicle.type);
-            const statusColor = getStatusColor(vehicle.status);
-
-            return (
-              <tr onClick={() => navigate(`${vehicle.registrationNumber}`)} key={vehicle.id} className="bg-white hover:bg-gray-50 cursor-pointer">
-                <td className="px-4 py-4 flex items-center gap-3">
-                  <div className="p-2 bg-gray-100 rounded-full">
-                    <VehicleIcon className="w-5 h-5 text-gray-600" />
-                  </div>
-                  <span className="font-medium">{vehicle.registrationNumber}</span>
-                </td>
-                <td className="px-4 py-4 text-sm text-gray-600">{vehicle.type}</td>
-                <td className="px-4 py-4">
-                  <span className={`text-sm font-medium ${statusColor}`}>{vehicle.status}</span>
-                </td>
-                <td className="px-4 py-4 w-64">
-                  <HealthBar value={vehicle.healthRate} />
-                </td>
-                <td className="px-4 py-4">
-                  <AlertBadge type={vehicle.alertType} />
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-
-      {isEditPopupOpen && (
-        <div className="fixed top-0 left-0 w-full h-full bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-lg shadow-lg w-[400px]">
-            <h2 className="text-lg font-medium mb-4">Edit Truck</h2>
-            <form onSubmit={handleEditFormSubmit}>
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">Registration Number</label>
-                <input type="text" name="registrationNumber" value={editTruckDetails.registrationNumber} onChange={handleEditFormChange} className="w-full border rounded-md p-2" required />
-              </div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">Model</label>
-                <input type="text" name="model" value={editTruckDetails.model} onChange={handleEditFormChange} className="w-full border rounded-md p-2" required />
-              </div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">Capacity</label>
-                <input type="text" name="capacity" value={editTruckDetails.capacity} onChange={handleEditFormChange} className="w-full border rounded-md p-2" required />
-              </div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">Availability</label>
-                <input type="checkbox" name="available" checked={editTruckDetails.available} onChange={handleEditFormChange} />
-                {editTruckDetails.available ? "Available" : "Not Available"}
-              </div>
-              <div className="flex justify-end gap-2">
-                <button type="button" className="px-4 py-2 bg-gray-500 text-white rounded-md" onClick={() => setIsEditPopupOpen(false)}>
-                  Cancel
-                </button>
-                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-md">
-                  Save Changes
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      <div className="md:hidden space-y-4">
-        {vehicles.map((vehicle) => (
-          <div key={vehicle.id} className="p-4 border rounded-lg bg-white shadow">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="p-2 bg-gray-100 rounded-full">
-                  <FaTruck className="w-5 h-5 text-gray-600" />
-                </div>
-                <span className="font-medium">{vehicle.registrationNumber}</span>
-              </div>
-              <span className={`text-sm font-medium ${getStatusColor(vehicle.status)}`}>{vehicle.status}</span>
-            </div>
-            <p className="text-gray-600 text-sm">Type: {vehicle.type}</p>
-            <p className="text-gray-600 text-sm">Capacity: {vehicle.capacity}</p>
-            <p className="text-gray-600 text-sm">Health Rate:</p>
-            <HealthBar value={vehicle.healthRate} />
-            <p className="text-gray-600 text-sm">Alert Type:</p>
-            <AlertBadge type={vehicle.alertType} />
-            {userRole === "owner" && (
-              <div className="flex gap-3 mt-2">
-                <button className="text-sm text-blue-600 font-medium" onClick={() => handleEditButtonClick(vehicle)}>
-                  Edit
-                </button>
-                <button className="text-sm text-gray-600 font-medium" onClick={() => navigate(`${vehicle.registrationNumber}`)}>
-                  View Details
-                </button>
-              </div>
-            )}
-          </div>
-        ))}
+    <>
+      {/* --- Desktop --- */}
+      <div className="hidden overflow-x-auto md:block">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-hairline">
+              {["Vehicle", "Type", "Status", "Health", "Alert"].map((h) => (
+                <th
+                  key={h}
+                  className="text-caption px-4 py-3 text-left text-xs font-semibold uppercase text-ink-tertiary"
+                >
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {vehicles.map((vehicle) => {
+              const Icon = iconFor[vehicle.type] ?? FaCar;
+              return (
+                <tr
+                  key={vehicle.id}
+                  onClick={() => navigate(`${vehicle.registrationNumber}`)}
+                  className="cursor-pointer border-b border-hairline/70 transition-colors duration-150 last:border-0 hover:bg-ink/3"
+                >
+                  <td className="px-4 py-3.5">
+                    <div className="flex items-center gap-3">
+                      <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-ink/6 text-ink-secondary">
+                        <Icon className="h-4 w-4" />
+                      </div>
+                      <span className="font-semibold text-ink">{vehicle.registrationNumber}</span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3.5 text-sm text-ink-secondary">{vehicle.type}</td>
+                  <td className="px-4 py-3.5">
+                    <StatusBadge tone={statusTone[vehicle.status] ?? "neutral"}>
+                      {vehicle.status}
+                    </StatusBadge>
+                  </td>
+                  <td className="w-56 px-4 py-3.5">
+                    <HealthBar value={vehicle.healthRate} />
+                  </td>
+                  <td className="px-4 py-3.5">
+                    <AlertBadge type={vehicle.alertType} />
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
-    </div>
+
+      {/* --- Mobile --- */}
+      <div className="space-y-3 p-3 md:hidden">
+        {vehicles.map((vehicle) => {
+          const Icon = iconFor[vehicle.type] ?? FaCar;
+          return (
+            <div
+              key={vehicle.id}
+              className="rounded-card border border-hairline bg-surface p-4 shadow-[var(--shadow-hairline)]"
+            >
+              <button
+                type="button"
+                onClick={() => navigate(`${vehicle.registrationNumber}`)}
+                className="flex w-full items-center justify-between gap-3 text-left"
+              >
+                <div className="flex min-w-0 items-center gap-2.5">
+                  <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-ink/6 text-ink-secondary">
+                    <Icon className="h-4 w-4" />
+                  </div>
+                  <span className="truncate font-semibold text-ink">
+                    {vehicle.registrationNumber}
+                  </span>
+                </div>
+                <StatusBadge tone={statusTone[vehicle.status] ?? "neutral"}>
+                  {vehicle.status}
+                </StatusBadge>
+              </button>
+
+              <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm">
+                <div className="flex justify-between gap-2">
+                  <dt className="text-ink-tertiary">Type</dt>
+                  <dd className="font-medium text-ink-secondary">{vehicle.type}</dd>
+                </div>
+                <div className="flex justify-between gap-2">
+                  <dt className="text-ink-tertiary">Capacity</dt>
+                  <dd className="font-medium text-ink-secondary">{vehicle.capacity}</dd>
+                </div>
+              </dl>
+
+              <div className="mt-3 space-y-2">
+                <HealthBar value={vehicle.healthRate} />
+                <AlertBadge type={vehicle.alertType} />
+              </div>
+
+              {userRole === "owner" && (
+                <div className="mt-3 flex gap-2 border-t border-hairline pt-3">
+                  <Button size="sm" variant="secondary" onClick={() => openEdit(vehicle)}>
+                    Edit
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => navigate(`${vehicle.registrationNumber}`)}
+                  >
+                    View details
+                  </Button>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      <Sheet
+        open={editing !== null}
+        onClose={() => setEditing(null)}
+        title="Edit truck"
+        description={editing?.registrationNumber}
+        size="md"
+        footer={
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+            <Button variant="secondary" onClick={() => setEditing(null)} disabled={saving}>
+              Cancel
+            </Button>
+            <Button type="submit" form="edit-truck-form" loading={saving}>
+              Save changes
+            </Button>
+          </div>
+        }
+      >
+        <form id="edit-truck-form" onSubmit={handleSubmit} className="space-y-4">
+          <InlineMessage tone="error">{saveError}</InlineMessage>
+
+          <FormField label="Registration number" htmlFor="edit-reg" required>
+            <input
+              id="edit-reg"
+              name="registrationNumber"
+              value={form.registrationNumber}
+              onChange={handleChange}
+              className={inputClasses}
+              required
+            />
+          </FormField>
+
+          <FormField label="Model" htmlFor="edit-model" required>
+            <input
+              id="edit-model"
+              name="model"
+              value={form.model}
+              onChange={handleChange}
+              className={inputClasses}
+              required
+            />
+          </FormField>
+
+          <FormField label="Capacity" htmlFor="edit-capacity" required>
+            <input
+              id="edit-capacity"
+              name="capacity"
+              value={form.capacity}
+              onChange={handleChange}
+              className={inputClasses}
+              required
+            />
+          </FormField>
+
+          <label className="flex cursor-pointer items-center gap-3 rounded-control border border-hairline p-3">
+            <input
+              type="checkbox"
+              name="available"
+              checked={form.available}
+              onChange={handleChange}
+              className="h-4 w-4 accent-[var(--color-accent)]"
+            />
+            <span className="text-sm font-medium text-ink">
+              {form.available ? "Available for dispatch" : "Not available"}
+            </span>
+          </label>
+        </form>
+      </Sheet>
+    </>
   );
 }

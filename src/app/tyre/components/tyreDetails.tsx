@@ -3,11 +3,20 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { 
-  FaArrowLeft, FaTruck, FaTools, FaHistory, FaCheckCircle, 
+  FaTruck, FaTools, FaHistory, FaCheckCircle, 
   FaEdit, FaSave, FaTimes, FaPencilAlt, FaCheck 
 } from "react-icons/fa";
 import { LoadingSpinner } from "../../trips/components/loading-spinner"; 
 import { getTyreById, inspectTyre, updateTyreDetails } from "../../../api";
+import { InlineMessage } from "../../../components/ui/InlineMessage";
+import { StatusBadge } from "../../../components/ui/StatusBadge";
+import { Button } from "../../../components/ui/Button";
+import { inputClasses, inputClassesCompact } from "../../../components/ui/inputStyles";
+import {
+  DetailPage,
+  DetailHeader,
+  BackButton,
+} from "../../../components/ui/DetailPage";
 
 // --- Types ---
 interface TyreHistory {
@@ -39,59 +48,30 @@ interface TyreDetail {
 // This mimics the exact layout of your page but with pulsating gray boxes
 const TyreDetailsSkeleton = () => {
   return (
-    <div className="min-h-screen bg-gray-50 animate-pulse">
-      {/* Header Skeleton */}
-      <div className="bg-white border-b">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex justify-between items-center">
-            <div className="space-y-2">
-              <div className="flex gap-3 items-center">
-                <div className="h-8 w-48 bg-gray-200 rounded"></div>
-                <div className="h-6 w-20 bg-gray-200 rounded-full"></div>
-              </div>
-              <div className="h-4 w-32 bg-gray-200 rounded"></div>
+    <DetailPage>
+      <header className="flex items-start justify-between gap-4">
+        <div className="flex items-start gap-3">
+          <div className="h-9 w-9 shrink-0 animate-pulse rounded-full bg-ink/8" />
+          <div className="space-y-2">
+            <div className="flex items-center gap-2.5">
+              <div className="h-8 w-48 animate-pulse rounded-chip bg-ink/8" />
+              <div className="h-6 w-24 animate-pulse rounded-full bg-ink/8" />
             </div>
-            <div className="flex gap-2">
-              <div className="h-10 w-10 bg-gray-200 rounded-lg"></div>
-              <div className="h-10 w-32 bg-gray-200 rounded-lg"></div>
-            </div>
+            <div className="h-4 w-40 animate-pulse rounded-chip bg-ink/8" />
           </div>
         </div>
-      </div>
+        <div className="h-11 w-32 animate-pulse rounded-control bg-ink/8" />
+      </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-        {/* Grid Skeleton */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="space-y-5">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 h-40">
-              <div className="flex justify-between mb-4">
-                <div className="h-8 w-8 bg-gray-200 rounded"></div>
-                <div className="h-4 w-16 bg-gray-200 rounded"></div>
-              </div>
-              <div className="h-8 w-24 bg-gray-200 rounded mb-2"></div>
-              <div className="h-2 w-full bg-gray-200 rounded"></div>
-            </div>
+            <div key={i} className="h-40 animate-pulse rounded-card bg-ink/6" />
           ))}
         </div>
-
-        {/* History Table Skeleton */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-100">
-            <div className="h-6 w-32 bg-gray-200 rounded"></div>
-          </div>
-          <div className="p-6 space-y-4">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="flex justify-between">
-                <div className="h-4 w-24 bg-gray-200 rounded"></div>
-                <div className="h-4 w-20 bg-gray-200 rounded"></div>
-                <div className="h-4 w-32 bg-gray-200 rounded"></div>
-                <div className="h-4 w-16 bg-gray-200 rounded"></div>
-              </div>
-            ))}
-          </div>
-        </div>
+        <div className="h-64 animate-pulse rounded-card bg-ink/6" />
       </div>
-    </div>
+    </DetailPage>
   );
 };
 
@@ -109,6 +89,8 @@ export default function TyreDetailsPage() {
   const [isSaving, setIsSaving] = useState(false);
 
   // --- NEW: INSPECTION STATE (Health) ---
+  /* Replaces two native alert() dialogs — see the note in truck-details. */
+  const [banner, setBanner] = useState<string | null>(null);
   const [isInspecting, setIsInspecting] = useState(false);
   const [inspectDepth, setInspectDepth] = useState<string | number>("");
   const [inspectSaving, setInspectSaving] = useState(false);
@@ -148,7 +130,7 @@ export default function TyreDetailsPage() {
       setTyre(response); 
       setIsInspecting(false);
     } catch (err: any) {
-      alert("Failed to update tread depth");
+      setBanner("Could not save that tread depth. Please try again.");
       console.error(err);
     } finally {
       setInspectSaving(false);
@@ -182,140 +164,143 @@ export default function TyreDetailsPage() {
       setTyre(response);
       setIsEditing(false);
     } catch (err: any) {
-      alert("Failed to update tyre details");
+      setBanner("Could not save those tyre details. Please try again.");
     } finally {
       setIsSaving(false);
     }
   };
 
   // --- Helper: Status Color ---
-  const getStatusBadgeColor = (status: string) => {
+  const statusTone = (status: string) => {
     switch (status) {
-      case "Mounted": return "bg-blue-100 text-blue-800 border-blue-200";
-      case "Spare": return "bg-green-100 text-green-800 border-green-200";
-      case "Scrapped": return "bg-red-100 text-red-800 border-red-200";
-      default: return "bg-gray-100 text-gray-800 border-gray-200";
+      case "Mounted": return "info" as const;
+      case "Spare": return "success" as const;
+      case "Scrapped": return "danger" as const;
+      case "SentForRetreading": return "warning" as const;
+      default: return "neutral" as const;
     }
   };
+
+  /* "SentForRetreading" is a database value, not a label for a person. */
+  const statusLabel = (status: string) =>
+    status === "SentForRetreading" ? "Retreading" : status;
 
   // --- RENDER LOADING STATE ---
   if (loading) return <TyreDetailsSkeleton />;
 
   // --- RENDER ERROR STATE ---
   if (error) return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 text-red-500 gap-4">
-      <FaTimes size={40} />
-      <p className="font-semibold">{error}</p>
-      <button onClick={fetchTyreDetails} className="text-blue-600 underline">Try Again</button>
-    </div>
+    <DetailPage>
+      <div className="flex items-center gap-3">
+        <BackButton />
+        <h1 className="text-2xl font-semibold text-ink">Tyre</h1>
+      </div>
+      <InlineMessage tone="error">{error}</InlineMessage>
+    </DetailPage>
   );
 
-  if (!tyre) return <div className="min-h-screen flex items-center justify-center bg-gray-50">Tyre not found</div>;
+  if (!tyre)
+    return (
+      <DetailPage>
+        <div className="flex items-center gap-3">
+          <BackButton />
+          <h1 className="text-2xl font-semibold text-ink">Tyre</h1>
+        </div>
+        <InlineMessage tone="error">We couldn't find that tyre.</InlineMessage>
+      </DetailPage>
+    );
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      
-      {/* --- HEADER --- */}
-      <div className="bg-white border-b">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            
-            {/* Title Section */}
-            <div>
-              <div className="flex items-center gap-3">
-                {isEditing ? (
-                  <input 
-                    className="text-2xl font-bold text-gray-900 border-b-2 border-blue-500 focus:outline-none w-48 bg-transparent"
-                    value={editForm.tyreNumber}
-                    onChange={(e) => setEditForm({...editForm, tyreNumber: e.target.value})}
-                  />
-                ) : (
-                  <h1 className="text-2xl font-bold text-gray-900">{tyre.tyreNumber}</h1>
-                )}
-                
-                <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStatusBadgeColor(tyre.status)}`}>
-                  {tyre.status.toUpperCase()}
-                </span>
-              </div>
-              
-              <div className="text-sm text-gray-500 mt-1 flex gap-2 items-center">
-                {isEditing ? (
-                  <>
-                    <input 
-                      className="border rounded px-2 py-1 w-28 text-sm" placeholder="Brand"
-                      value={editForm.brand} onChange={e => setEditForm({...editForm, brand: e.target.value})} 
-                    />
-                    <input 
-                      className="border rounded px-2 py-1 w-28 text-sm" placeholder="Model"
-                      value={editForm.model} onChange={e => setEditForm({...editForm, model: e.target.value})} 
-                    />
-                    <span>-</span>
-                    <input 
-                      className="border rounded px-2 py-1 w-28 text-sm" placeholder="Size"
-                      value={editForm.size} onChange={e => setEditForm({...editForm, size: e.target.value})} 
-                    />
-                  </>
-                ) : (
-                  <p>{tyre.brand} {tyre.model} - {tyre.size}</p>
-                )}
-              </div>
+    <DetailPage>
+      <DetailHeader
+        title={
+          isEditing ? (
+            <input
+              className="w-48 border-b-2 border-accent bg-transparent text-2xl font-semibold text-ink focus:outline-none"
+              value={editForm.tyreNumber}
+              onChange={(e) => setEditForm({ ...editForm, tyreNumber: e.target.value })}
+              aria-label="Tyre number"
+            />
+          ) : (
+            <h1 className="text-2xl font-semibold break-all text-ink">{tyre.tyreNumber}</h1>
+          )
+        }
+        badge={
+          <StatusBadge tone={statusTone(tyre.status)}>{statusLabel(tyre.status)}</StatusBadge>
+        }
+        subtitle={
+          isEditing ? (
+            <div className="mt-1 flex flex-wrap gap-2">
+              <input
+                className={`${inputClasses} h-9 w-32`}
+                placeholder="Brand"
+                value={editForm.brand}
+                onChange={(e) => setEditForm({ ...editForm, brand: e.target.value })}
+                aria-label="Brand"
+              />
+              <input
+                className={`${inputClasses} h-9 w-32`}
+                placeholder="Model"
+                value={editForm.model}
+                onChange={(e) => setEditForm({ ...editForm, model: e.target.value })}
+                aria-label="Model"
+              />
+              <input
+                className={`${inputClasses} h-9 w-32`}
+                placeholder="Size"
+                value={editForm.size}
+                onChange={(e) => setEditForm({ ...editForm, size: e.target.value })}
+                aria-label="Size"
+              />
             </div>
-            
-            {/* Action Buttons */}
-            <div className="flex gap-3">
-              {isEditing ? (
-                <>
-                  <button 
-                    onClick={() => { setEditForm(tyre || {}); setIsEditing(false); }}
-                    disabled={isSaving}
-                    className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 flex items-center gap-2 transition-colors"
-                  >
-                    <FaTimes /> Cancel
-                  </button>
-                  <button 
-                    onClick={handleSaveDetails}
-                    disabled={isSaving}
-                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 transition-colors shadow-sm"
-                  >
-                    {isSaving ? <LoadingSpinner /> : <><FaSave /> Save Changes</>}
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button 
-                    onClick={() => navigate(-1)}
-                    className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                  >
-                    <FaArrowLeft />
-                  </button>
-                  <button 
-                    onClick={() => setIsEditing(true)}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2 shadow-sm transition-colors"
-                  >
-                    <FaEdit /> Edit Details
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
+          ) : (
+            `${tyre.brand} ${tyre.model} · ${tyre.size}`
+          )
+        }
+        actions={
+          isEditing ? (
+            <>
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setEditForm(tyre || {});
+                  setIsEditing(false);
+                }}
+                disabled={isSaving}
+              >
+                Cancel
+              </Button>
+              <Button onClick={handleSaveDetails} loading={isSaving}>
+                <FaSave className="h-3.5 w-3.5" />
+                Save changes
+              </Button>
+            </>
+          ) : (
+            <Button variant="secondary" onClick={() => setIsEditing(true)}>
+              <FaEdit className="h-3.5 w-3.5" />
+              Edit details
+            </Button>
+          )
+        }
+      />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+      <InlineMessage tone="error">{banner}</InlineMessage>
+
+      <div className="space-y-5">
         
         {/* --- DETAILS GRID --- */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           
           {/* 1. Tread Health Card (INLINE INSPECTION) */}
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 relative group">
+          <div className="rounded-card border border-hairline bg-surface p-5 shadow-[var(--shadow-raised)] relative group">
              <div className="flex justify-between items-start mb-4">
-                <div className="p-2 bg-blue-50 rounded-lg text-blue-600"><FaTools /></div>
+                <div className="p-2 bg-accent-soft rounded-control text-accent"><FaTools /></div>
                 <div className="flex flex-col items-end">
-                   <span className="text-xs font-medium text-gray-400 uppercase">Health</span>
+                   <span className="text-xs font-medium text-ink-quaternary uppercase">Health</span>
                    {!isInspecting && (
                      <button 
                        onClick={startInspection} 
-                       className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1 mt-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                       className="text-xs text-accent hover:text-accent-ink flex items-center gap-1 mt-1 opacity-0 group-hover:opacity-100 transition-opacity"
                      >
                        <FaPencilAlt size={10} /> Inspect
                      </button>
@@ -329,7 +314,7 @@ export default function TyreDetailsPage() {
                    <input 
                       type="number" 
                       autoFocus
-                      className="text-3xl font-bold text-gray-900 border-b-2 border-blue-500 w-24 focus:outline-none"
+                      className="text-3xl font-semibold text-ink border-b-2 border-accent w-24 focus:outline-none"
                       value={inspectDepth}
                       onChange={(e) => setInspectDepth(e.target.value)}
                       onKeyDown={(e) => {
@@ -337,13 +322,13 @@ export default function TyreDetailsPage() {
                          if(e.key === 'Escape') setIsInspecting(false);
                       }}
                    />
-                   <span className="text-base font-normal text-gray-500">mm</span>
+                   <span className="text-base font-normal text-ink-tertiary">mm</span>
                    
                    <div className="flex gap-1 ml-2">
                       <button 
                         onClick={handleSaveInspection} 
                         disabled={inspectSaving}
-                        className="p-2 bg-green-100 text-green-700 rounded hover:bg-green-200"
+                        className="p-2 bg-positive-soft text-positive-ink rounded-chip hover:bg-positive-soft"
                         title="Save Inspection"
                       >
                          {inspectSaving ? <LoadingSpinner /> : <FaCheck />}
@@ -351,7 +336,7 @@ export default function TyreDetailsPage() {
                       <button 
                         onClick={() => setIsInspecting(false)} 
                         disabled={inspectSaving}
-                        className="p-2 bg-gray-100 text-gray-600 rounded hover:bg-gray-200"
+                        className="p-2 bg-ink/6 text-ink-secondary rounded-chip hover:bg-ink/8"
                         title="Cancel"
                       >
                          <FaTimes />
@@ -360,100 +345,100 @@ export default function TyreDetailsPage() {
                 </div>
              ) : (
                 <div className="flex items-baseline gap-2 cursor-pointer group/value" onClick={startInspection} title="Click to inspect">
-                  <h3 className="text-3xl font-bold text-gray-900 group-hover/value:text-blue-600 transition-colors">
+                  <h3 className="text-3xl font-semibold text-ink group-hover/value:text-accent transition-colors">
                      {tyre.currentTreadDepth} 
                   </h3>
-                  <span className="text-base font-normal text-gray-500">mm</span>
-                  <FaPencilAlt className="text-gray-300 w-3 h-3 group-hover/value:text-blue-400" />
+                  <span className="text-base font-normal text-ink-tertiary">mm</span>
+                  <FaPencilAlt className="text-ink-quaternary w-3 h-3 group-hover/value:text-accent" />
                 </div>
              )}
              
              {/* Visual Progress Bar */}
-             <div className="w-full bg-gray-200 rounded-full h-2.5 mt-3">
+             <div className="w-full bg-ink/8 rounded-full h-2.5 mt-3">
                 <div 
-                  className={`h-2.5 rounded-full transition-all duration-500 ${tyre.currentTreadDepth < 3 ? 'bg-red-500' : tyre.currentTreadDepth < 8 ? 'bg-yellow-400' : 'bg-green-500'}`} 
+                  className={`h-2.5 rounded-full transition-all duration-500 ${tyre.currentTreadDepth < 3 ? 'bg-critical' : tyre.currentTreadDepth < 8 ? 'bg-caution' : 'bg-positive'}`} 
                   style={{ width: `${Math.min((tyre.currentTreadDepth / tyre.initialTreadDepth) * 100, 100)}%` }}
                 ></div>
              </div>
              
-             <div className="text-xs text-gray-500 mt-3 flex items-center gap-2">
+             <div className="text-xs text-ink-tertiary mt-3 flex items-center gap-2">
                 <span>Original Depth:</span>
                 <span className="font-medium">{tyre.initialTreadDepth}mm</span>
              </div>
           </div>
 
           {/* 2. Current Location */}
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+          <div className="rounded-card border border-hairline bg-surface p-5 shadow-[var(--shadow-raised)]">
              <div className="flex justify-between items-start mb-4">
-                <div className="p-2 bg-indigo-50 rounded-lg text-indigo-600"><FaTruck /></div>
-                <span className="text-xs font-medium text-gray-400 uppercase">Current Location</span>
+                <div className="p-2 bg-accent-soft rounded-control text-accent"><FaTruck /></div>
+                <span className="text-xs font-medium text-ink-quaternary uppercase">Current Location</span>
              </div>
              
              {tyre.status === "Mounted" && tyre.currentTruckId ? (
                <div>
-                 <h3 className="text-xl font-bold text-gray-900">{tyre.currentTruckId.registrationNumber}</h3>
-                 <p className="text-sm text-gray-600 mt-1">Position: <span className="font-semibold">{tyre.position}</span></p>
+                 <h3 className="text-base font-semibold text-ink">{tyre.currentTruckId.registrationNumber}</h3>
+                 <p className="text-sm text-ink-secondary mt-1">Position: <span className="font-semibold">{tyre.position}</span></p>
                  <button 
                     onClick={() => navigate(`/owner-home/mytrucks/${tyre.currentTruckId?.registrationNumber}`)}
-                    className="text-xs text-blue-600 hover:text-blue-800 mt-3 font-medium flex items-center gap-1"
+                    className="text-xs text-accent hover:text-accent-ink mt-3 font-medium flex items-center gap-1"
                  >
                     View Truck Details &rarr;
                  </button>
                </div>
              ) : (
                <div>
-                 <h3 className="text-xl font-bold text-gray-700">Inventory</h3>
-                 <p className="text-sm text-gray-500 mt-1">Ready for mounting</p>
+                 <h3 className="text-base font-semibold text-ink-secondary">Inventory</h3>
+                 <p className="text-sm text-ink-tertiary mt-1">Ready for mounting</p>
                </div>
              )}
           </div>
 
           {/* 3. Purchase Info */}
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+          <div className="rounded-card border border-hairline bg-surface p-5 shadow-[var(--shadow-raised)]">
              <div className="flex justify-between items-start mb-4">
-                <div className="p-2 bg-green-50 rounded-lg text-green-600"><FaCheckCircle /></div>
-                <span className="text-xs font-medium text-gray-400 uppercase">Purchase Info</span>
+                <div className="p-2 bg-positive-soft rounded-control text-positive-ink"><FaCheckCircle /></div>
+                <span className="text-xs font-medium text-ink-quaternary uppercase">Purchase Info</span>
              </div>
              
              <div className="space-y-3">
                 <div className="flex justify-between text-sm items-center">
-                   <span className="text-gray-500">Vendor:</span>
+                   <span className="text-ink-tertiary">Vendor:</span>
                    {isEditing ? (
                      <input 
-                       className="border rounded px-2 py-1 w-32 text-right text-sm"
+                       className={`${inputClassesCompact} w-32 text-right`}
                        value={editForm.vendorName}
                        onChange={(e) => setEditForm({...editForm, vendorName: e.target.value})}
                      />
                    ) : (
-                     <span className="font-medium text-gray-900">{tyre.vendorName || "N/A"}</span>
+                     <span className="font-medium text-ink">{tyre.vendorName || "N/A"}</span>
                    )}
                 </div>
 
                 <div className="flex justify-between text-sm items-center">
-                   <span className="text-gray-500">Date:</span>
+                   <span className="text-ink-tertiary">Date:</span>
                    {isEditing ? (
                      <input 
                        type="date"
-                       className="border rounded px-2 py-1 w-32 text-right text-sm"
+                       className={`${inputClassesCompact} w-32 text-right`}
                        value={editForm.purchaseDate ? new Date(editForm.purchaseDate).toISOString().split('T')[0] : ''}
                        onChange={(e) => setEditForm({...editForm, purchaseDate: e.target.value})}
                      />
                    ) : (
-                     <span className="font-medium text-gray-900">{new Date(tyre.purchaseDate).toLocaleDateString()}</span>
+                     <span className="font-medium text-ink">{new Date(tyre.purchaseDate).toLocaleDateString()}</span>
                    )}
                 </div>
 
                 <div className="flex justify-between text-sm items-center">
-                   <span className="text-gray-500">Price:</span>
+                   <span className="text-ink-tertiary">Price:</span>
                    {isEditing ? (
                      <input 
                        type="number"
-                       className="border rounded px-2 py-1 w-32 text-right text-sm"
+                       className={`${inputClassesCompact} w-32 text-right`}
                        value={editForm.purchasePrice}
                        onChange={(e) => setEditForm({...editForm, purchasePrice: Number(e.target.value)})}
                      />
                    ) : (
-                     <span className="font-medium text-gray-900">₹{tyre.purchasePrice?.toLocaleString()}</span>
+                     <span className="font-medium text-ink">₹{tyre.purchasePrice?.toLocaleString()}</span>
                    )}
                 </div>
              </div>
@@ -461,58 +446,58 @@ export default function TyreDetailsPage() {
         </div>
 
         {/* --- HISTORY LOG --- */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
-             <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-               <FaHistory className="text-gray-400" /> Activity Log
+        <div className="rounded-card border border-hairline bg-surface shadow-[var(--shadow-raised)] overflow-hidden">
+          <div className="px-6 py-4 border-b border-hairline flex justify-between items-center">
+             <h3 className="text-lg font-semibold text-ink flex items-center gap-2">
+               <FaHistory className="text-ink-quaternary" /> Activity Log
              </h3>
           </div>
           
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-hairline">
+              <thead className="bg-canvas-sunken">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Related Truck</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Odometer</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Notes</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-ink-tertiary uppercase tracking-wider">Date</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-ink-tertiary uppercase tracking-wider">Action</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-ink-tertiary uppercase tracking-wider">Related Truck</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-ink-tertiary uppercase tracking-wider">Odometer</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-ink-tertiary uppercase tracking-wider">Notes</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-surface divide-y divide-hairline">
                 {tyre.history && tyre.history.length > 0 ? (
                   [...tyre.history].reverse().map((log, idx) => (
-                    <tr key={idx} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                    <tr key={idx} className="hover:bg-canvas-sunken transition-colors">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-ink-secondary">
                         {new Date(log.date).toLocaleDateString()}
-                        <div className="text-xs text-gray-400">{new Date(log.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+                        <div className="text-xs text-ink-quaternary">{new Date(log.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                          <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
-                            ${log.action === 'Installed' ? 'bg-blue-100 text-blue-800' : 
-                              log.action === 'Dismounted' ? 'bg-orange-100 text-orange-800' : 
-                              log.action === 'Inspection' ? 'bg-purple-100 text-purple-800' :
-                              'bg-gray-100 text-gray-800'}`}>
+                            ${log.action === 'Installed' ? 'bg-accent-soft text-accent-ink' : 
+                              log.action === 'Dismounted' ? 'bg-caution-soft text-caution-ink' : 
+                              log.action === 'Inspection' ? 'bg-ink/6 text-ink' :
+                              'bg-ink/6 text-ink'}`}>
                            {log.action}
                          </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-ink">
                         {log.truckId ? 
                           (typeof log.truckId === 'object' ? log.truckId.registrationNumber : "Truck ID: " + log.truckId) 
                           : "-"
                         }
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-ink-secondary">
                         {log.kmAtAction ? `${log.kmAtAction.toLocaleString()} km` : "-"}
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate" title={log.notes}>
+                      <td className="px-6 py-4 text-sm text-ink-tertiary max-w-xs truncate" title={log.notes}>
                         {log.notes || "-"}
                       </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={5} className="px-6 py-8 text-center text-sm text-gray-500">
+                    <td colSpan={5} className="px-6 py-8 text-center text-sm text-ink-tertiary">
                       No history available for this tyre.
                     </td>
                   </tr>
@@ -523,6 +508,6 @@ export default function TyreDetailsPage() {
         </div>
 
       </div>
-    </div>
+    </DetailPage>
   );
 }

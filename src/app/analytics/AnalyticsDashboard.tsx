@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { FaArrowTrendUp, FaRoute, FaTruck, FaUserTie } from "react-icons/fa6";
 import { useLocation, useNavigate } from "react-router-dom";
+import type { IconType } from "react-icons";
 import { AnalyticsAPI } from "../../api/analytics.api";
-import {
+import type {
   DriverAnalytics,
   DriverRouteAnalytics,
   RouteAnalytics,
@@ -12,6 +13,11 @@ import DriverAnalyticsTable from "./components/DriverAnalyticsTable";
 import DriverRouteAnalyticsTable from "./components/DriverRouteAnalyticsTable";
 import RouteAnalyticsTable from "./components/RouteAnalyticsTable";
 import TruckAnalyticsTable from "./components/TruckAnalyticsTable";
+import { PageHeader } from "../../components/ui/PageHeader";
+import { InlineMessage } from "../../components/ui/InlineMessage";
+import { SegmentedControl, type Segment } from "../../components/ui/SegmentedControl";
+import { RevealGroup, RevealItem } from "../../motion/Reveal";
+import { cn } from "../../utils/cn";
 
 type AnalyticsResponseTuple = [
   TruckAnalytics[],
@@ -20,51 +26,78 @@ type AnalyticsResponseTuple = [
   DriverRouteAnalytics[],
 ];
 
-function formatCurrency(value: number) {
-  return `Rs ${value.toLocaleString()}`;
-}
+const formatCurrency = (value: number) => `₹${value.toLocaleString("en-IN")}`;
+const formatDistance = (value: number) => `${value.toLocaleString("en-IN")} km`;
+const formatHours = (value: number) => `${value.toFixed(1)} hrs`;
 
-function formatDistance(value: number) {
-  return `${value.toLocaleString()} km`;
-}
+const profitTone = (value: number) => (value >= 0 ? "text-positive-ink" : "text-critical-ink");
 
-function formatHours(value: number) {
-  return `${value.toFixed(1)} hrs`;
-}
-
-function getProfitTone(value: number) {
-  return value >= 0 ? "text-emerald-600" : "text-red-600";
-}
+type SectionId =
+  | "analytics-overview"
+  | "fleet-analytics"
+  | "route-analytics"
+  | "driver-analytics"
+  | "driver-route-analytics";
 
 function SectionCard({
   id,
   title,
   subtitle,
-  accentClass,
   meta,
   children,
 }: {
-  id: string;
+  id: SectionId;
   title: string;
   subtitle: string;
-  accentClass: string;
   meta?: string;
   children: React.ReactNode;
 }) {
   return (
-    <section id={id} className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-      <div className={`h-1.5 ${accentClass}`} />
-      <div className="border-b border-gray-100 px-6 py-5">
-        <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
-          <div>
-            <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
-            <p className="text-sm text-gray-500">{subtitle}</p>
-          </div>
-          {meta ? <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">{meta}</span> : null}
+    /* `scroll-mt` replaces the old hand-computed 120px header offset in a
+       `window.scrollTo` — the browser now handles the anchor itself, and it
+       stays correct when the header height changes. */
+    <section id={id} className="scroll-mt-28 space-y-3">
+      <div className="flex flex-col gap-1 md:flex-row md:items-baseline md:justify-between">
+        <div>
+          <h2 className="text-lg font-semibold text-ink">{title}</h2>
+          <p className="text-sm text-ink-secondary">{subtitle}</p>
         </div>
+        {meta ? (
+          <span className="text-caption text-xs font-semibold uppercase text-ink-tertiary">
+            {meta}
+          </span>
+        ) : null}
       </div>
       {children}
     </section>
+  );
+}
+
+function HighlightCard({
+  label,
+  icon: Icon,
+  headline,
+  value,
+  tone,
+  note,
+}: {
+  label: string;
+  icon: IconType;
+  headline: string;
+  value: string;
+  tone?: string;
+  note: string;
+}) {
+  return (
+    <div className="h-full rounded-card border border-hairline bg-surface p-5 shadow-[var(--shadow-raised)]">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-caption text-sm text-ink-secondary">{label}</p>
+        <Icon className="h-4 w-4 shrink-0 text-ink-quaternary" />
+      </div>
+      <p className="mt-3 truncate text-base font-semibold text-ink">{headline}</p>
+      <p className={cn("mt-1 text-lg font-semibold tabular-nums", tone ?? "text-ink")}>{value}</p>
+      <p className="mt-1 text-xs text-ink-tertiary">{note}</p>
+    </div>
   );
 }
 
@@ -90,13 +123,13 @@ export default function AnalyticsDashboard() {
           AnalyticsAPI.getDriverRouteAnalytics(),
         ])) as unknown as AnalyticsResponseTuple;
 
-        setTrucks(trucksRes);
-        setRoutes(routesRes);
-        setDrivers(driversRes);
-        setDriverRoutes(driverRoutesRes);
+        setTrucks(trucksRes ?? []);
+        setRoutes(routesRes ?? []);
+        setDrivers(driversRes ?? []);
+        setDriverRoutes(driverRoutesRes ?? []);
       } catch (loadError) {
         console.error("Failed to load analytics:", loadError);
-        setError("Analytics data could not be loaded right now.");
+        setError("Analytics could not be loaded right now. Please try again.");
       } finally {
         setLoading(false);
       }
@@ -106,269 +139,210 @@ export default function AnalyticsDashboard() {
   }, []);
 
   useEffect(() => {
-    if (!location.hash) return;
-
-    const id = location.hash.replace("#", "");
-    const scrollToSection = () => {
-      const element = document.getElementById(id);
-      if (!element) return;
-
-      const headerOffset = 120;
-      const elementTop = element.getBoundingClientRect().top + window.scrollY;
-      window.scrollTo({
-        top: Math.max(0, elementTop - headerOffset),
-        behavior: "smooth",
-      });
-    };
-
-    const frame = window.requestAnimationFrame(scrollToSection);
-    return () => window.cancelAnimationFrame(frame);
+    if (!location.hash || loading) return;
+    const element = document.getElementById(location.hash.replace("#", ""));
+    element?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [location.hash, loading]);
 
   const overview = useMemo(() => {
-    const totalTrips = routes.reduce((sum, route) => sum + route.totalTrips, 0);
-    const totalRevenue = routes.reduce((sum, route) => sum + route.totalRevenue, 0);
-    const totalExpense = routes.reduce((sum, route) => sum + route.totalExpense, 0);
-    const totalProfit = routes.reduce((sum, route) => sum + route.profit, 0);
-    const totalDistance = routes.reduce((sum, route) => sum + route.totalDistance, 0);
-
-    const topTruck = [...trucks].sort((a, b) => b.profit - a.profit)[0];
-    const topRoute = [...routes].sort((a, b) => b.profitPerKm - a.profitPerKm)[0];
-    const topDriver = [...drivers].sort((a, b) => b.profit - a.profit)[0];
-    const topDriverRoute = [...driverRoutes].sort((a, b) => b.profit - a.profit)[0];
+    const sum = (key: keyof RouteAnalytics) =>
+      routes.reduce((total, route) => total + (Number(route[key]) || 0), 0);
 
     return {
-      totalTrips,
-      totalRevenue,
-      totalExpense,
-      totalProfit,
-      totalDistance,
-      topTruck,
-      topRoute,
-      topDriver,
-      topDriverRoute,
+      totalTrips: sum("totalTrips"),
+      totalRevenue: sum("totalRevenue"),
+      totalExpense: sum("totalExpense"),
+      totalProfit: sum("profit"),
+      totalDistance: sum("totalDistance"),
+      topTruck: [...trucks].sort((a, b) => b.profit - a.profit)[0],
+      topRoute: [...routes].sort((a, b) => b.profitPerKm - a.profitPerKm)[0],
+      topDriver: [...drivers].sort((a, b) => b.profit - a.profit)[0],
+      topDriverRoute: [...driverRoutes].sort((a, b) => b.profit - a.profit)[0],
     };
   }, [driverRoutes, drivers, routes, trucks]);
 
-  const navItems = [
-    { label: "Overview", href: "#analytics-overview" },
-    { label: "Fleet", href: "#fleet-analytics" },
-    { label: "Routes", href: "#route-analytics" },
-    { label: "Drivers", href: "#driver-analytics" },
-    { label: "Driver x Route", href: "#driver-route-analytics" },
+  const sections: Segment<SectionId>[] = [
+    { label: "Overview", value: "analytics-overview" },
+    { label: "Fleet", value: "fleet-analytics" },
+    { label: "Routes", value: "route-analytics" },
+    { label: "Drivers", value: "driver-analytics" },
+    { label: "Driver × route", value: "driver-route-analytics" },
   ];
 
-  const handleAnchorClick = (hash: string) => {
-    navigate({ hash });
-  };
+  const activeSection = (location.hash.replace("#", "") || "analytics-overview") as SectionId;
 
   if (loading) {
     return (
-      <div className="space-y-6 p-6">
-        <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm">
-          <div className="h-4 w-32 animate-pulse rounded bg-gray-200" />
-          <div className="mt-4 h-10 w-72 animate-pulse rounded bg-gray-200" />
-          <div className="mt-3 h-4 w-full max-w-2xl animate-pulse rounded bg-gray-100" />
-        </div>
+      <div className="mx-auto max-w-7xl space-y-5">
+        <div className="h-9 w-56 animate-pulse rounded-chip bg-ink/8" />
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
           {[...Array(4)].map((_, index) => (
-            <div key={index} className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-              <div className="h-4 w-24 animate-pulse rounded bg-gray-200" />
-              <div className="mt-4 h-8 w-32 animate-pulse rounded bg-gray-200" />
-              <div className="mt-3 h-3 w-24 animate-pulse rounded bg-gray-100" />
-            </div>
+            <div key={index} className="h-40 animate-pulse rounded-card bg-ink/6" />
           ))}
         </div>
-        <div className="rounded-2xl border border-gray-200 bg-white p-10 text-center text-gray-500 shadow-sm">
-          Loading analytics...
-        </div>
+        <div className="h-64 animate-pulse rounded-card bg-ink/6" />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="p-6">
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-red-700">
-          <h1 className="text-xl font-semibold">Analytics unavailable</h1>
-          <p className="mt-2 text-sm">{error}</p>
-        </div>
+      <div className="mx-auto max-w-7xl space-y-5">
+        <PageHeader title="Analytics" />
+        <InlineMessage tone="error">{error}</InlineMessage>
       </div>
     );
   }
 
+  const margin =
+    overview.totalRevenue > 0
+      ? `${Math.max(0, (overview.totalProfit / overview.totalRevenue) * 100).toFixed(1)}%`
+      : "0%";
+
   return (
-    <div className="space-y-6 p-4 md:p-6">
-      <section id="analytics-overview" className="overflow-hidden rounded-[28px] border border-gray-200 bg-white shadow-sm">
-        <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-cyan-900 px-6 py-8 text-white md:px-8">
-          <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
-            <div className="max-w-3xl">
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-200">FleetWise Analytics</p>
-              <h1 className="mt-3 text-3xl font-semibold tracking-tight md:text-4xl">
-                Operational insight for trucks, routes, and driver performance
-              </h1>
-              <p className="mt-3 text-sm text-slate-200 md:text-base">
-                Use this page to spot your most profitable fleet assets, compare route efficiency, and see where driver performance is helping or hurting margins.
+    <div className="mx-auto max-w-7xl space-y-6">
+      {/* The old header was a dark cyan gradient hero with four glass tiles on
+          it — a second, competing design language bolted onto one page. The
+          numbers are the same; they now live in the same kind of tile as
+          every other number in the app. */}
+      <PageHeader
+        title="Analytics"
+        description="Where your margin actually comes from — by truck, route and driver."
+      />
+
+      <div className="sticky top-16 z-10 -mx-1 px-1 py-2">
+        <SegmentedControl
+          segments={sections}
+          value={activeSection}
+          onChange={(id) => navigate({ hash: `#${id}` })}
+          className="material-thin shadow-[var(--shadow-hairline)] ring-1 ring-hairline"
+        />
+      </div>
+
+      <section id="analytics-overview" className="scroll-mt-28 space-y-4">
+        <RevealGroup className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <RevealItem>
+            <div className="h-full rounded-card border border-hairline bg-surface p-5 shadow-[var(--shadow-raised)]">
+              <p className="text-caption text-sm text-ink-secondary">Trips</p>
+              <p className="mt-1 text-2xl font-semibold tabular-nums tracking-[-0.02em] text-ink">
+                {overview.totalTrips.toLocaleString("en-IN")}
               </p>
+              <p className="mt-1 text-xs text-ink-tertiary">{routes.length} route patterns</p>
             </div>
-
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:min-w-[520px]">
-              {[
-                {
-                  label: "Trips",
-                  value: overview.totalTrips.toLocaleString(),
-                  note: `${routes.length} active route patterns`,
-                },
-                {
-                  label: "Revenue",
-                  value: formatCurrency(overview.totalRevenue),
-                  note: "Across tracked analytics",
-                },
-                {
-                  label: "Profit",
-                  value: formatCurrency(overview.totalProfit),
-                  note: "After recorded expenses",
-                },
-                {
-                  label: "Distance",
-                  value: formatDistance(overview.totalDistance),
-                  note: "All completed route mileage",
-                },
-              ].map((item) => (
-                <div key={item.label} className="rounded-2xl bg-white/10 p-4 backdrop-blur-sm">
-                  <p className="text-xs uppercase tracking-wide text-slate-300">{item.label}</p>
-                  <p className="mt-2 text-xl font-semibold text-white">{item.value}</p>
-                  <p className="mt-1 text-xs text-slate-300">{item.note}</p>
-                </div>
-              ))}
+          </RevealItem>
+          <RevealItem>
+            <div className="h-full rounded-card border border-hairline bg-surface p-5 shadow-[var(--shadow-raised)]">
+              <p className="text-caption text-sm text-ink-secondary">Revenue</p>
+              <p className="mt-1 truncate text-2xl font-semibold tabular-nums tracking-[-0.02em] text-ink">
+                {formatCurrency(overview.totalRevenue)}
+              </p>
+              <p className="mt-1 text-xs text-ink-tertiary">Across tracked trips</p>
             </div>
-          </div>
-        </div>
-
-        <div className="border-t border-white/10 bg-slate-50 px-6 py-4 md:px-8">
-          <div className="flex flex-wrap gap-3">
-            {navItems.map((item) => (
-              <button
-                key={item.href}
-                type="button"
-                onClick={() => handleAnchorClick(item.href)}
-                className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-600 transition hover:border-cyan-300 hover:text-cyan-700"
+          </RevealItem>
+          <RevealItem>
+            <div className="h-full rounded-card border border-hairline bg-surface p-5 shadow-[var(--shadow-raised)]">
+              <p className="text-caption text-sm text-ink-secondary">Profit</p>
+              <p
+                className={cn(
+                  "mt-1 truncate text-2xl font-semibold tabular-nums tracking-[-0.02em]",
+                  profitTone(overview.totalProfit)
+                )}
               >
-                {item.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-medium text-gray-500">Best Truck by Profit</p>
-            <FaTruck className="text-slate-400" />
-          </div>
-          <p className="mt-4 text-lg font-semibold text-gray-900">{overview.topTruck?._id ?? "No truck data"}</p>
-          <p className={`mt-2 text-sm font-semibold ${getProfitTone(overview.topTruck?.profit ?? 0)}`}>
-            {overview.topTruck ? formatCurrency(overview.topTruck.profit) : "No profit data"}
-          </p>
-          <p className="mt-1 text-xs text-gray-500">
-            {overview.topTruck ? `${overview.topTruck.totalTrips} trips tracked` : "Add trip history to unlock this insight"}
-          </p>
-        </div>
-
-        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-medium text-gray-500">Strongest Route Margin</p>
-            <FaRoute className="text-slate-400" />
-          </div>
-          <p className="mt-4 text-lg font-semibold text-gray-900">{overview.topRoute?.route ?? "No route data"}</p>
-          <p className={`mt-2 text-sm font-semibold ${getProfitTone(overview.topRoute?.profitPerKm ?? 0)}`}>
-            {overview.topRoute ? `Rs ${overview.topRoute.profitPerKm.toFixed(2)} / km` : "No margin data"}
-          </p>
-          <p className="mt-1 text-xs text-gray-500">
-            {overview.topRoute ? `${overview.topRoute.totalTrips} trips on this lane` : "Route analytics will appear here"}
-          </p>
-        </div>
-
-        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-medium text-gray-500">Top Driver Contribution</p>
-            <FaUserTie className="text-slate-400" />
-          </div>
-          <p className="mt-4 text-lg font-semibold text-gray-900">
-            {overview.topDriver ? `${overview.topDriver.driver.firstName} ${overview.topDriver.driver.lastName}` : "No driver data"}
-          </p>
-          <p className={`mt-2 text-sm font-semibold ${getProfitTone(overview.topDriver?.profit ?? 0)}`}>
-            {overview.topDriver ? formatCurrency(overview.topDriver.profit) : "No profit data"}
-          </p>
-          <p className="mt-1 text-xs text-gray-500">
-            {overview.topDriver ? `${formatHours(overview.topDriver.avgTripDurationHours)} average trip time` : "Driver insights will appear here"}
-          </p>
-        </div>
-
-        <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-medium text-gray-500">Highest Driver x Route Pair</p>
-            <FaArrowTrendUp className="text-slate-400" />
-          </div>
-          <p className="mt-4 text-lg font-semibold text-gray-900">
-            {overview.topDriverRoute ? `${overview.topDriverRoute.driver.firstName} on ${overview.topDriverRoute.route}` : "No pair data"}
-          </p>
-          <p className={`mt-2 text-sm font-semibold ${getProfitTone(overview.topDriverRoute?.profit ?? 0)}`}>
-            {overview.topDriverRoute ? formatCurrency(overview.topDriverRoute.profit) : "No pair profit data"}
-          </p>
-          <p className="mt-1 text-xs text-gray-500">
-            {overview.topDriverRoute ? `${overview.topDriverRoute.totalTrips} trips in this combination` : "Driver-route trends will appear here"}
-          </p>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.4fr_0.9fr]">
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-gray-900">What to focus on next</h2>
-          <div className="mt-4 grid gap-3 md:grid-cols-3">
-            <div className="rounded-xl bg-slate-50 p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Margin health</p>
-              <p className={`mt-2 text-lg font-semibold ${getProfitTone(overview.totalProfit)}`}>{formatCurrency(overview.totalProfit)}</p>
-              <p className="mt-1 text-sm text-gray-500">Total profit across the analyzed fleet period.</p>
-            </div>
-            <div className="rounded-xl bg-slate-50 p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Revenue coverage</p>
-              <p className="mt-2 text-lg font-semibold text-gray-900">
-                {overview.totalRevenue > 0 ? `${Math.max(0, ((overview.totalProfit / overview.totalRevenue) * 100)).toFixed(1)}%` : "0%"}
+                {formatCurrency(overview.totalProfit)}
               </p>
-              <p className="mt-1 text-sm text-gray-500">Share of revenue retained after expenses.</p>
+              <p className="mt-1 text-xs text-ink-tertiary">{margin} of revenue kept</p>
             </div>
-            <div className="rounded-xl bg-slate-50 p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Network footprint</p>
-              <p className="mt-2 text-lg font-semibold text-gray-900">{routes.length} routes</p>
-              <p className="mt-1 text-sm text-gray-500">Distinct route lanes with analytics history.</p>
+          </RevealItem>
+          <RevealItem>
+            <div className="h-full rounded-card border border-hairline bg-surface p-5 shadow-[var(--shadow-raised)]">
+              <p className="text-caption text-sm text-ink-secondary">Distance</p>
+              <p className="mt-1 truncate text-2xl font-semibold tabular-nums tracking-[-0.02em] text-ink">
+                {formatDistance(overview.totalDistance)}
+              </p>
+              <p className="mt-1 text-xs text-ink-tertiary">Completed mileage</p>
             </div>
-          </div>
-        </div>
+          </RevealItem>
+        </RevealGroup>
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-gray-900">Quick reading guide</h2>
-          <div className="mt-4 space-y-3 text-sm text-gray-600">
-            <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-3">
-              Positive profit and profit per km indicate healthier lanes and asset usage.
-            </div>
-            <div className="rounded-xl border border-amber-100 bg-amber-50 p-3">
-              Compare cost per km across trucks and drivers to spot inefficient trip execution.
-            </div>
-            <div className="rounded-xl border border-sky-100 bg-sky-50 p-3">
-              Use the driver x route section to assign the right driver to the right lane.
-            </div>
-          </div>
-        </div>
-      </div>
+        <RevealGroup className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <RevealItem className="h-full">
+            <HighlightCard
+              label="Best truck by profit"
+              icon={FaTruck}
+              headline={overview.topTruck?._id ?? "No truck data"}
+              value={overview.topTruck ? formatCurrency(overview.topTruck.profit) : "—"}
+              tone={overview.topTruck ? profitTone(overview.topTruck.profit) : undefined}
+              note={
+                overview.topTruck
+                  ? `${overview.topTruck.totalTrips} trips tracked`
+                  : "Add trip history to unlock this"
+              }
+            />
+          </RevealItem>
+          <RevealItem className="h-full">
+            <HighlightCard
+              label="Strongest route margin"
+              icon={FaRoute}
+              headline={overview.topRoute?.route ?? "No route data"}
+              value={
+                overview.topRoute ? `₹${overview.topRoute.profitPerKm.toFixed(2)} / km` : "—"
+              }
+              tone={overview.topRoute ? profitTone(overview.topRoute.profitPerKm) : undefined}
+              note={
+                overview.topRoute
+                  ? `${overview.topRoute.totalTrips} trips on this lane`
+                  : "Route analytics will appear here"
+              }
+            />
+          </RevealItem>
+          <RevealItem className="h-full">
+            <HighlightCard
+              label="Top driver contribution"
+              icon={FaUserTie}
+              headline={
+                overview.topDriver
+                  ? `${overview.topDriver.driver.firstName} ${overview.topDriver.driver.lastName}`
+                  : "No driver data"
+              }
+              value={overview.topDriver ? formatCurrency(overview.topDriver.profit) : "—"}
+              tone={overview.topDriver ? profitTone(overview.topDriver.profit) : undefined}
+              note={
+                overview.topDriver
+                  ? `${formatHours(overview.topDriver.avgTripDurationHours)} average trip`
+                  : "Driver insights will appear here"
+              }
+            />
+          </RevealItem>
+          <RevealItem className="h-full">
+            <HighlightCard
+              label="Best driver × route pair"
+              icon={FaArrowTrendUp}
+              headline={
+                overview.topDriverRoute
+                  ? `${overview.topDriverRoute.driver.firstName} · ${overview.topDriverRoute.route}`
+                  : "No pair data"
+              }
+              value={
+                overview.topDriverRoute ? formatCurrency(overview.topDriverRoute.profit) : "—"
+              }
+              tone={
+                overview.topDriverRoute ? profitTone(overview.topDriverRoute.profit) : undefined
+              }
+              note={
+                overview.topDriverRoute
+                  ? `${overview.topDriverRoute.totalTrips} trips together`
+                  : "Driver-route trends will appear here"
+              }
+            />
+          </RevealItem>
+        </RevealGroup>
+      </section>
 
       <SectionCard
         id="fleet-analytics"
         title="Fleet performance"
-        subtitle="Compare truck-level productivity, earnings, and cost efficiency."
-        accentClass="bg-cyan-500"
-        meta={`${trucks.length} trucks tracked`}
+        subtitle="Truck-level productivity, earnings and cost efficiency."
+        meta={`${trucks.length} trucks`}
       >
         <TruckAnalyticsTable data={trucks} />
       </SectionCard>
@@ -376,9 +350,8 @@ export default function AnalyticsDashboard() {
       <SectionCard
         id="route-analytics"
         title="Route performance"
-        subtitle="See which routes produce healthy margins and which lanes need closer review."
-        accentClass="bg-blue-500"
-        meta={`${routes.length} route corridors`}
+        subtitle="Which lanes produce healthy margins, and which need review."
+        meta={`${routes.length} routes`}
       >
         <RouteAnalyticsTable data={routes} />
       </SectionCard>
@@ -386,9 +359,8 @@ export default function AnalyticsDashboard() {
       <SectionCard
         id="driver-analytics"
         title="Driver contribution"
-        subtitle="Understand workload, profitability, and average trip duration per driver."
-        accentClass="bg-emerald-500"
-        meta={`${drivers.length} driver profiles`}
+        subtitle="Workload, profitability and average trip duration per driver."
+        meta={`${drivers.length} drivers`}
       >
         <DriverAnalyticsTable data={drivers} />
       </SectionCard>
@@ -396,9 +368,8 @@ export default function AnalyticsDashboard() {
       <SectionCard
         id="driver-route-analytics"
         title="Driver and route combinations"
-        subtitle="Identify which driver-route pairings create the strongest operational outcomes."
-        accentClass="bg-amber-400"
-        meta={`${driverRoutes.length} route assignments`}
+        subtitle="Which pairings create the strongest operational outcomes."
+        meta={`${driverRoutes.length} assignments`}
       >
         <DriverRouteAnalyticsTable data={driverRoutes} />
       </SectionCard>

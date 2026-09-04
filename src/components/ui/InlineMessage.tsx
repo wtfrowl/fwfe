@@ -1,12 +1,23 @@
-import { ReactNode } from "react";
+import type { ReactNode } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { ease } from "../../motion/springs";
 import { cn } from "../../utils/cn";
 
 const toneClasses = {
-  error: "border-rose-200 bg-rose-50 text-rose-700",
-  info: "border-sky-200 bg-sky-50 text-sky-700",
-  success: "border-emerald-200 bg-emerald-50 text-emerald-700",
+  error: "border-critical/25 bg-critical-soft text-critical-ink",
+  info: "border-accent/20 bg-accent-soft text-accent-ink",
+  success: "border-positive/25 bg-positive-soft text-positive-ink",
 };
 
+/**
+ * Validation and status feedback, animated on presence.
+ *
+ * The height animation matters more than the fade: an error that pops into
+ * existence shoves the form down under the user's cursor mid-interaction.
+ * Growing into place keeps the layout predictable.
+ *
+ * Errors announce themselves assertively; info and success do not interrupt.
+ */
 export function InlineMessage({
   children,
   tone = "info",
@@ -16,9 +27,30 @@ export function InlineMessage({
   tone?: keyof typeof toneClasses;
   className?: string;
 }) {
+  const reduced = useReducedMotion();
+
   return (
-    <div className={cn("rounded-xl border px-4 py-3 text-sm", toneClasses[tone], className)}>
-      {children}
-    </div>
+    <AnimatePresence initial={false}>
+      {children ? (
+        <motion.div
+          role={tone === "error" ? "alert" : "status"}
+          initial={reduced ? { opacity: 0 } : { opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: "auto" }}
+          exit={reduced ? { opacity: 0 } : { opacity: 0, height: 0 }}
+          transition={ease.enter}
+          className="overflow-hidden"
+        >
+          <div
+            className={cn(
+              "rounded-control border px-4 py-3 text-sm leading-relaxed",
+              toneClasses[tone],
+              className
+            )}
+          >
+            {children}
+          </div>
+        </motion.div>
+      ) : null}
+    </AnimatePresence>
   );
 }

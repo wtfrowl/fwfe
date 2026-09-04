@@ -1,36 +1,67 @@
-import { FiUser, FiLock, FiBell, FiShield } from "react-icons/fi"
+import { useId } from "react";
+import { FiUser, FiLock, FiRadio } from "react-icons/fi";
+import { motion, useReducedMotion } from "motion/react";
+import { spring } from "../../../motion/springs";
+import { cn } from "../../../utils/cn";
+
+export type ProfileTab = "profile" | "password" | "shift";
 
 interface SidebarProps {
-  activeTab: string
-  setActiveTab: (tab: string) => void
+  activeTab: ProfileTab;
+  setActiveTab: (tab: ProfileTab) => void;
+  showShift?: boolean;
 }
 
-export function Sidebar({ activeTab, setActiveTab }: SidebarProps) {
+/**
+ * The "Notifications" and "Verification" tabs both rendered the same
+ * unstyled driver-tracking debug panel and nothing else, so two of the four
+ * tabs led nowhere. They are replaced by one honest "Shift" tab, shown only
+ * to drivers, who are the only people it applies to.
+ */
+export function Sidebar({ activeTab, setActiveTab, showShift = false }: SidebarProps) {
+  const reduced = useReducedMotion();
+  const layoutId = `profile-tab-${useId()}`;
+
   const tabs = [
-    { id: "profile", icon: FiUser, label: "Profile Settings" },
-    { id: "password", icon: FiLock, label: "Password" },
-    { id: "notifications", icon: FiBell, label: "Notifications" },
-    { id: "verification", icon: FiShield, label: "Verification" },
-  ]
+    { id: "profile" as const, icon: FiUser, label: "Profile" },
+    { id: "password" as const, icon: FiLock, label: "Password" },
+    ...(showShift ? [{ id: "shift" as const, icon: FiRadio, label: "Shift" }] : []),
+  ];
 
   return (
-    <div className="w-full md:w-64 bg-white shadow-sm p-4 md:p-6">
-      <h2 className="text-xl font-semibold mb-4 md:mb-6">Account settings</h2>
-      <nav className="flex md:flex-col space-x-2 md:space-x-0 md:space-y-2 overflow-x-auto md:overflow-x-visible">
-        {tabs.map((tab) => (
-          <button
+    <nav
+      className="scrollbar-hide flex gap-1 overflow-x-auto rounded-card bg-ink/10 p-1.5 md:w-56 md:shrink-0 md:flex-col md:gap-0.5"
+      role="tablist"
+    >
+      {tabs.map((tab) => {
+        const active = activeTab === tab.id;
+        return (
+          <motion.button
             key={tab.id}
+            role="tab"
+            type="button"
+            aria-selected={active}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center justify-center md:justify-start space-x-2 w-full p-2 md:p-3 rounded-lg text-sm md:text-base whitespace-nowrap ${
-              activeTab === tab.id ? "bg-blue-50 text-blue-600" : "text-gray-600"
-            }`}
+            className={cn(
+              "relative flex shrink-0 items-center gap-2.5 rounded-control px-3 py-2.5",
+              "text-sm font-semibold whitespace-nowrap transition-colors duration-150 md:w-full",
+              active ? "text-ink" : "text-ink-tertiary hover:text-ink-secondary"
+            )}
+            whileTap={reduced ? { opacity: 0.7 } : { scale: 0.98 }}
+            transition={spring.snappy}
           >
-            <tab.icon className="w-5 h-5" />
-            <span className="hidden md:inline">{tab.label}</span>
-          </button>
-        ))}
-      </nav>
-    </div>
-  )
+            {active && (
+              <motion.span
+                layoutId={layoutId}
+                className="absolute inset-0 -z-10 rounded-control bg-surface shadow-[var(--shadow-key)] ring-1 ring-hairline-strong"
+                transition={spring.move}
+              />
+            )}
+            <tab.icon className="h-4 w-4 shrink-0" />
+            {tab.label}
+          </motion.button>
+        );
+      })}
+    </nav>
+  );
 }
-

@@ -1,5 +1,21 @@
 import { useState } from "react";
 import { addTruck } from "../../../api";
+import { Sheet } from "../../../motion/Sheet";
+import { Button } from "../../../components/ui/Button";
+import { FormField } from "../../../components/ui/FormField";
+import { inputClasses } from "../../../components/ui/inputStyles";
+import { InlineMessage } from "../../../components/ui/InlineMessage";
+
+const EMPTY = {
+  registrationNumber: "",
+  model: "",
+  capacity: "",
+  lastMaintenance: "",
+  currentLat: "",
+  currentLng: "",
+  availableFrom: "",
+  availableTill: "",
+};
 
 export const AddTruckModal = ({
   isOpen,
@@ -10,114 +26,176 @@ export const AddTruckModal = ({
   onClose: () => void;
   onTruckAdded: () => void;
 }) => {
-  const [form, setForm] = useState({
-    registrationNumber: "",
-    model: "",
-    capacity: "",
-    lastMaintenance: "",
-    status: "Available",
-    currentLat: "",
-    currentLng: "",
-    availableFrom: "",
-    availableTill: "",
-  });
-
+  const [form, setForm] = useState(EMPTY);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const handleSubmit = async () => {
+  const handleClose = () => {
+    /* Reset on close so reopening does not present the last attempt's values
+       and its stale error. */
+    setForm(EMPTY);
+    setError(null);
+    onClose();
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
     setLoading(true);
     setError(null);
 
     try {
-      const payload = {
-        registrationNumber: form.registrationNumber,
-        model: form.model,
+      const lat = parseFloat(form.currentLat);
+      const lng = parseFloat(form.currentLng);
+
+      await addTruck({
+        registrationNumber: form.registrationNumber.trim(),
+        model: form.model.trim(),
         capacity: parseFloat(form.capacity),
         lastMaintenance: form.lastMaintenance,
         status: "Available",
-        currentLocation: {
-          lat: parseFloat(form.currentLat),
-          lng: parseFloat(form.currentLng),
-        },
+        /* Blank coordinates used to become NaN and get posted as-is. */
+        currentLocation:
+          Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : undefined,
         availableFrom: form.availableFrom,
         availableTill: form.availableTill,
-      };
+      });
 
-      await addTruck(payload);
-
+      setForm(EMPTY);
       onTruckAdded();
       onClose();
     } catch (err) {
       console.error(err);
-      setError("Failed to add truck. Please try again.");
+      setError("Could not add that truck. Check the details and try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-      <div className="bg-white p-6 rounded-lg w-full max-w-4xl shadow-lg">
-        <h2 className="text-xl font-semibold mb-4">Add Truck</h2>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Registration Number</label>
-            <input type="text" name="registrationNumber" value={form.registrationNumber} onChange={handleChange} className="w-full px-3 py-2 border rounded" placeholder="E.g., RJ14GA1234" />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Truck Model</label>
-            <input type="text" name="model" value={form.model} onChange={handleChange} className="w-full px-3 py-2 border rounded" placeholder="E.g., Tata 4018" />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Capacity (in tons)</label>
-            <input type="number" name="capacity" value={form.capacity} onChange={handleChange} className="w-full px-3 py-2 border rounded" placeholder="E.g., 14" />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Last Maintenance Date</label>
-            <input type="date" name="lastMaintenance" value={form.lastMaintenance} onChange={handleChange} className="w-full px-3 py-2 border rounded" />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Current Latitude</label>
-            <input type="number" name="currentLat" value={form.currentLat} onChange={handleChange} className="w-full px-3 py-2 border rounded" placeholder="E.g., 26.9124" />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Current Longitude</label>
-            <input type="number" name="currentLng" value={form.currentLng} onChange={handleChange} className="w-full px-3 py-2 border rounded" placeholder="E.g., 75.7873" />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Available From</label>
-            <input type="date" name="availableFrom" value={form.availableFrom} onChange={handleChange} className="w-full px-3 py-2 border rounded" />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Available Till</label>
-            <input type="date" name="availableTill" value={form.availableTill} onChange={handleChange} className="w-full px-3 py-2 border rounded" />
-          </div>
+    <Sheet
+      open={isOpen}
+      onClose={handleClose}
+      title="Add truck"
+      description="Register a vehicle so it can be assigned to trips and loads."
+      size="xl"
+      footer={
+        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          <Button variant="secondary" onClick={handleClose} disabled={loading}>
+            Cancel
+          </Button>
+          <Button type="submit" form="add-truck-form" loading={loading}>
+            Add truck
+          </Button>
         </div>
+      }
+    >
+      <form id="add-truck-form" onSubmit={handleSubmit} className="space-y-4">
+        <InlineMessage tone="error">{error}</InlineMessage>
 
-        {error && <p className="text-red-500 mt-4">{error}</p>}
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <FormField label="Registration number" htmlFor="reg" required>
+            <input
+              id="reg"
+              name="registrationNumber"
+              value={form.registrationNumber}
+              onChange={handleChange}
+              className={inputClasses}
+              placeholder="RJ14GA1234"
+              required
+            />
+          </FormField>
 
-        <div className="flex justify-end gap-2 mt-6">
-          <button onClick={onClose} className="px-4 py-2 bg-gray-300 rounded">Cancel</button>
-          <button onClick={handleSubmit} disabled={loading} className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
-            {loading ? "Adding..." : "Add Truck"}
-          </button>
+          <FormField label="Truck model" htmlFor="model" required>
+            <input
+              id="model"
+              name="model"
+              value={form.model}
+              onChange={handleChange}
+              className={inputClasses}
+              placeholder="Tata 4018"
+              required
+            />
+          </FormField>
+
+          <FormField label="Capacity" htmlFor="capacity" hint="In tonnes" required>
+            <input
+              id="capacity"
+              name="capacity"
+              type="number"
+              min="0"
+              step="0.1"
+              value={form.capacity}
+              onChange={handleChange}
+              className={inputClasses}
+              placeholder="14"
+              required
+            />
+          </FormField>
+
+          <FormField label="Last maintenance" htmlFor="lastMaintenance">
+            <input
+              id="lastMaintenance"
+              name="lastMaintenance"
+              type="date"
+              value={form.lastMaintenance}
+              onChange={handleChange}
+              className={inputClasses}
+            />
+          </FormField>
+
+          <FormField label="Current latitude" htmlFor="lat" hint="Optional">
+            <input
+              id="lat"
+              name="currentLat"
+              type="number"
+              step="any"
+              value={form.currentLat}
+              onChange={handleChange}
+              className={inputClasses}
+              placeholder="26.9124"
+            />
+          </FormField>
+
+          <FormField label="Current longitude" htmlFor="lng" hint="Optional">
+            <input
+              id="lng"
+              name="currentLng"
+              type="number"
+              step="any"
+              value={form.currentLng}
+              onChange={handleChange}
+              className={inputClasses}
+              placeholder="75.7873"
+            />
+          </FormField>
+
+          <FormField label="Available from" htmlFor="availableFrom">
+            <input
+              id="availableFrom"
+              name="availableFrom"
+              type="date"
+              value={form.availableFrom}
+              onChange={handleChange}
+              className={inputClasses}
+            />
+          </FormField>
+
+          <FormField label="Available till" htmlFor="availableTill">
+            <input
+              id="availableTill"
+              name="availableTill"
+              type="date"
+              value={form.availableTill}
+              onChange={handleChange}
+              className={inputClasses}
+            />
+          </FormField>
         </div>
-      </div>
-    </div>
+      </form>
+    </Sheet>
   );
 };

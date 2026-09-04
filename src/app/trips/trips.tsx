@@ -1,141 +1,176 @@
-"use client";
-
-import { useState, useEffect } from "react";
-import { StatusTab } from "./components/status-tab";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { FaPlus, FaRoute } from "react-icons/fa";
 import { TripsTable } from "./components/trips-table";
 import { AddTripModal } from "./components/add-trip-modal";
-import { LoadingSpinner } from "./components/loading-spinner";
 import type { Trip, Driver, Truck } from "./types/api";
-import { FaPlus } from "react-icons/fa";
 import { useEventStore } from "../../store/trips/store";
 import { createTrip, deleteTrip, getDrivers, getTrips, getTrucks } from "../../api";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
+import { PageHeader } from "../../components/ui/PageHeader";
+import { Button } from "../../components/ui/Button";
+import { FilterBar } from "../../components/ui/FilterBar";
+import { TableCard } from "../../components/ui/TableCard";
+import { EmptyState } from "../../components/ui/EmptyState";
+import { LoadingState } from "../../components/ui/LoadingState";
+import { InlineMessage } from "../../components/ui/InlineMessage";
+import { SegmentedControl, type Segment } from "../../components/ui/SegmentedControl";
+
+type StatusFilter = "ALL" | "Running" | "Completed" | "Cancelled";
 
 export default function Trips() {
   const tripRefreshKey = useEventStore((s) => s.tripRefreshKey);
-  const [activeStatus, setActiveStatus] = useState<Trip["status"] | "ALL" | "Running">("ALL");
+  const [activeStatus, setActiveStatus] = useState<StatusFilter>("ALL");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [tripToDelete, setTripToDelete] = useState<Trip | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [trips, setTrips] = useState<Trip[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [trucks, setTrucks] = useState<Truck[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
     try {
-      setIsLoading(true);
-      const [tripsData, driversData, trucksData] = (await Promise.all([getTrips(), getDrivers(), getTrucks()])) as unknown as [Trip[], Driver[], { trucks: Truck[] }];
+      const [tripsData, driversData, trucksData] = (await Promise.all([
+        getTrips(),
+        getDrivers(),
+        getTrucks(),
+      ])) as unknown as [Trip[], Driver[], { trucks: Truck[] }];
 
-      setTrips(tripsData);
-      setDrivers(driversData);
-      setTrucks(trucksData?.trucks);
-    } catch (error) {
-      console.error("Error fetching data:", error);
+      setTrips(tripsData ?? []);
+      setDrivers(driversData ?? []);
+      setTrucks(trucksData?.trucks ?? []);
+    } catch (err) {
+      console.error("Error fetching data:", err);
+      /* This failure used to be swallowed into console.error, leaving the page
+         showing a permanent "No trips found" that looked like an empty fleet
+         rather than a broken request. */
+      setError("Could not load your trips. Check your connection and try again.");
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchData();
-  }, [tripRefreshKey]);
+  }, [fetchData, tripRefreshKey]);
 
-  const filteredTrips = trips?.length
-    ? trips.filter(
-        (trip) =>
-          activeStatus === "ALL" ||
-          (activeStatus === "Running" && trip.status === "Running") ||
-          (activeStatus === "Completed" && trip.status === "Completed") ||
-          (activeStatus === "Cancelled" && trip.status === "Cancelled")
-      )
-    : [];
+  const statusCounts = useMemo(
+    () => ({
+      ALL: trips.length,
+      Running: trips.filter((t) => t.status === "Running").length,
+      Completed: trips.filter((t) => t.status === "Completed").length,
+      Cancelled: trips.filter((t) => t.status === "Cancelled").length,
+    }),
+    [trips]
+  );
+
+  /* The filter already handled "Cancelled" but no tab ever offered it, so
+     cancelled trips were only reachable through "All". */
+  const segments: Segment<StatusFilter>[] = [
+    { label: "All", value: "ALL", count: statusCounts.ALL },
+    { label: "Running", value: "Running", count: statusCounts.Running },
+    { label: "Completed", value: "Completed", count: statusCounts.Completed },
+    { label: "Cancelled", value: "Cancelled", count: statusCounts.Cancelled },
+  ];
+
+  const filteredTrips = useMemo(
+    () => (activeStatus === "ALL" ? trips : trips.filter((t) => t.status === activeStatus)),
+    [trips, activeStatus]
+  );
 
   const handleAddTrip = async (tripData: Record<string, unknown>) => {
-    try {
-      await createTrip(tripData);
-      await fetchData();
-    } catch (error) {
-      console.error("Error adding trip:", error);
-    }
+    await createTrip(tripData);
+    await fetchData();
   };
 
   const handleDeleteTrip = async () => {
     if (!tripToDelete) return;
+    setDeleting(true);
     try {
       await deleteTrip(tripToDelete._id);
       setTripToDelete(null);
       await fetchData();
-    } catch (error) {
-      console.error("Error deleting trip:", error);
+    } catch (err) {
+      console.error("Error deleting trip:", err);
+      setError("Could not delete that trip. Please try again.");
+      setTripToDelete(null);
+    } finally {
+      setDeleting(false);
     }
   };
 
-  const handleEditTrip = async (trip: Trip) => {
-    console.log("Edit trip:", trip);
-  };
-
-  const handleCopyTrip = async (trip: Trip) => {
-    console.log("Copy trip:", trip);
-  };
-
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="mx-auto">
-        <div className="bg-white rounded-lg shadow">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <div className="flex justify-between items-center">
-              <h1 className="text-2xl font-semibold">Trips</h1>
-              <button onClick={() => setIsAddModalOpen(true)} className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 flex items-center gap-2">
-                <FaPlus className="w-4 h-4" />
-                Add Trip
-              </button>
-            </div>
-          </div>
+    <div className="mx-auto max-w-7xl space-y-5">
+      <PageHeader
+        title="Trips"
+        description="Every journey your fleet has run, is running, or has cancelled."
+        actions={
+          <Button onClick={() => setIsAddModalOpen(true)}>
+            <FaPlus className="h-3.5 w-3.5" />
+            Add trip
+          </Button>
+        }
+      />
 
-          <div className="border-b border-gray-200">
-            <div className="flex">
-              <StatusTab label="View All" active={activeStatus === "ALL"} onClick={() => setActiveStatus("ALL")} />
-              <StatusTab label="Running" active={activeStatus === "Running"} onClick={() => setActiveStatus("Running")} />
-              <StatusTab label="Completed" active={activeStatus === "Completed"} onClick={() => setActiveStatus("Completed")} />
-            </div>
-          </div>
-          {isLoading ? (
-            <div className="flex justify-center items-center h-64">
-              <LoadingSpinner />
-            </div>
-          ) : (
-            <>
-              {filteredTrips.length === 0 ? (
-                <div className="flex justify-center items-center h-64">
-                  <p className="text-gray-500">No trips found</p>
-                </div>
-              ) : (
-                <TripsTable
-                  trips={filteredTrips}
-                  onDelete={async (id) => {
-                    const selectedTrip = trips.find((trip) => trip._id === id) ?? null;
-                    setTripToDelete(selectedTrip);
-                  }}
-                  onEdit={handleEditTrip}
-                  onCopy={handleCopyTrip}
-                />
-              )}
-            </>
-          )}
-        </div>
-      </div>
+      <InlineMessage tone="error">{error}</InlineMessage>
 
-      {!isLoading && (
-        <AddTripModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} onAdd={handleAddTrip} trucks={trucks} drivers={drivers} />
+      <FilterBar>
+        <SegmentedControl segments={segments} value={activeStatus} onChange={setActiveStatus} />
+      </FilterBar>
+
+      {isLoading ? (
+        <LoadingState label="Loading trips" />
+      ) : filteredTrips.length > 0 ? (
+        <TableCard>
+          <TripsTable
+            trips={filteredTrips}
+            onDelete={async (id) => setTripToDelete(trips.find((t) => t._id === id) ?? null)}
+          />
+        </TableCard>
+      ) : trips.length > 0 ? (
+        <EmptyState
+          icon={<FaRoute />}
+          title={`No ${activeStatus.toLowerCase()} trips`}
+          description="Nothing in your fleet currently matches this status."
+          action={
+            <Button variant="secondary" onClick={() => setActiveStatus("ALL")}>
+              Show all trips
+            </Button>
+          }
+        />
+      ) : (
+        <EmptyState
+          icon={<FaRoute />}
+          title="No trips yet"
+          description="Create your first trip to start tracking routes, fares and running costs."
+          action={
+            <Button onClick={() => setIsAddModalOpen(true)}>
+              <FaPlus className="h-3.5 w-3.5" />
+              Add trip
+            </Button>
+          }
+        />
       )}
+
+      <AddTripModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onAdd={handleAddTrip}
+        trucks={trucks}
+        drivers={drivers}
+      />
 
       <ConfirmDialog
         open={Boolean(tripToDelete)}
-        title="Delete trip?"
-        description={`Trip ${tripToDelete?.registrationNumber ?? ""} will be deleted.`}
-        confirmLabel="Delete"
-        cancelLabel="Cancel"
+        title="Delete this trip?"
+        description={`Trip ${tripToDelete?.registrationNumber ?? ""} from ${tripToDelete?.departureLocation ?? ""} to ${tripToDelete?.arrivalLocation ?? ""} will be permanently deleted. This cannot be undone.`}
+        confirmLabel="Delete trip"
+        cancelLabel="Keep it"
         tone="danger"
+        loading={deleting}
         onConfirm={handleDeleteTrip}
         onCancel={() => setTripToDelete(null)}
       />

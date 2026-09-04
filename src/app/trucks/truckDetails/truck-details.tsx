@@ -2,13 +2,24 @@ import { MetricCard } from "./components/metric-card";
 import { TripsTable } from "./components/trips-table";
 import { CurrentTripCard } from "./components/current-trip-card";
 import { 
-  FaArrowLeft, FaTimes, FaCheck, FaTruck, 
+  FaTimes, FaCheck, FaTruck, 
   FaEdit, FaCalendarAlt, FaWeightHanging 
 } from "react-icons/fa";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { LoadingSpinner } from "../../trips/components/loading-spinner";
 import {removeDriver, assignDriver, dismountTyre, getDrivers, getTruckByRegNo, getTyres, mountTyre, updateTruck } from "../../../api";
+import { Sheet } from "../../../motion/Sheet";
+import { ConfirmDialog } from "../../../components/ui/ConfirmDialog";
+import { Button } from "../../../components/ui/Button";
+import { FormField } from "../../../components/ui/FormField";
+import { InlineMessage } from "../../../components/ui/InlineMessage";
+import { StatusBadge } from "../../../components/ui/StatusBadge";
+import {
+  DetailPage,
+  DetailHeader,
+} from "../../../components/ui/DetailPage";
+import { inputClasses, inputClassesCompact } from "../../../components/ui/inputStyles";
 
 // --- Types ---
 interface Tyre {
@@ -47,39 +58,29 @@ interface TruckProfile {
 // --- NEW: SKELETON LOADER COMPONENT ---
 const TruckDetailsSkeleton = () => {
   return (
-    <div className="min-h-screen bg-gray-50 animate-pulse pb-20">
-      
-      {/* 1. Header Skeleton */}
-      <div className="bg-white border-b sticky top-[64px] z-30">
-        <div className="mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex justify-between items-start">
-            <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                {/* Truck Number */}
-                <div className="h-8 w-48 bg-gray-200 rounded"></div>
-                {/* Status Badge */}
-                <div className="h-6 w-20 bg-gray-200 rounded-full"></div>
-              </div>
-              {/* Subtitle */}
-              <div className="h-4 w-64 bg-gray-200 rounded"></div>
-            </div>
-            {/* Back Button */}
-            <div className="h-10 w-24 bg-gray-200 rounded-lg"></div>
+    <DetailPage>
+      <header className="flex items-start gap-3">
+        <div className="h-9 w-9 shrink-0 animate-pulse rounded-full bg-ink/8" />
+        <div className="space-y-2">
+          <div className="flex items-center gap-2.5">
+            <div className="h-8 w-48 animate-pulse rounded-chip bg-ink/8" />
+            <div className="h-6 w-24 animate-pulse rounded-full bg-ink/8" />
           </div>
+          <div className="h-4 w-64 animate-pulse rounded-chip bg-ink/8" />
         </div>
-      </div>
+      </header>
 
-      <div className="mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+      <div className="space-y-5">
         
         {/* 2. Truck Profile Skeleton (4 Columns) */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="h-5 w-32 bg-gray-200 rounded mb-6"></div> {/* Title */}
+        <div className="rounded-card border border-hairline bg-surface shadow-[var(--shadow-raised)] p-6">
+          <div className="h-5 w-32 bg-ink/8 rounded-chip mb-6"></div> {/* Title */}
           
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
             {[1, 2, 3, 4].map((i) => (
               <div key={i} className="space-y-2">
-                <div className="h-3 w-16 bg-gray-200 rounded"></div> {/* Label */}
-                <div className="h-5 w-24 bg-gray-300 rounded"></div> {/* Value */}
+                <div className="h-3 w-16 bg-ink/8 rounded-chip"></div> {/* Label */}
+                <div className="h-5 w-24 bg-ink/12 rounded-chip"></div> {/* Value */}
               </div>
             ))}
           </div>
@@ -89,51 +90,51 @@ const TruckDetailsSkeleton = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           
           {/* Left: Telemetry */}
-          <div className="bg-white rounded-lg shadow p-6 flex flex-col justify-between h-48">
-            <div className="h-5 w-32 bg-gray-200 rounded mb-4"></div>
+          <div className="rounded-card border border-hairline bg-surface shadow-[var(--shadow-raised)] p-6 flex flex-col justify-between h-48">
+            <div className="h-5 w-32 bg-ink/8 rounded-chip mb-4"></div>
             
             {/* 3 Metrics Row */}
             <div className="grid grid-cols-3 gap-4">
               {[1, 2, 3].map((i) => (
                 <div key={i} className="space-y-2">
-                  <div className="h-3 w-12 bg-gray-200 rounded"></div>
-                  <div className="h-6 w-16 bg-gray-300 rounded"></div>
+                  <div className="h-3 w-12 bg-ink/8 rounded-chip"></div>
+                  <div className="h-6 w-16 bg-ink/12 rounded-chip"></div>
                 </div>
               ))}
             </div>
             
             {/* Footer Line */}
-            <div className="mt-4 pt-4 border-t border-gray-100 flex justify-between">
-              <div className="h-3 w-24 bg-gray-200 rounded"></div>
-              <div className="h-3 w-32 bg-gray-200 rounded"></div>
+            <div className="mt-4 pt-4 border-t border-hairline flex justify-between">
+              <div className="h-3 w-24 bg-ink/8 rounded-chip"></div>
+              <div className="h-3 w-32 bg-ink/8 rounded-chip"></div>
             </div>
           </div>
 
           {/* Right: Current Trip (Large Box) */}
-          <div className="bg-white rounded-lg shadow p-6 h-48 flex items-center justify-center border-2 border-dashed border-gray-100">
-             <div className="h-4 w-32 bg-gray-200 rounded"></div>
+          <div className="rounded-card border border-hairline bg-surface shadow-[var(--shadow-raised)] p-6 h-48 flex items-center justify-center border-2 border-dashed border-hairline">
+             <div className="h-4 w-32 bg-ink/8 rounded-chip"></div>
           </div>
         </div>
 
         {/* 4. Tyre Config Skeleton */}
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="rounded-card border border-hairline bg-surface shadow-[var(--shadow-raised)] p-6">
           <div className="flex justify-between items-center mb-6">
-            <div className="h-6 w-32 bg-gray-200 rounded"></div> {/* Title */}
-            <div className="h-8 w-24 bg-gray-200 rounded"></div> {/* Mount Button */}
+            <div className="h-6 w-32 bg-ink/8 rounded-chip"></div> {/* Title */}
+            <div className="h-8 w-24 bg-ink/8 rounded-chip"></div> {/* Mount Button */}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="border rounded-lg p-4 h-32 flex flex-col justify-between">
+              <div key={i} className="border rounded-control p-4 h-32 flex flex-col justify-between">
                 <div className="flex justify-between">
-                  <div className="h-4 w-20 bg-gray-200 rounded"></div>
-                  <div className="h-4 w-10 bg-gray-200 rounded"></div>
+                  <div className="h-4 w-20 bg-ink/8 rounded-chip"></div>
+                  <div className="h-4 w-10 bg-ink/8 rounded-chip"></div>
                 </div>
                 <div className="space-y-2">
-                  <div className="h-3 w-24 bg-gray-200 rounded"></div>
-                  <div className="h-3 w-16 bg-gray-200 rounded"></div>
+                  <div className="h-3 w-24 bg-ink/8 rounded-chip"></div>
+                  <div className="h-3 w-16 bg-ink/8 rounded-chip"></div>
                 </div>
-                <div className="self-end h-6 w-20 bg-gray-200 rounded"></div>
+                <div className="self-end h-6 w-20 bg-ink/8 rounded-chip"></div>
               </div>
             ))}
           </div>
@@ -143,33 +144,33 @@ const TruckDetailsSkeleton = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           
           {/* Driver Assignment (Left) */}
-          <div className="lg:col-span-1 bg-white rounded-lg shadow p-6 h-64">
-            <div className="h-5 w-40 bg-gray-200 rounded mb-4"></div>
+          <div className="lg:col-span-1 rounded-card border border-hairline bg-surface shadow-[var(--shadow-raised)] p-6 h-64">
+            <div className="h-5 w-40 bg-ink/8 rounded-chip mb-4"></div>
             {/* Tags */}
             <div className="flex gap-2 mb-6">
-              <div className="h-6 w-20 bg-gray-200 rounded-full"></div>
-              <div className="h-6 w-24 bg-gray-200 rounded-full"></div>
+              <div className="h-6 w-20 bg-ink/8 rounded-full"></div>
+              <div className="h-6 w-24 bg-ink/8 rounded-full"></div>
             </div>
             {/* Input & Button */}
             <div className="flex gap-2 mt-auto">
-              <div className="h-10 flex-1 bg-gray-200 rounded"></div>
-              <div className="h-10 w-16 bg-gray-200 rounded"></div>
+              <div className="h-10 flex-1 bg-ink/8 rounded-chip"></div>
+              <div className="h-10 w-16 bg-ink/8 rounded-chip"></div>
             </div>
           </div>
 
           {/* Recent Trips Table (Right) */}
-          <div className="lg:col-span-2 bg-white rounded-lg shadow overflow-hidden h-64">
+          <div className="lg:col-span-2 rounded-card border border-hairline bg-surface shadow-[var(--shadow-raised)] overflow-hidden h-64">
             <div className="p-4 border-b">
-              <div className="h-5 w-32 bg-gray-200 rounded"></div>
+              <div className="h-5 w-32 bg-ink/8 rounded-chip"></div>
             </div>
             <div className="p-4 space-y-4">
               {[1, 2, 3].map((i) => (
                 <div key={i} className="flex justify-between items-center">
-                  <div className="h-8 w-8 bg-gray-200 rounded-full"></div> {/* Icon */}
-                  <div className="h-3 w-24 bg-gray-200 rounded"></div>
-                  <div className="h-3 w-20 bg-gray-200 rounded hidden sm:block"></div>
-                  <div className="h-3 w-16 bg-gray-200 rounded hidden sm:block"></div>
-                  <div className="h-6 w-6 bg-gray-200 rounded"></div> {/* Action Icon */}
+                  <div className="h-8 w-8 bg-ink/8 rounded-full"></div> {/* Icon */}
+                  <div className="h-3 w-24 bg-ink/8 rounded-chip"></div>
+                  <div className="h-3 w-20 bg-ink/8 rounded-chip hidden sm:block"></div>
+                  <div className="h-3 w-16 bg-ink/8 rounded-chip hidden sm:block"></div>
+                  <div className="h-6 w-6 bg-ink/8 rounded-chip"></div> {/* Action Icon */}
                 </div>
               ))}
             </div>
@@ -177,7 +178,7 @@ const TruckDetailsSkeleton = () => {
 
         </div>
       </div>
-    </div>
+    </DetailPage>
   );
 };
 
@@ -203,6 +204,9 @@ export default function TruckDetails() {
   const [spareTyres, setSpareTyres] = useState<Tyre[]>([]);
   
   // --- Modal/Action State ---
+  /* Replaces five native alert() dialogs. A browser alert cannot be styled,
+     blocks the whole tab, and drops the user out of the product's voice. */
+  const [banner, setBanner] = useState<string | null>(null);
   const [isMountModalOpen, setIsMountModalOpen] = useState(false);
   const [isMounting, setIsMounting] = useState(false);
 
@@ -306,7 +310,7 @@ export default function TruckDetails() {
       setIsEditingTruck(false);
     } catch (error) {
       console.error(error);
-      alert("Failed to update truck details");
+      setBanner("Could not save those truck details. Please try again.");
     } finally {
       setIsSavingTruck(false);
     }
@@ -315,7 +319,7 @@ export default function TruckDetails() {
   // --- TYRE ACTIONS ---
   const handleMountSubmit = async () => {
     setIsMounting(true);
-    if (!mountForm.tyreId) return alert("Please select a tyre");
+    if (!mountForm.tyreId) return setBanner("Choose a tyre to mount first.");
 
     try {
       await mountTyre({ ...mountForm, truckId: truckDetails._id });
@@ -331,7 +335,7 @@ export default function TruckDetails() {
       fetchTyres(); 
       fetchTruckDetails(); 
     } catch (error: any) {
-      alert(error.response?.data?.message || "Mount failed");
+      setBanner(error.response?.data?.message || "Could not mount that tyre.");
     } finally {
       setIsMounting(false);
     }
@@ -347,7 +351,7 @@ export default function TruckDetails() {
       fetchTyres();
       fetchTruckDetails();
     } catch (error: any) {
-      alert(error.response?.data?.message || "Dismount failed");
+      setBanner(error.response?.data?.message || "Could not dismount that tyre.");
     }
   };
   
@@ -359,7 +363,7 @@ export default function TruckDetails() {
       fetchTruckDetails(); 
     } catch (error) {
       console.error("Error removing driver:", error);
-      alert("Failed to remove driver.");
+      setBanner("Could not remove that driver. Please try again.");
     } finally {
       setIsRemoveDriverModalOpen(false);
       setDriverToRemove(null);
@@ -367,43 +371,13 @@ export default function TruckDetails() {
     }
   };
 
-  const RemoveDriverModal = ({ isOpen, onClose, onConfirm, driverName, isRemoving }: { isOpen: boolean, onClose: () => void, onConfirm: () => void, driverName: string | undefined, isRemoving: boolean }) => {
-    if (!isOpen) return null;
-
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50">
-        <div className="bg-white rounded-lg p-6 w-full max-w-sm shadow-xl">
-          <h3 className="text-lg font-bold text-gray-800 mb-2">Remove Driver</h3>
-          <p className="text-sm text-gray-600 mb-6">
-            Are you sure you want to remove <span className="font-semibold">{driverName}</span> from this truck?
-          </p>
-          <div className="flex justify-end gap-3">
-            <button 
-              onClick={onClose}
-              className="px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              Cancel
-            </button>
-            <button 
-              onClick={onConfirm}
-              disabled={isRemoving}
-              className="px-4 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors shadow-sm disabled:bg-red-300"
-            >
-              {isRemoving ? "Removing..." : "Remove"}
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  };
-  
   // --- RENDER HELPERS ---
-  const getStatusColor = (status: string) => {
+  const statusTone = (status: string) => {
     switch (status) {
-      case "Available": return "bg-green-100 text-green-800";
-      case "En Route": return "bg-blue-100 text-blue-800";
-      case "Out of Service": return "bg-red-100 text-red-800";
-      default: return "bg-gray-100 text-gray-800";
+      case "Available": return "info" as const;
+      case "En Route": return "success" as const;
+      case "Out of Service": return "danger" as const;
+      default: return "neutral" as const;
     }
   };
 
@@ -411,43 +385,27 @@ export default function TruckDetails() {
   if (loading) return <TruckDetailsSkeleton />;
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      
-      {/* --- HEADER --- */}
-      <div className="bg-white border-b">
-        <div className="mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-              <div className="flex items-center gap-3 flex-wrap">
-                <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 break-all">
-                  {truckDetails.registrationNumber || "Truck Details"}
-                </h1>
-                {truckDetails.status && (
-                  <span className={`px-2 py-1 rounded text-xs font-bold uppercase whitespace-nowrap ${getStatusColor(truckDetails.status)}`}>
-                    {truckDetails.status}
-                  </span>
-                )}
-              </div>
-              <p className="text-sm text-gray-500 mt-1">Manage specifications, maintenance, and drivers</p>
-            </div>
-            <button 
-              className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 flex items-center gap-2 text-sm w-full sm:w-auto justify-center" 
-              onClick={() => window.history.back()} 
-            >
-              <FaArrowLeft className="w-3 h-3" /> Back
-            </button>
-          </div>
-        </div>
-      </div>
+    <DetailPage>
+      <DetailHeader
+        title={truckDetails.registrationNumber || "Truck"}
+        subtitle="Specifications, maintenance, tyres and drivers"
+        badge={
+          truckDetails.status ? (
+            <StatusBadge tone={statusTone(truckDetails.status)}>{truckDetails.status}</StatusBadge>
+          ) : null
+        }
+      />
+
+      <InlineMessage tone="error">{banner}</InlineMessage>
 
       <div className="mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-        {error && <p className="text-red-500">{error}</p>} 
+        <InlineMessage tone="error">{error}</InlineMessage> 
 
         {/* --- 1. TRUCK PROFILE CARD (Inline Edit) --- */}
-        <div className="bg-white rounded-lg shadow p-4 sm:p-6 relative group">
+        <div className="rounded-card border border-hairline bg-surface shadow-[var(--shadow-raised)] p-4 sm:p-6 relative group">
           <div className="flex justify-between items-start mb-4 border-b pb-4">
-            <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-              <FaTruck className="text-blue-600" /> <span className="hidden sm:inline">Truck</span> Profile
+            <h3 className="text-base font-semibold text-ink flex items-center gap-2">
+              <FaTruck className="text-accent" /> <span className="hidden sm:inline">Truck</span> Profile
             </h3>
             
             {/* MOBILE FIX: Removed 'opacity-0 group-hover:opacity-100'
@@ -457,7 +415,7 @@ export default function TruckDetails() {
             {!isEditingTruck ? (
               <button 
                 onClick={() => setIsEditingTruck(true)}
-                className="text-blue-600 hover:text-blue-800 flex items-center gap-1 text-sm font-medium opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity p-1"
+                className="text-accent hover:text-accent-ink flex items-center gap-1 text-sm font-medium opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity p-1"
               >
                 <FaEdit /> <span className="sm:inline">Edit Details</span>
               </button>
@@ -465,7 +423,7 @@ export default function TruckDetails() {
               <div className="flex gap-2">
                 <button 
                   onClick={() => setIsEditingTruck(false)}
-                  className="text-gray-500 hover:text-gray-700 p-2 bg-gray-100 rounded-full"
+                  className="text-ink-tertiary hover:text-ink-secondary p-2 bg-ink/6 rounded-full"
                   title="Cancel"
                 >
                   <FaTimes size={14}/>
@@ -473,7 +431,7 @@ export default function TruckDetails() {
                 <button 
                   onClick={handleSaveTruck}
                   disabled={isSavingTruck}
-                  className="text-green-600 hover:text-green-800 p-2 bg-green-100 rounded-full"
+                  className="text-positive-ink hover:text-positive-ink p-2 bg-positive-soft rounded-full"
                   title="Save"
                 >
                   {isSavingTruck ? <LoadingSpinner/> : <FaCheck size={14}/>}
@@ -485,41 +443,41 @@ export default function TruckDetails() {
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
             {/* Model */}
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Model</label>
+              <label className="block text-xs font-semibold text-ink-tertiary uppercase mb-1">Model</label>
               {isEditingTruck ? (
                 <input 
-                  className="w-full border rounded p-2 text-sm bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                  className={inputClassesCompact}
                   value={truckForm.model || ""}
                   onChange={(e) => setTruckForm({...truckForm, model: e.target.value})}
                 />
               ) : (
-                <p className="text-gray-900 font-medium">{truckDetails.model || "N/A"}</p>
+                <p className="text-ink font-medium">{truckDetails.model || "N/A"}</p>
               )}
             </div>
 
             {/* Capacity */}
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Capacity</label>
+              <label className="block text-xs font-semibold text-ink-tertiary uppercase mb-1">Capacity</label>
               {isEditingTruck ? (
                 <input 
                   type="number"
-                  className="w-full border rounded p-2 text-sm bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                  className={inputClassesCompact}
                   value={truckForm.capacity || ""}
                   onChange={(e) => setTruckForm({...truckForm, capacity: Number(e.target.value)})}
                 />
               ) : (
-                <p className="text-gray-900 font-medium flex items-center gap-1">
-                  <FaWeightHanging className="text-gray-400" /> {truckDetails.capacity || 0} Tons
+                <p className="text-ink font-medium flex items-center gap-1">
+                  <FaWeightHanging className="text-ink-quaternary" /> {truckDetails.capacity || 0} Tons
                 </p>
               )}
             </div>
 
           {/* Availability (Boolean Edit) */}
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Availability</label>
+              <label className="block text-xs font-semibold text-ink-tertiary uppercase mb-1">Availability</label>
               {isEditingTruck ? (
                 <select 
-                  className="w-full border border-blue-500 rounded p-2 text-sm bg-white focus:ring-2 focus:ring-blue-200 outline-none"
+                  className={inputClassesCompact}
                   // Convert boolean to string for the select input
                   value={truckForm.available ? "true" : "false"}
                   // Convert string back to boolean for state
@@ -530,8 +488,8 @@ export default function TruckDetails() {
                 </select>
               ) : (
                 <div className="p-2">
-                  <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${
-                    truckDetails.available ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+                  <span className={`px-2 py-1 rounded-chip text-xs font-semibold uppercase ${
+                    truckDetails.available ? "bg-positive-soft text-positive-ink" : "bg-critical-soft text-critical-ink"
                   }`}>
                     {truckDetails.available ? "Available" : "Unavailable"}
                   </span>
@@ -541,17 +499,17 @@ export default function TruckDetails() {
 
             {/* Maintenance Date */}
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase mb-1">Maintenance</label>
+              <label className="block text-xs font-semibold text-ink-tertiary uppercase mb-1">Maintenance</label>
               {isEditingTruck ? (
                 <input 
                   type="date"
-                  className="w-full border rounded p-2 text-sm bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none"
+                  className={inputClassesCompact}
                   value={truckForm.lastMaintenance ? new Date(truckForm.lastMaintenance).toISOString().split('T')[0] : ""}
                   onChange={(e) => setTruckForm({...truckForm, lastMaintenance: e.target.value})}
                 />
               ) : (
-                <p className="text-gray-900 font-medium flex items-center gap-1">
-                  <FaCalendarAlt className="text-gray-400" /> 
+                <p className="text-ink font-medium flex items-center gap-1">
+                  <FaCalendarAlt className="text-ink-quaternary" /> 
                   {truckDetails.lastMaintenance ? new Date(truckDetails.lastMaintenance).toLocaleDateString() : "N/A"}
                 </p>
               )}
@@ -562,18 +520,18 @@ export default function TruckDetails() {
         {/* --- 2. TELEMETRY & TRIP CARDS --- */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Telemetry Card */}
-          <div className="bg-white rounded-lg shadow p-4 sm:p-6">
+          <div className="rounded-card border border-hairline bg-surface shadow-[var(--shadow-raised)] p-4 sm:p-6">
             <h3 className="text-lg font-semibold mb-4">Live Telemetry</h3>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <MetricCard
                 label="Ignition"
                 value={truckDetails.ignition || "OFF"}
-                valueColor={truckDetails.ignition === "ON" ? "text-green-600" : "text-red-600"}
+                valueColor={truckDetails.ignition === "ON" ? "text-positive-ink" : "text-critical-ink"}
               />
               <MetricCard label="Speed" value={`${truckDetails.currentSpeed || 0} km/h`} />
               <MetricCard label="Travelled Today" value={`${truckDetails.travelledToday || 0} km`} />
             </div>
-            <div className="mt-4 pt-4 border-t text-xs sm:text-sm text-gray-500 flex flex-col sm:flex-row justify-between gap-2">
+            <div className="mt-4 pt-4 border-t text-xs sm:text-sm text-ink-tertiary flex flex-col sm:flex-row justify-between gap-2">
                <span>Updated: {truckDetails.lastUpdated ? new Date(truckDetails.lastUpdated).toLocaleTimeString() : "-"}</span>
                <span className="truncate">{truckDetails.location || "Location unknown"}</span>
             </div>
@@ -584,14 +542,14 @@ export default function TruckDetails() {
         </div>
 
         {/* --- 3. TYRE MANAGEMENT --- */}
-        <div className="bg-white rounded-lg shadow p-4 sm:p-6 relative">
+        <div className="rounded-card border border-hairline bg-surface shadow-[var(--shadow-raised)] p-4 sm:p-6 relative">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-semibold flex items-center gap-2">
-               <span className="p-1 bg-gray-100 rounded text-gray-600">🛞</span> Tyre Config
+               <span className="p-1 bg-ink/6 rounded-chip text-ink-secondary">🛞</span> Tyre Config
             </h3>
             <button 
               onClick={() => setIsMountModalOpen(true)}
-              className="text-sm bg-blue-50 text-blue-600 px-3 py-1.5 rounded hover:bg-blue-100 font-medium border border-blue-200"
+              className="text-sm bg-accent-soft text-accent px-3 py-1.5 rounded-chip hover:bg-accent-soft font-medium border border-accent/25"
             >
               + Mount
             </button>
@@ -602,26 +560,26 @@ export default function TruckDetails() {
               {mountedTyres.map((tyre) => (
                 <div 
                   key={tyre._id} 
-                  className="border rounded-lg p-4 hover:shadow-md transition-shadow relative group bg-white cursor-pointer hover:border-blue-300"
+                  className="border rounded-control p-4 hover:shadow-[var(--shadow-raised)] transition-shadow relative group bg-surface cursor-pointer hover:border-accent/30"
                   onClick={() => navigate(`/owner-home/tyre/${tyre._id}`)}
                 >
                   <div className="flex justify-between items-start mb-2">
-                    <span className="bg-gray-800 text-white text-xs px-2 py-1 rounded font-semibold truncate max-w-[60%]">
+                    <span className="bg-ink text-white text-xs px-2 py-1 rounded-chip font-semibold truncate max-w-[60%]">
                       {tyre.position || "Pos N/A"}
                     </span>
                     
-                    <span className={`text-xs font-bold ${tyre.currentTreadDepth > 5 ? "text-green-600" : "text-red-500"}`}>
+                    <span className={`text-xs font-semibold ${tyre.currentTreadDepth > 5 ? "text-positive-ink" : "text-critical"}`}>
                         {tyre.currentTreadDepth}mm
                     </span>
                   </div>
                   
-                  <h4 className="font-bold text-gray-800 text-sm truncate">{tyre.brand}</h4>
-                  <p className="text-xs text-gray-500 font-medium truncate">{tyre.model}</p>
-                  <p className="text-xs text-gray-400 mb-2 truncate">{tyre.tyreNumber}</p>
+                  <h4 className="font-semibold text-ink text-sm truncate">{tyre.brand}</h4>
+                  <p className="text-xs text-ink-tertiary font-medium truncate">{tyre.model}</p>
+                  <p className="text-xs text-ink-quaternary mb-2 truncate">{tyre.tyreNumber}</p>
                   
                   <div className="mt-3 pt-2 border-t flex justify-end">
                     <button 
-                      className="text-red-500 text-xs hover:text-red-700 font-medium border border-red-200 px-2 py-1 rounded hover:bg-red-50 transition-colors z-10"
+                      className="text-critical text-xs hover:text-critical-ink font-medium border border-critical/25 px-2 py-1 rounded-chip hover:bg-critical-soft transition-colors z-10"
                       onClick={(e) => { e.stopPropagation(); handleDismount(tyre._id); }}
                     >
                       Dismount
@@ -631,8 +589,8 @@ export default function TruckDetails() {
               ))}
             </div>
           ) : (
-            <div className="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
-              <p className="text-gray-500 text-sm">No tyres currently mounted.</p>
+            <div className="text-center py-8 bg-canvas-sunken rounded-control border-2 border-dashed border-hairline">
+              <p className="text-ink-tertiary text-sm">No tyres currently mounted.</p>
             </div>
           )}
         </div>
@@ -640,7 +598,7 @@ export default function TruckDetails() {
         {/* --- 4. DRIVER & HISTORY --- */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
            {/* Driver Assignment */}
-           <div className="lg:col-span-1 bg-white rounded-lg shadow p-4 sm:p-6">
+           <div className="lg:col-span-1 rounded-card border border-hairline bg-surface shadow-[var(--shadow-raised)] p-4 sm:p-6">
               <h3 className="text-lg font-semibold mb-4">Driver Assignment</h3>
               {truckDetails.driverNames && truckDetails.driverNames.length > 0 ? (
                 <div className="mb-4 flex flex-wrap gap-2">
@@ -651,18 +609,18 @@ export default function TruckDetails() {
                         setDriverToRemove({ id: truckDetails.driverId![i], name: name });
                         setIsRemoveDriverModalOpen(true);
                       }}
-                      className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm cursor-pointer"
+                      className="bg-positive-soft text-positive-ink px-3 py-1 rounded-full text-sm cursor-pointer"
                       title="Double-click to remove"
                     >
                       {name}
                     </span>
                   ))}
                 </div>
-              ) : <p className="text-red-500 mb-4 text-sm">No driver assigned.</p>}
+              ) : <p className="text-critical mb-4 text-sm">No driver assigned.</p>}
               
               <div className="flex flex-col sm:flex-row gap-2">
                  <select 
-                   className="flex-1 border rounded text-sm p-2 outline-none w-full"
+                   className={inputClassesCompact}
                    value={selectedDriver}
                    onChange={(e) => setSelectedDriver(e.target.value)}
                  >
@@ -674,7 +632,7 @@ export default function TruckDetails() {
                  <button 
                    onClick={() => assignDriverToTruck(selectedDriver)}
                    disabled={!selectedDriver}
-                   className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm w-full sm:w-auto disabled:bg-gray-300"
+                   className="bg-accent text-white px-4 py-2 rounded-chip hover:bg-accent-hover text-sm w-full sm:w-auto disabled:bg-ink/12"
                  >
                    Assign
                  </button>
@@ -682,7 +640,7 @@ export default function TruckDetails() {
            </div>
 
            {/* Trips History */}
-           <div className="lg:col-span-2 bg-white rounded-lg shadow overflow-hidden">
+           <div className="lg:col-span-2 rounded-card border border-hairline bg-surface shadow-[var(--shadow-raised)] overflow-hidden">
               <div className="p-4 border-b">
                  <h3 className="text-lg font-semibold">Recent Trips</h3>
               </div>
@@ -696,95 +654,96 @@ export default function TruckDetails() {
 
       </div>
       
-      {/* --- MOUNT MODAL --- */}
-      {isMountModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-xl">
-            <div className="flex justify-between items-center mb-4 border-b pb-2">
-              <h3 className="text-lg font-bold text-gray-800">Mount Tyre</h3>
-              <button onClick={() => setIsMountModalOpen(false)} className="text-gray-500 hover:text-gray-700">
-                <FaTimes />
-              </button>
-            </div>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1 text-gray-700">Select Spare Tyre</label>
-                <select 
-                  className="w-full border rounded p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                  value={mountForm.tyreId}
-                  onChange={(e) => setMountForm({...mountForm, tyreId: e.target.value})}
-                >
-                  <option value="">-- Select Tyre --</option>
-                  {spareTyres.map(tyre => (
-                    <option key={tyre._id} value={tyre._id}>
-                      {tyre.tyreNumber} - {tyre.brand} ({tyre.size})
-                    </option>
-                  ))}
-                </select>
-                {spareTyres.length === 0 && <p className="text-xs text-red-500 mt-1">No spare tyres available.</p>}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1 text-gray-700">Position</label>
-                <select 
-                  className="w-full border rounded p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                  value={mountForm.position}
-                  onChange={(e) => setMountForm({...mountForm, position: e.target.value})}
-                >
-                  <option value="Front-Left">Front-Left</option>
-                  <option value="Front-Right">Front-Right</option>
-                  <option value="Rear-Left-Outer">Rear-Left-Outer</option>
-                  <option value="Rear-Left-Inner">Rear-Left-Inner</option>
-                  <option value="Rear-Right-Outer">Rear-Right-Outer</option>
-                  <option value="Rear-Right-Inner">Rear-Right-Inner</option>
-                  <option value="Stepney">Stepney</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1 text-gray-700">Current Odometer (KM)</label>
-                <input 
-                  type="number"
-                  className="w-full border rounded p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                  value={mountForm.currentKm}
-                  onChange={(e) => setMountForm({...mountForm, currentKm: Number(e.target.value)})}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1 text-gray-700">Notes</label>
-                <input 
-                  type="text"
-                  className="w-full border rounded p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                  placeholder="e.g. New purchase mount"
-                  value={mountForm.notes}
-                  onChange={(e) => setMountForm({...mountForm, notes: e.target.value})}
-                />
-              </div>
-
-              <div className="pt-2">
-                <button 
-                  onClick={handleMountSubmit}
-                  disabled={!mountForm.tyreId || isMounting} 
-                  className={`w-full py-2 rounded font-medium text-white transition-colors
-                    ${(!mountForm.tyreId || isMounting) ? "bg-gray-300 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"}`}
-                >
-                  {isMounting ? <span className="flex items-center justify-center gap-2"><LoadingSpinner /> Mounting...</span> : "Confirm Mount"}
-                </button>
-              </div>
-            </div>
+      <Sheet
+        open={isMountModalOpen}
+        onClose={() => setIsMountModalOpen(false)}
+        title="Mount tyre"
+        description="Fit a spare tyre to a position on this truck."
+        size="md"
+        footer={
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+            <Button variant="secondary" onClick={() => setIsMountModalOpen(false)} disabled={isMounting}>
+              Cancel
+            </Button>
+            <Button onClick={handleMountSubmit} disabled={!mountForm.tyreId} loading={isMounting}>
+              Confirm mount
+            </Button>
           </div>
-        </div>
-      )}
+        }
+      >
+        <div className="space-y-4">
+          <FormField
+            label="Spare tyre"
+            htmlFor="mount-tyre"
+            error={spareTyres.length === 0 ? "You have no spare tyres in inventory." : undefined}
+            required
+          >
+            <select
+              id="mount-tyre"
+              className={inputClasses}
+              value={mountForm.tyreId}
+              onChange={(e) => setMountForm({ ...mountForm, tyreId: e.target.value })}
+            >
+              <option value="">Choose a tyre</option>
+              {spareTyres.map((tyre) => (
+                <option key={tyre._id} value={tyre._id}>
+                  {tyre.tyreNumber} — {tyre.brand} ({tyre.size})
+                </option>
+              ))}
+            </select>
+          </FormField>
 
-      <RemoveDriverModal 
-        isOpen={isRemoveDriverModalOpen}
-        onClose={() => setIsRemoveDriverModalOpen(false)}
+          <FormField label="Position" htmlFor="mount-position" required>
+            <select
+              id="mount-position"
+              className={inputClasses}
+              value={mountForm.position}
+              onChange={(e) => setMountForm({ ...mountForm, position: e.target.value })}
+            >
+              <option value="Front-Left">Front left</option>
+              <option value="Front-Right">Front right</option>
+              <option value="Rear-Left-Outer">Rear left outer</option>
+              <option value="Rear-Left-Inner">Rear left inner</option>
+              <option value="Rear-Right-Outer">Rear right outer</option>
+              <option value="Rear-Right-Inner">Rear right inner</option>
+              <option value="Stepney">Stepney</option>
+            </select>
+          </FormField>
+
+          <FormField label="Current odometer" htmlFor="mount-km" hint="In kilometres">
+            <input
+              id="mount-km"
+              type="number"
+              min="0"
+              className={inputClasses}
+              value={mountForm.currentKm}
+              onChange={(e) => setMountForm({ ...mountForm, currentKm: Number(e.target.value) })}
+            />
+          </FormField>
+
+          <FormField label="Notes" htmlFor="mount-notes">
+            <input
+              id="mount-notes"
+              className={inputClasses}
+              placeholder="New purchase mount"
+              value={mountForm.notes}
+              onChange={(e) => setMountForm({ ...mountForm, notes: e.target.value })}
+            />
+          </FormField>
+        </div>
+      </Sheet>
+
+      <ConfirmDialog
+        open={isRemoveDriverModalOpen}
+        title="Remove this driver?"
+        description={`${driverToRemove?.name ?? "This driver"} will be unassigned from this truck. You can assign them again at any time.`}
+        confirmLabel="Remove driver"
+        cancelLabel="Keep assigned"
+        tone="danger"
+        loading={isRemovingDriver}
         onConfirm={handleRemoveDriver}
-        driverName={driverToRemove?.name}
-        isRemoving={isRemovingDriver}
+        onCancel={() => setIsRemoveDriverModalOpen(false)}
       />
-    </div>
+    </DetailPage>
   );
 }

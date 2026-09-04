@@ -1,115 +1,121 @@
-import { useState } from "react"
-import type { TruckTrip } from "../types/truck"
-import { FaTruck, FaEdit } from "react-icons/fa"
+import { useState } from "react";
+import { FaTruck } from "react-icons/fa";
+import type { TruckTrip } from "../types/truck";
+import { StatusBadge } from "../../../../components/ui/StatusBadge";
+import { TablePagination } from "../../../../components/ui/TablePagination";
 
 interface TripsTableProps {
-  trips: TruckTrip[]
+  trips: TruckTrip[];
 }
 
-const ITEMS_PER_PAGE = 5
+const ITEMS_PER_PAGE = 5;
+
+/* Fares and expenses were rendered with a `$` sign in an app whose every
+   other number is in rupees. */
+const rupees = (value: number | string | undefined) =>
+  `₹${Number(value || 0).toLocaleString("en-IN")}`;
+
+const toneFor = (status: string) =>
+  status === "Running" ? "success" : status === "Completed" ? "info" : "neutral";
 
 export function TripsTable({ trips }: TripsTableProps) {
-  const [currentPage, setCurrentPage] = useState(1)
-  const totalPages = Math.ceil(trips.length / ITEMS_PER_PAGE)
+  const [currentPage, setCurrentPage] = useState(1);
+  const totalPages = Math.max(1, Math.ceil(trips.length / ITEMS_PER_PAGE));
+  const paginated = trips.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
-  const paginatedTrips = trips.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
+  /* Removed: a header checkbox and a per-row checkbox that selected nothing,
+     and an edit button with no handler. Three dead affordances in one table. */
+
+  if (trips.length === 0) {
+    return (
+      <p className="flex h-40 items-center justify-center text-sm text-ink-tertiary">
+        No trips recorded for this truck yet.
+      </p>
+    );
+  }
 
   return (
     <div>
-      <div className="overflow-x-auto">
+      <div className="hidden overflow-x-auto md:block">
         <table className="w-full">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="w-8 px-4 py-3">
-                <input type="checkbox" className="rounded border-gray-300" />
-              </th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">TRUCK</th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">STATUS</th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">MODEL</th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">PROFIT</th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-gray-500">ACTIONS</th>
+          <thead>
+            <tr className="border-b border-hairline">
+              {["Trip", "Status", "Load", "Expenses"].map((h) => (
+                <th
+                  key={h}
+                  className="text-caption px-4 py-3 text-left text-xs font-semibold uppercase text-ink-tertiary"
+                >
+                  {h}
+                </th>
+              ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200">
-          {paginatedTrips.length === 0 ? (
-  <tr>
-    <td className="px-4 py-4 text-center text-gray-500 align-middle h-40" colSpan={3}>
-      No Data Available
-    </td>
-  </tr>
-) : (
-  paginatedTrips.map((trip) => (
-    <tr key={trip.id} className="bg-white">
-      <td className="px-4 py-4">
-        <input type="checkbox" className="rounded border-gray-300" />
-      </td>
-      <td className="px-4 py-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-gray-100 rounded-full">
-            <FaTruck className="w-5 h-5 text-gray-600" />
-          </div>
-          <div className="flex flex-col">
-            <span className="font-medium">{trip.truckId}</span>
-            <span className="text-sm text-gray-500">Departure: {trip.departure}</span>
-            <span className="text-sm text-gray-500">Arrival: {trip.arrival}</span>
-          </div>
-        </div>
-      </td>
-      <td className="px-4 py-4">
-        <span className="inline-flex px-2 py-1 text-sm font-medium bg-green-100 text-green-600 rounded-full">
-          {trip.status}
-        </span>
-      </td>
-      <td className="px-4 py-4">
-        <div className="flex flex-col">
-          <span className="text-sm text-gray-900">Weight: {trip.weight} kg</span>
-          <span className="text-sm text-gray-500">Fare: ${trip.fare}</span>
-        </div>
-      </td>
-      <td className="px-4 py-4">
-        <div className="flex flex-col">
-          <span className="text-sm font-medium">Expenses:</span>
-          {trip?.expenses?.fuel && <span className="text-sm text-gray-500">fuel: ${trip?.expenses?.fuel}</span>}
-        </div>
-      </td>
-      <td className="px-4 py-4">
-        <button className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100">
-          <FaEdit className="w-5 h-5" />
-        </button>
-      </td>
-    </tr>
-  ))
-)}
-
+          <tbody>
+            {paginated.map((trip) => (
+              <tr key={trip.id} className="border-b border-hairline/70 last:border-0">
+                <td className="px-4 py-3.5">
+                  <div className="flex items-center gap-3">
+                    <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-ink/6 text-ink-secondary">
+                      <FaTruck className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <span className="font-semibold text-ink">{trip.truckId}</span>
+                      <p className="text-sm text-ink-secondary">
+                        {trip.departure} → {trip.arrival}
+                      </p>
+                    </div>
+                  </div>
+                </td>
+                <td className="px-4 py-3.5">
+                  {/* Every row used to render green regardless of status. */}
+                  <StatusBadge tone={toneFor(trip.status)}>{trip.status}</StatusBadge>
+                </td>
+                <td className="px-4 py-3.5 text-sm">
+                  <div className="tabular-nums text-ink">{trip.weight} kg</div>
+                  <div className="tabular-nums text-ink-tertiary">{rupees(trip.fare)}</div>
+                </td>
+                <td className="px-4 py-3.5 text-sm">
+                  {trip?.expenses?.fuel ? (
+                    <span className="tabular-nums text-ink-secondary">
+                      Fuel {rupees(trip.expenses.fuel)}
+                    </span>
+                  ) : (
+                    <span className="text-ink-quaternary">None recorded</span>
+                  )}
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
 
-      {/* Pagination */}
-      <div className="px-4 py-3 border-t border-gray-200">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-sm text-gray-700">
-            Page {currentPage} of {totalPages}
-          </p>
-          <div className="flex gap-2">
-            <button
-              className="px-3 py-1 text-sm border rounded hover:bg-gray-50 disabled:opacity-50"
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-            >
-              Previous
-            </button>
-            <button
-              className="px-3 py-1 text-sm border rounded hover:bg-gray-50 disabled:opacity-50"
-              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
-            >
-              Next
-            </button>
+      <div className="space-y-3 p-3 md:hidden">
+        {paginated.map((trip) => (
+          <div key={trip.id} className="rounded-card border border-hairline bg-surface p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="truncate font-semibold text-ink">{trip.truckId}</p>
+                <p className="truncate text-sm text-ink-secondary">
+                  {trip.departure} → {trip.arrival}
+                </p>
+              </div>
+              <StatusBadge tone={toneFor(trip.status)}>{trip.status}</StatusBadge>
+            </div>
+            <div className="mt-3 flex justify-between border-t border-hairline pt-3 text-sm tabular-nums">
+              <span className="text-ink-secondary">{trip.weight} kg</span>
+              <span className="font-semibold text-ink">{rupees(trip.fare)}</span>
+            </div>
           </div>
-        </div>
+        ))}
       </div>
-    </div>
-  )
-}
 
+      <TablePagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalItems={trips.length}
+        pageSize={ITEMS_PER_PAGE}
+        onPageChange={setCurrentPage}
+      />
+    </div>
+  );
+}

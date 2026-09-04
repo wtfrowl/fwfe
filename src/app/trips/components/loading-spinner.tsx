@@ -1,9 +1,15 @@
+import { motion } from "motion/react";
+
 export function LoadingSpinner() {
-    return (
-      <div className="flex justify-center items-center p-4">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-      </div>
-    )
-  }
-  
-  
+  return (
+    <div className="flex items-center justify-center p-4">
+      <motion.span
+        className="h-7 w-7 rounded-full border-[3px] border-ink/10 border-t-accent"
+        animate={{ rotate: 360 }}
+        transition={{ duration: 0.7, ease: "linear", repeat: Infinity }}
+        role="status"
+        aria-label="Loading"
+      />
+    </div>
+  );
+}

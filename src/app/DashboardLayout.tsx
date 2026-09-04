@@ -1,6 +1,6 @@
 import React, { useContext, useEffect, useState } from "react";
 import { NavLink, Outlet, useNavigate, ScrollRestoration } from "react-router-dom";
-import { BiLogOut } from "react-icons/bi";
+import { motion, useReducedMotion } from "motion/react";
 import truckIcon from "../assets/truck.svg";
 import { RiSteering2Fill } from "react-icons/ri";
 import { AuthContext } from "../context/AuthContext";
@@ -16,22 +16,83 @@ import { ImLocation2 } from "react-icons/im";
 import { useTracking } from "../context/TrackingContext";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { getLoginPath } from "../utils/auth";
+import { spring } from "../motion/springs";
+import { cn } from "../utils/cn";
+
+/* One source of truth for navigation. The previous version wrote this list
+   out twice — once for the mobile rail, once for the sidebar — which is two
+   places for a route to drift out of sync. */
+interface NavEntry {
+  to: string;
+  label: string;
+  icon: React.ReactNode;
+  ownerOnly?: boolean;
+  end?: boolean;
+}
+
+const NAV: NavEntry[] = [
+  { to: "", label: "Dashboard", icon: <MdDashboard />, end: true },
+  { to: "analytics", label: "Analytics", icon: <MdAnalytics />, ownerOnly: true },
+  { to: "loads", label: "Loads", icon: <TbPackages />, ownerOnly: true },
+  { to: "mytrucks", label: "My Trucks", icon: <FaTruck /> },
+  { to: "drivers", label: "Drivers", icon: <RiSteering2Fill />, ownerOnly: true },
+  { to: "trips", label: "Trips", icon: <GiPathDistance /> },
+  { to: "tyre", label: "Tyre", icon: <GiTyre />, ownerOnly: true },
+  { to: "mydocs", label: "Documents", icon: <HiOutlineDocumentText /> },
+];
+
+/**
+ * The selected-state pill is a shared element: it travels from the old item to
+ * the new one instead of one pill fading out while another fades in. That
+ * continuity is what tells the user these are positions in one list rather
+ * than unrelated buttons, and `layoutId` makes it interruptible for free —
+ * click a third item mid-flight and the pill re-targets from where it is.
+ */
+function NavItem({ entry, layoutGroup }: { entry: NavEntry; layoutGroup: string }) {
+  const reduced = useReducedMotion();
+
+  return (
+    <NavLink to={entry.to} end={entry.end} className="relative block">
+      {({ isActive }) => (
+        <motion.div
+          className={cn(
+            "relative flex items-center gap-3 rounded-control px-3 py-2.5 text-sm font-semibold",
+            "whitespace-nowrap transition-colors duration-150",
+            isActive ? "text-ink" : "text-ink-secondary hover:text-ink"
+          )}
+          whileTap={reduced ? { opacity: 0.7 } : { scale: 0.98 }}
+          transition={spring.snappy}
+        >
+          {isActive && (
+            <motion.span
+              layoutId={layoutGroup}
+              className="absolute inset-0 -z-10 rounded-control bg-surface shadow-[var(--shadow-key)] ring-1 ring-hairline-strong"
+              transition={spring.move}
+            />
+          )}
+          <span className="text-lg">{entry.icon}</span>
+          {entry.label}
+        </motion.div>
+      )}
+    </NavLink>
+  );
+}
 
 const DashboardLayout: React.FC = () => {
   const navigate = useNavigate();
   const { isTracking, startTracking, stopTracking, error } = useTracking();
   const { user, role, logout } = useContext(AuthContext);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const reduced = useReducedMotion();
 
   const isOwner = role === "owner";
+  const entries = NAV.filter((e) => !e.ownerOnly || isOwner).concat({
+    to: isOwner ? "owner-profile" : "driver-profile",
+    label: "Profile",
+    icon: <CgProfile />,
+  });
 
-  const handleToggleTracking = () => {
-    if (isTracking) {
-      stopTracking();
-    } else {
-      startTracking();
-    }
-  };
+  const handleToggleTracking = () => (isTracking ? stopTracking() : startTracking());
 
   const handleLogout = (): void => {
     const loginPath = getLoginPath(role);
@@ -45,193 +106,103 @@ const DashboardLayout: React.FC = () => {
       : "Please Login";
   }, [user, isOwner]);
 
-  const navLinkClasses = ({ isActive }: { isActive: boolean }) =>
-    `flex items-center p-3 rounded-lg font-semibold transition-all duration-200 ${
-      isActive
-        ? "bg-[#e7f09c] text-black shadow-sm"
-        : "text-gray-600 hover:bg-gray-100 hover:text-black"
-    }`;
-
   return (
     <>
-      <div className="sticky top-0 z-20 bg-white shadow-sm border-b border-gray-200">
-        <div className="flex flex-row justify-between md:justify-around items-center h-20">
-          <div className="ml-4 cursor-pointer" onClick={() => navigate("/")}>
-            <img src={truckIcon} loading="lazy" className="w-12 h-16" alt="logo" />
-          </div>
-          <div className="mr-4 flex items-center gap-4">
-            <div className="mr-4 flex items-center gap-4">
-              <button
-                onClick={handleToggleTracking}
-                className={`h-9 w-9 items-center justify-center flex rounded-full cursor-pointer transition-all duration-300 ${
-                  isTracking
-                    ? "bg-green-100 text-green-600 shadow-[0_0_10px_rgba(34,197,94,0.5)]"
-                    : "bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-gray-600"
-                } ${error ? "bg-red-100 text-red-500" : ""}`}
-                title={isTracking ? "Stop Tracking (Go Offline)" : "Start Tracking (Go Online)"}
-              >
-                <ImLocation2 className={`w-5 h-5 ${isTracking ? "animate-pulse" : ""}`} />
-              </button>
+      {/* Chrome is a translucent layer the content scrolls beneath, not an
+          opaque strip that eats the top of the page. */}
+      <header className="material-regular sticky top-0 z-30 border-b border-hairline/70">
+        <div className="mx-auto flex h-16 max-w-[1920px] items-center justify-between px-4 md:px-6">
+          <button
+            type="button"
+            onClick={() => navigate("/")}
+            className="flex items-center gap-2 rounded-control"
+            aria-label="FleetWise home"
+          >
+            <img src={truckIcon} loading="lazy" className="h-9 w-9" alt="" />
+            <span className="hidden text-base font-semibold text-ink-vibrant sm:block">
+              FleetWise
+            </span>
+          </button>
 
-              {error && <span className="text-xs text-red-500 absolute top-12">{error}</span>}
-
-              <NotificationBell />
-            </div>
+          <div className="flex items-center gap-2 sm:gap-3">
+            <TrackingToggle
+              isTracking={isTracking}
+              error={error}
+              onToggle={handleToggleTracking}
+            />
+            <NotificationBell />
 
             {user ? (
-              <div className="flex items-center gap-3">
-                <span className="hidden md:block text-sm md:text-lg font-medium text-gray-700">
-                  Welcome, {user.firstName}
+              <div className="flex items-center gap-2 sm:gap-3">
+                <span className="hidden text-sm font-medium text-ink-vibrant-secondary md:block">
+                  {user.firstName}
                 </span>
-                <BiLogOut
-                  className="h-6 w-6 text-gray-500 cursor-pointer md:hidden hover:text-red-500"
+                <motion.button
+                  type="button"
                   onClick={() => setShowLogoutConfirm(true)}
-                />
+                  aria-label="Log out"
+                  className="grid h-9 w-9 place-items-center rounded-full text-ink-tertiary hover:bg-ink/6 hover:text-critical md:hidden"
+                  whileTap={reduced ? { opacity: 0.6 } : { scale: 0.9 }}
+                  transition={spring.snappy}
+                >
+                  <FiLogOut className="h-5 w-5" />
+                </motion.button>
               </div>
             ) : (
-              <span className="hidden md:block text-sm">
-                Please{" "}
-                <a className="text-cyan-600 font-bold hover:underline" href={isOwner ? "/owner-login" : "/driver-login"}>
-                  Login
-                </a>
-              </span>
+              <a
+                className="text-sm font-semibold text-accent hover:underline"
+                href={isOwner ? "/owner-login" : "/driver-login"}
+              >
+                Login
+              </a>
             )}
           </div>
         </div>
 
-        <div className="flex md:hidden text-nowrap scrollbar-hide gap-3 p-3 border-t bg-white overflow-x-auto">
-          <NavLink className={navLinkClasses} to="" end>
-            <MdDashboard className="mr-2 text-xl" /> Dashboard
-          </NavLink>
-          {isOwner && (
-            <>
-              <NavLink className={navLinkClasses} to="analytics">
-                <MdAnalytics className="mr-2 text-xl" /> Analytics
-              </NavLink>
-              <NavLink className={navLinkClasses} to="loads">
-                <TbPackages className="mr-2 text-xl" /> Loads
-              </NavLink>
-            </>
-          )}
+        {/* Mobile rail. Its own layout group so it never fights the sidebar
+            over which pill owns the shared element. */}
+        <nav className="scrollbar-hide flex gap-1.5 overflow-x-auto border-t border-hairline/60 px-3 py-2 md:hidden">
+          {entries.map((entry) => (
+            <NavItem key={entry.to || "index"} entry={entry} layoutGroup="nav-mobile" />
+          ))}
+        </nav>
+      </header>
 
-          <NavLink className={navLinkClasses} to="mytrucks">
-            <FaTruck className="mr-2 text-xl" /> My Trucks
-          </NavLink>
+      <div className="mx-auto flex max-w-[1920px]">
+        <aside className="material-thin sticky top-16 hidden h-[calc(100vh-4rem)] w-[248px] shrink-0 overflow-y-auto border-r border-hairline/70 md:block">
+          <nav className="flex h-full flex-col justify-between p-3">
+            <ul className="space-y-1">
+              {entries.map((entry) => (
+                <li key={entry.to || "index"}>
+                  <NavItem entry={entry} layoutGroup="nav-desktop" />
+                </li>
+              ))}
+            </ul>
 
-          {isOwner && (
-            <NavLink className={navLinkClasses} to="drivers">
-              <RiSteering2Fill className="mr-2 text-xl" /> Drivers
-            </NavLink>
-          )}
+            <div className="border-t border-hairline pt-3">
+              <motion.button
+                type="button"
+                onClick={() => setShowLogoutConfirm(true)}
+                className="flex w-full items-center gap-3 rounded-control px-3 py-2.5 text-sm font-semibold text-critical-ink transition-colors duration-150 hover:bg-critical-soft"
+                whileTap={reduced ? { opacity: 0.7 } : { scale: 0.98 }}
+                transition={spring.snappy}
+              >
+                <FiLogOut className="text-lg" /> Logout
+              </motion.button>
+            </div>
+          </nav>
+        </aside>
 
-          <NavLink className={navLinkClasses} to="trips">
-            <GiPathDistance className="mr-2 text-xl" /> Trips
-          </NavLink>
-
-          {isOwner && (
-            <NavLink className={navLinkClasses} to="tyre">
-              <GiTyre className="mr-2 text-xl" /> Tyre
-            </NavLink>
-          )}
-
-          <NavLink className={navLinkClasses} to="mydocs">
-            <HiOutlineDocumentText className="mr-2 text-xl" /> Documents
-          </NavLink>
-
-          <NavLink className={navLinkClasses} to={isOwner ? "owner-profile" : "driver-profile"}>
-            <CgProfile className="mr-2 text-xl" /> Profile
-          </NavLink>
-        </div>
+        <main className="min-h-[calc(100vh-4rem)] w-full min-w-0 flex-1 p-4 md:p-8">
+          <Outlet />
+        </main>
       </div>
 
-      <div className="relative bg-slate-50 min-h-screen">
-        <div className="flex max-w-[1920px] mx-auto">
-          <aside className="hidden md:block w-[240px] flex-shrink-0 bg-white border-r border-gray-200 sticky top-20 h-[calc(100vh-80px)] overflow-y-auto">
-            <nav className="p-4 flex flex-col h-full justify-between">
-              <ul className="space-y-2">
-                <li>
-                  <NavLink className={navLinkClasses} to="" end>
-                    <MdDashboard className="mr-3 text-xl" /> Dashboard
-                  </NavLink>
-                </li>
-
-                {isOwner && (
-                  <>
-                    <li>
-                      <NavLink className={navLinkClasses} to="analytics">
-                        <MdAnalytics className="mr-2 text-xl" /> Analytics
-                      </NavLink>
-                    </li>
-                    <li>
-                      <NavLink className={navLinkClasses} to="drivers">
-                        <RiSteering2Fill className="mr-2 text-xl" /> Drivers
-                      </NavLink>
-                    </li>
-                  </>
-                )}
-
-                <li>
-                  <NavLink className={navLinkClasses} to="mytrucks">
-                    <FaTruck className="mr-3 text-xl" /> My Trucks
-                  </NavLink>
-                </li>
-
-                {isOwner && (
-                  <li>
-                    <NavLink className={navLinkClasses} to="loads">
-                      <TbPackages className="mr-3 text-xl" /> Loads
-                    </NavLink>
-                  </li>
-                )}
-
-                <li>
-                  <NavLink className={navLinkClasses} to="trips">
-                    <GiPathDistance className="mr-3 text-xl" /> Trips
-                  </NavLink>
-                </li>
-
-                {isOwner && (
-                  <li>
-                    <NavLink className={navLinkClasses} to="tyre">
-                      <GiTyre className="mr-3 text-xl" /> Tyre
-                    </NavLink>
-                  </li>
-                )}
-
-                <li>
-                  <NavLink className={navLinkClasses} to="mydocs">
-                    <HiOutlineDocumentText className="mr-3 text-xl" /> Documents
-                  </NavLink>
-                </li>
-
-                <li>
-                  <NavLink className={navLinkClasses} to={isOwner ? "owner-profile" : "driver-profile"}>
-                    <CgProfile className="mr-3 text-xl" /> Profile
-                  </NavLink>
-                </li>
-              </ul>
-
-              <div className="pt-4 border-t border-gray-100 mt-4">
-                <button
-                  onClick={() => setShowLogoutConfirm(true)}
-                  className="flex items-center w-full p-3 rounded-lg font-semibold text-red-500 hover:bg-red-50 transition-colors duration-200"
-                >
-                  <FiLogOut className="mr-3 text-xl" /> Logout
-                </button>
-              </div>
-            </nav>
-          </aside>
-
-          <main className="flex-1 p-4 md:p-8 w-full overflow-hidden">
-            <Outlet />
-          </main>
-        </div>
-      </div>
       <ConfirmDialog
         open={showLogoutConfirm}
-        title="Logout?"
-        description="Your FleetWise session will be cleared from this device."
-        confirmLabel="Logout"
+        title="Log out?"
+        description="Your FleetWise session will be cleared from this device. Any tracking currently running will stop."
+        confirmLabel="Log out"
         cancelLabel="Cancel"
         tone="danger"
         onConfirm={handleLogout}
@@ -241,5 +212,62 @@ const DashboardLayout: React.FC = () => {
     </>
   );
 };
+
+/**
+ * Live tracking is the one genuinely ambient state in the app, so it gets the
+ * one genuinely ambient animation: a slow breathing halo that says "still on"
+ * without demanding to be looked at.
+ *
+ * It animates a ring rather than the icon, because a pulsing icon competes
+ * with the icon's job of being identifiable at a glance.
+ */
+function TrackingToggle({
+  isTracking,
+  error,
+  onToggle,
+}: {
+  isTracking: boolean;
+  error?: string | null;
+  onToggle: () => void;
+}) {
+  const reduced = useReducedMotion();
+
+  return (
+    <div className="relative">
+      <motion.button
+        type="button"
+        onClick={onToggle}
+        title={isTracking ? "Stop tracking (go offline)" : "Start tracking (go online)"}
+        aria-pressed={isTracking}
+        className={cn(
+          "relative grid h-9 w-9 place-items-center rounded-full transition-colors duration-200",
+          error
+            ? "bg-critical-soft text-critical-ink"
+            : isTracking
+              ? "bg-positive-soft text-positive-ink"
+              : "bg-ink/6 text-ink-tertiary hover:bg-ink/10 hover:text-ink-secondary"
+        )}
+        whileTap={reduced ? { opacity: 0.6 } : { scale: 0.9 }}
+        transition={spring.snappy}
+      >
+        {isTracking && !reduced && (
+          <motion.span
+            className="absolute inset-0 rounded-full ring-2 ring-positive"
+            animate={{ opacity: [0.55, 0, 0.55], scale: [1, 1.5, 1] }}
+            transition={{ duration: 2.4, ease: "easeOut", repeat: Infinity }}
+            aria-hidden
+          />
+        )}
+        <ImLocation2 className="h-4.5 w-4.5" />
+      </motion.button>
+
+      {error ? (
+        <span className="absolute top-11 right-0 z-10 whitespace-nowrap rounded-chip bg-critical-soft px-2 py-1 text-xs font-medium text-critical-ink">
+          {error}
+        </span>
+      ) : null}
+    </div>
+  );
+}
 
 export default DashboardLayout;

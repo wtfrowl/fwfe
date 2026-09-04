@@ -1,43 +1,43 @@
-"use client";
-
 import { useState, useMemo, useEffect, useContext, useCallback } from "react";
-import { StatusTab } from "./components/status-tab";
+import { FaPlus, FaTruck } from "react-icons/fa";
 import { VehicleTable } from "./components/vehicle-table";
 import type { Vehicle, VehicleStatus } from "./types/vehicle";
-import { FaPlus, FaSearch } from "react-icons/fa";
 import { AddTruckModal } from "./modals/AddTruckModal";
 import { AuthContext } from "../../context/AuthContext";
 import VehicleTableSkeleton from "./components/vehicle-table-skeleton";
+import { PageHeader } from "../../components/ui/PageHeader";
+import { Button } from "../../components/ui/Button";
+import { SearchField } from "../../components/ui/SearchField";
+import { FilterBar } from "../../components/ui/FilterBar";
+import { TableCard } from "../../components/ui/TableCard";
+import { TablePagination } from "../../components/ui/TablePagination";
+import { EmptyState } from "../../components/ui/EmptyState";
+import { InlineMessage } from "../../components/ui/InlineMessage";
+import { SegmentedControl, type Segment } from "../../components/ui/SegmentedControl";
 import { getTrucks } from "../../api";
 
 const ITEMS_PER_PAGE = 6;
 
 export default function TrucksPage() {
-  const [activeStatus, setActiveStatus] = useState<VehicleStatus | "ALL">("ALL");
+  const { role } = useContext(AuthContext);
+  const [activeStatus, setActiveStatus] = useState<VehicleStatus>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [addTruckModalOpen, setAddTruckModalOpen] = useState(false);
-  const [userRole, setUserRole] = useState<"owner" | "driver" | null>(null);
-  const { role } = useContext(AuthContext);
-  const statuses: { label: string; value: VehicleStatus | "ALL" }[] = [
-    { label: "ALL STATUSES", value: "ALL" },
-    { label: "EN ROUTE", value: "En Route" },
-    { label: "AVAILABLE", value: "Available" },
-    { label: "OUT OF SERVICE", value: "Out of Service" },
-  ];
+  const [addOpen, setAddOpen] = useState(false);
 
-  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const isOwner = role === "owner";
 
   const fetchVehicles = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      setUserRole(role as "owner" | "driver");
-      const response = (await getTrucks()) as unknown as { trucks: Array<Partial<Vehicle> & { _id?: string }> };
-      const sanitizedVehicles = response.trucks.map((vehicle) => ({
+      const response = (await getTrucks()) as unknown as {
+        trucks: Array<Partial<Vehicle> & { _id?: string }>;
+      };
+      const sanitized = response.trucks.map((vehicle) => ({
         id: vehicle._id,
         registrationNumber: vehicle.registrationNumber || undefined,
         type: vehicle.model || "Truck",
@@ -49,176 +49,159 @@ export default function TrucksPage() {
         capacity: vehicle.capacity || "NA",
       })) as Vehicle[];
 
-      setVehicles(sanitizedVehicles);
+      setVehicles(sanitized);
     } catch (err) {
       console.error("Error fetching vehicles:", err);
-      setError("Failed to fetch vehicles. Please try again.");
+      setError("Could not load your trucks. Check your connection and try again.");
     } finally {
       setLoading(false);
     }
-  }, [role]);
+  }, []);
 
   useEffect(() => {
     fetchVehicles();
   }, [fetchVehicles]);
 
+  const statusCounts = useMemo(
+    () => ({
+      ALL: vehicles.length,
+      "En Route": vehicles.filter((v) => v.status === "En Route").length,
+      Available: vehicles.filter((v) => v.status === "Available").length,
+      "Out of Service": vehicles.filter((v) => v.status === "Out of Service").length,
+    }),
+    [vehicles]
+  );
+
+  /* Labels are sentence case, not shouted. "ALL STATUSES" in caps reads as a
+     warning; these are just filters. */
+  const segments: Segment<VehicleStatus>[] = [
+    { label: "All", value: "ALL", count: statusCounts.ALL },
+    { label: "En route", value: "En Route", count: statusCounts["En Route"] },
+    { label: "Available", value: "Available", count: statusCounts.Available },
+    { label: "Out of service", value: "Out of Service", count: statusCounts["Out of Service"] },
+  ];
+
   const filteredVehicles = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
     return vehicles.filter((vehicle) => {
       if (activeStatus !== "ALL" && vehicle.status !== activeStatus) return false;
-      if (searchQuery && !vehicle.registrationNumber?.toLowerCase().includes(searchQuery.toLowerCase())) return false;
-      return true;
+      if (!query) return true;
+      /* The placeholder promised search by vehicle OR alert, but the filter
+         only ever matched the registration number. */
+      return (
+        vehicle.registrationNumber?.toLowerCase().includes(query) ||
+        vehicle.alertType?.toLowerCase().includes(query) ||
+        vehicle.model?.toLowerCase().includes(query)
+      );
     });
   }, [activeStatus, searchQuery, vehicles]);
 
-  const totalPages = Math.ceil(filteredVehicles.length / ITEMS_PER_PAGE);
+  const totalPages = Math.max(1, Math.ceil(filteredVehicles.length / ITEMS_PER_PAGE));
 
   useEffect(() => {
     setCurrentPage(1);
   }, [activeStatus, searchQuery]);
 
+  const paginatedVehicles = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredVehicles.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredVehicles, currentPage]);
+
   const handleRefresh = async () => {
-    setAddTruckModalOpen(false);
+    setAddOpen(false);
     await fetchVehicles();
   };
 
-  const paginatedVehicles = useMemo(() => {
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    return filteredVehicles.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-  }, [filteredVehicles, currentPage]);
-
-  const statusCounts = useMemo(() => {
-    return {
-      ALL: vehicles.length,
-      "En Route": vehicles.filter((v) => v.status === "En Route").length,
-      "Available": vehicles.filter((v) => v.status === "Available").length,
-      "Out of Service": vehicles.filter((v) => v.status === "Out of Service").length,
-    };
-  }, [vehicles]);
-
-  const handlePageChange = (page: number) => {
-    if (page < 1 || page > totalPages) return;
-    setCurrentPage(page);
-  };
+  const hasVehicles = vehicles.length > 0;
 
   return (
-    <div className="min-h-screen bg-gray-50 ">
-      <div className="mx-auto space-y-6">
-        <div className="bg-white rounded-lg shadow">
-          {userRole === "owner" && (
-            <AddTruckModal isOpen={addTruckModalOpen} onClose={() => setAddTruckModalOpen(false)} onTruckAdded={handleRefresh} />
-          )}
+    <div className="mx-auto max-w-7xl space-y-5">
+      <PageHeader
+        title="My trucks"
+        description="Every vehicle in your fleet, with its current status and health."
+        actions={
+          isOwner ? (
+            <Button onClick={() => setAddOpen(true)}>
+              <FaPlus className="h-3.5 w-3.5" />
+              Add truck
+            </Button>
+          ) : null
+        }
+      />
 
-          <div className="px-6 py-4 border-b border-gray-200">
-            <div className="flex justify-between items-center">
-              <h1 className="text-2xl font-semibold">My Trucks</h1>
-              {userRole === "owner" && (
-                <button onClick={() => setAddTruckModalOpen(true)} className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 flex items-center gap-2">
-                  <FaPlus className="w-4 h-4" />
-                  Add Trucks
-                </button>
-              )}
-            </div>
-          </div>
+      <InlineMessage tone="error">{error}</InlineMessage>
 
-          <div className="border-b border-gray-200">
-            <div className="hidden md:flex">
-              {statuses.map((status) => (
-                <StatusTab
-                  key={status.value}
-                  label={status.label}
-                  active={activeStatus === status.value}
-                  onClick={() => setActiveStatus(status.value)}
-                  count={statusCounts[status.value]}
-                />
-              ))}
-            </div>
+      <FilterBar>
+        <SegmentedControl segments={segments} value={activeStatus} onChange={setActiveStatus} />
+        <SearchField
+          placeholder="Search registration, model or alert"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          aria-label="Search trucks"
+        />
+      </FilterBar>
 
-            <div className="md:hidden relative">
-              <button onClick={() => setDropdownOpen(!dropdownOpen)} className="w-full px-4 py-2 text-left bg-gray-100 border rounded-md">
-                {statuses.find((s) => s.value === activeStatus)?.label}
-              </button>
+      {loading ? (
+        <TableCard>
+          <VehicleTableSkeleton />
+        </TableCard>
+      ) : paginatedVehicles.length > 0 ? (
+        <TableCard>
+          <VehicleTable
+            vehicles={paginatedVehicles}
+            userRole={role}
+            onUpdated={fetchVehicles}
+          />
+          <TablePagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={filteredVehicles.length}
+            pageSize={ITEMS_PER_PAGE}
+            onPageChange={setCurrentPage}
+          />
+        </TableCard>
+      ) : hasVehicles ? (
+        /* Filtered to nothing is a different situation from owning nothing,
+           and it needs a different way out. */
+        <EmptyState
+          icon={<FaTruck />}
+          title="No trucks match those filters"
+          description="Try a different status, or clear the search to see your whole fleet."
+          action={
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setActiveStatus("ALL");
+                setSearchQuery("");
+              }}
+            >
+              Clear filters
+            </Button>
+          }
+        />
+      ) : (
+        <EmptyState
+          icon={<FaTruck />}
+          title="No trucks yet"
+          description="Add your first vehicle to start tracking its trips, health and running costs."
+          action={
+            isOwner ? (
+              <Button onClick={() => setAddOpen(true)}>
+                <FaPlus className="h-3.5 w-3.5" />
+                Add truck
+              </Button>
+            ) : null
+          }
+        />
+      )}
 
-              {dropdownOpen && (
-                <div className="absolute left-0 mt-2 w-full bg-white border rounded-md shadow-lg z-10">
-                  {statuses.map((status) => (
-                    <button
-                      key={status.value}
-                      onClick={() => {
-                        setActiveStatus(status.value);
-                        setDropdownOpen(false);
-                      }}
-                      className={`block w-full px-4 py-2 text-left ${activeStatus === status.value ? "bg-gray-200" : "hover:bg-gray-100"}`}
-                    >
-                      {status.label} ({statusCounts[status.value]})
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="p-4 border-b border-gray-200">
-            <div className="flex items-center justify-between">
-              <div className="flex-1 max-w-sm">
-                <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="Search by Vehicle OR Alert"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                  <FaSearch className="absolute left-3 top-2.5 w-5 h-5 text-gray-400" />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {error && <p className="text-red-500 text-center">{error}</p>}
-          {loading ? (
-            <VehicleTableSkeleton />
-          ) : (
-            <>
-              {paginatedVehicles.length > 0 ? (
-                <VehicleTable vehicles={paginatedVehicles} userRole={role} />
-              ) : (
-                <div className="flex justify-center items-center h-64">
-                  <p className="text-gray-500">No Trucks, Add Now</p>
-                </div>
-              )}
-
-              {paginatedVehicles.length > 0 && (
-                <div className="px-4 py-3 border-t border-gray-200">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm text-gray-700">
-                      Showing <span className="font-medium">{(currentPage - 1) * ITEMS_PER_PAGE + 1}</span> -{" "}
-                      <span className="font-medium">{Math.min(currentPage * ITEMS_PER_PAGE, filteredVehicles.length)}</span> of{" "}
-                      <span className="font-medium">{filteredVehicles.length}</span>
-                    </p>
-                    <div className="flex gap-2">
-                      <button className="px-3 py-1 text-sm border rounded hover:bg-gray-50 disabled:opacity-50 disabled:hover:bg-white" onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1}>
-                        &larr;
-                      </button>
-                      {[...Array(totalPages)].map((_, i) => (
-                        <button
-                          key={i + 1}
-                          className={`px-3 py-1 text-sm border rounded hover:bg-gray-50 ${currentPage === i + 1 ? "bg-blue-50 text-blue-600" : ""}`}
-                          onClick={() => handlePageChange(i + 1)}
-                        >
-                          {i + 1}
-                        </button>
-                      ))}
-                      <button className="px-3 py-1 text-sm border rounded hover:bg-gray-50 disabled:opacity-50 disabled:hover:bg-white" onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === totalPages}>
-                        &rarr;
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      </div>
+      {isOwner && (
+        <AddTruckModal
+          isOpen={addOpen}
+          onClose={() => setAddOpen(false)}
+          onTruckAdded={handleRefresh}
+        />
+      )}
     </div>
   );
 }

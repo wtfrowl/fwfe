@@ -1,85 +1,111 @@
-"use client"
-
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts"
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
+import { ChartCard, ChartEmpty } from "../../../components/charts/ChartCard";
+import { CATEGORICAL, tooltipProps, rupees } from "../../../components/charts/theme";
 
 interface ExpenseCategory {
-  name: string
-  value: number
+  name: string;
+  value: number;
 }
 
 interface ExpensesChartProps {
-  data?: any[] 
-  categories: ExpenseCategory[]
+  categories: ExpenseCategory[];
 }
 
-const COLORS = ["#3B82F6", "#EF4444", "#F59E0B", "#10B981", "#6B7280", "#8B5CF6", "#EC4899", "#6366F1"]
+const MAX_SLICES = CATEGORICAL.length;
+
+const titleCase = (raw: string) =>
+  raw
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
 
 export function ExpensesChart({ categories }: ExpensesChartProps) {
-  // Format the names: diesel -> Diesel, driver_allowance -> Driver Allowance
-  const formattedData = categories?.map(cat => ({
-    ...cat,
-    name: cat.name
-      .split('_')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ')
-  }));
+  /**
+   * Sort descending and fold the tail into "Other".
+   *
+   * The old chart cycled an eight-hue palette by array index, which meant the
+   * colour of a category depended on its position in the response rather than
+   * on the category itself — add one expense type and every slice changed
+   * colour. Sorting first, then assigning fixed palette slots, makes colour
+   * follow the entity. Past five slices a donut stops being readable anyway,
+   * so the remainder becomes one honest grey slice.
+   */
+  const sorted = [...(categories ?? [])]
+    .filter((c) => c.value > 0)
+    .sort((a, b) => b.value - a.value)
+    .map((c) => ({ ...c, name: titleCase(c.name) }));
+
+  const head = sorted.slice(0, MAX_SLICES);
+  const tail = sorted.slice(MAX_SLICES);
+  const data = tail.length
+    ? [...head, { name: "Other", value: tail.reduce((sum, c) => sum + c.value, 0) }]
+    : head;
+
+  const total = data.reduce((sum, c) => sum + c.value, 0);
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-sm w-full border border-gray-100 overflow-hidden">
-      <h2 className="text-lg font-semibold mb-4">Expense Breakdown</h2>
-      <div className="h-[350px] w-full">
-        {(!formattedData || formattedData.length === 0) ? (
-          <div className="h-full flex items-center justify-center text-gray-400 text-sm">
-            No expense data recorded
-          </div>
+    <ChartCard title="Expense breakdown">
+      <div className="relative h-[350px] w-full">
+        {data.length === 0 ? (
+          <ChartEmpty message="No expense data recorded" />
         ) : (
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={formattedData}
-                innerRadius="60%"
-                outerRadius="80%"
-                paddingAngle={5}
-                dataKey="value"
-                cx="50%"
-                cy="45%" // Lifted slightly to make room for bottom legend
-              >
-                {formattedData.map((_entry, index) => (
-                  <Cell 
-                    key={`cell-${index}`} 
-                    fill={COLORS[index % COLORS.length]} 
-                    strokeWidth={0}
-                  />
-                ))}
-              </Pie>
-              <Tooltip 
-                formatter={(value: number) => [`₹${value.toLocaleString()}`, "Cost"]}
-                contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-              />
-              <Legend 
-                verticalAlign="bottom" 
-                align="center"
-                iconType="circle"
-                iconSize={10}
-                // This function ensures names stay within their bounds
-                formatter={(value) => (
-                  <span className="text-xs text-gray-600 truncate inline-block max-w-[120px] align-middle">
-                    {value}
-                  </span>
-                )}
-                wrapperStyle={{ 
-                  paddingTop: '20px',
-                  width: '100%',
-                  display: 'flex',
-                  justifyContent: 'center',
-                  flexWrap: 'wrap',
-                  gap: '4px'
-                }}
-              />
-            </PieChart>
-          </ResponsiveContainer>
+          <>
+            {/* The hole in a donut is wasted unless it carries the total the
+                slices are parts of. */}
+            <div className="pointer-events-none absolute inset-x-0 top-[38%] -translate-y-1/2 text-center">
+              <p className="text-caption text-xs text-ink-tertiary">Total</p>
+              <p className="text-xl font-semibold tabular-nums tracking-[-0.02em] text-ink">
+                {rupees(total)}
+              </p>
+            </div>
+
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={data}
+                  innerRadius="60%"
+                  outerRadius="80%"
+                  paddingAngle={2}
+                  dataKey="value"
+                  cx="50%"
+                  cy="45%"
+                  /* A 2px surface-coloured gap separates neighbouring fills
+                     instead of letting two hues touch. */
+                  stroke="#fff"
+                  strokeWidth={2}
+                >
+                  {data.map((entry, index) => (
+                    <Cell
+                      key={entry.name}
+                      fill={entry.name === "Other" ? "#9CA3AF" : CATEGORICAL[index]}
+                    />
+                  ))}
+                </Pie>
+                <Tooltip
+                  {...tooltipProps}
+                  formatter={(value: number) => [rupees(value), "Cost"]}
+                />
+                <Legend
+                  verticalAlign="bottom"
+                  align="center"
+                  iconType="circle"
+                  iconSize={8}
+                  formatter={(value) => (
+                    <span className="align-middle text-xs text-ink-secondary">{value}</span>
+                  )}
+                  wrapperStyle={{
+                    paddingTop: 16,
+                    display: "flex",
+                    justifyContent: "center",
+                    flexWrap: "wrap",
+                    gap: 8,
+                  }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </>
         )}
       </div>
-    </div>
-  )
+    </ChartCard>
+  );
 }

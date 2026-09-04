@@ -14,8 +14,8 @@ export default function TruckAnalyticsTable({ data }: { data: TruckAnalytics[] }
           header: "Truck",
           render: (t) => (
             <div>
-              <div className="font-medium">{t._id}</div>
-              <div className="text-xs text-gray-500">
+              <div className="font-medium text-ink">{t._id}</div>
+              <div className="text-xs text-ink-tertiary">
                 {t.truck.model} • {t.truck.capacity}T
               </div>
             </div>
@@ -56,15 +56,15 @@ export default function TruckAnalyticsTable({ data }: { data: TruckAnalytics[] }
           key: "costPerKm",
           header: "Cost / KM",
           align: "right",
-          render: (t) => `Rs ${t.costPerKm.toFixed(2)}`,
+          render: (t) => `₹${t.costPerKm.toFixed(2)}`,
         },
         {
           key: "profitPerKm",
           header: "Profit / KM",
           align: "right",
           render: (t) => (
-            <span className={`font-medium ${t.profitPerKm < 0 ? "text-red-600" : "text-green-600"}`}>
-              Rs {t.profitPerKm.toFixed(2)}
+            <span className={`font-medium ${t.profitPerKm < 0 ? "text-critical-ink" : "text-positive-ink"}`}>
+              ₹{t.profitPerKm.toFixed(2)}
             </span>
           ),
         },

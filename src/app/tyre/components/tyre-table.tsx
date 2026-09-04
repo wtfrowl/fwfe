@@ -1,86 +1,152 @@
-import { useNavigate } from "react-router-dom"; // 1. Import hook
-import { Tyre } from "../tyre";
+import { useNavigate } from "react-router-dom";
+import type { Tyre } from "../tyre";
+import { StatusBadge } from "../../../components/ui/StatusBadge";
+import { cn } from "../../../utils/cn";
+
 interface Props {
   tyres: Tyre[];
-  userRole: any;
+  userRole?: "owner" | "driver" | null;
 }
 
+const toneFor = (status: Tyre["status"]) => {
+  switch (status) {
+    case "Spare":
+      return "success";
+    case "Mounted":
+      return "info";
+    case "Scrapped":
+      return "danger";
+    case "SentForRetreading":
+      return "warning";
+    default:
+      return "neutral";
+  }
+};
+
+/* "SentForRetreading" is a database value, not something to show a person. */
+const LABEL: Record<Tyre["status"], string> = {
+  Spare: "Spare",
+  Mounted: "Mounted",
+  Scrapped: "Scrapped",
+  SentForRetreading: "Retreading",
+};
+
+/** Below this, a tyre needs attention — so the number says so, not just its colour. */
+const LOW_TREAD_MM = 3;
+
 export function TyreTable({ tyres }: Props) {
-  const navigate = useNavigate(); // 2. Initialize hook
+  const navigate = useNavigate();
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Spare": return "bg-green-100 text-green-800";
-      case "Mounted": return "bg-blue-100 text-blue-800";
-      case "Scrapped": return "bg-red-100 text-red-800";
-      case "SentForRetreading": return "bg-yellow-100 text-yellow-800";
-      default: return "bg-gray-100 text-gray-800";
-    }
+  const TreadDepth = ({ depth }: { depth: number }) => {
+    const low = depth < LOW_TREAD_MM;
+    return (
+      <span
+        className={cn(
+          "text-sm font-semibold tabular-nums",
+          low ? "text-critical-ink" : "text-ink-secondary"
+        )}
+      >
+        {depth} mm{low ? " · low" : ""}
+      </span>
+    );
   };
 
-  // 3. Create click handler
-  const handleRowClick = (tyreId: string) => {
-    navigate(`${tyreId}`); // Ensure this route matches your App.tsx route
-  };
+  const TruckLink = ({ tyre }: { tyre: Tyre }) =>
+    tyre.status === "Mounted" && tyre.currentTruckId ? (
+      <button
+        type="button"
+        className="font-medium text-accent hover:underline"
+        onClick={(e) => {
+          e.stopPropagation();
+          navigate(`/owner-home/mytrucks/${tyre.currentTruckId?.registrationNumber}`);
+        }}
+      >
+        {tyre.currentTruckId.registrationNumber || "Truck assigned"}
+      </button>
+    ) : (
+      <span className="text-ink-tertiary">Inventory</span>
+    );
 
   return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tyre No / ID</th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Brand & Model</th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tread Depth</th>
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
-          {tyres.map((tyre) => (
-            <tr 
-              key={tyre._id} 
-              className="hover:bg-gray-50 cursor-pointer transition-colors" // Added cursor-pointer
-              onClick={() => handleRowClick(tyre._id)} // 4. Attach click event
-            >
-              <td className="px-6 py-4 whitespace-nowrap">
-                <span className="font-medium text-gray-900">{tyre.tyreNumber}</span>
-                <div className="text-xs text-gray-500">{tyre.size}</div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="text-sm text-gray-900">{tyre.brand}</div>
-                <div className="text-sm text-gray-500">{tyre.model}</div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(tyre.status)}`}>
-                  {tyre.status}
-                </span>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {tyre.status === "Mounted" && tyre.currentTruckId ? (
-                   <span 
-                     className="font-medium text-blue-600 hover:underline z-10 relative"
-                     onClick={(e) => {
-                       e.stopPropagation(); // Prevent row click if user specifically clicks truck number
-                       navigate(`/owner-home/mytrucks/${tyre.currentTruckId?.registrationNumber}`);
-                     }}
-                   >
-                     {tyre.currentTruckId.registrationNumber || "Truck Assigned"}
-                   </span>
-                ) : (
-                   <span>Inventory</span>
-                )}
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                 <div className="flex items-center">
-                    <span className={`text-sm font-bold ${tyre.currentTreadDepth < 3 ? 'text-red-600' : 'text-gray-700'}`}>
-                        {tyre.currentTreadDepth} mm
-                    </span>
-                 </div>
-              </td>
+    <>
+      {/* --- Desktop --- */}
+      <div className="hidden overflow-x-auto md:block">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-hairline">
+              {["Tyre", "Brand & model", "Status", "Location", "Tread"].map((h) => (
+                <th
+                  key={h}
+                  className="text-caption px-5 py-3 text-left text-xs font-semibold uppercase text-ink-tertiary"
+                >
+                  {h}
+                </th>
+              ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody>
+            {tyres.map((tyre) => (
+              <tr
+                key={tyre._id}
+                onClick={() => navigate(`${tyre._id}`)}
+                className="cursor-pointer border-b border-hairline/70 transition-colors duration-150 last:border-0 hover:bg-ink/3"
+              >
+                <td className="px-5 py-3.5">
+                  <div className="font-semibold text-ink">{tyre.tyreNumber}</div>
+                  <div className="text-xs text-ink-tertiary">{tyre.size}</div>
+                </td>
+                <td className="px-5 py-3.5">
+                  <div className="text-sm text-ink">{tyre.brand}</div>
+                  <div className="text-xs text-ink-tertiary">{tyre.model}</div>
+                </td>
+                <td className="px-5 py-3.5">
+                  <StatusBadge tone={toneFor(tyre.status)}>
+                    {LABEL[tyre.status] ?? tyre.status}
+                  </StatusBadge>
+                </td>
+                <td className="px-5 py-3.5 text-sm">
+                  <TruckLink tyre={tyre} />
+                </td>
+                <td className="px-5 py-3.5">
+                  <TreadDepth depth={tyre.currentTreadDepth} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* --- Mobile --- */}
+      <div className="space-y-3 p-3 md:hidden">
+        {tyres.map((tyre) => (
+          <div
+            key={tyre._id}
+            className="rounded-card border border-hairline bg-surface p-4 shadow-[var(--shadow-hairline)]"
+          >
+            <button
+              type="button"
+              onClick={() => navigate(`${tyre._id}`)}
+              className="flex w-full items-start justify-between gap-3 text-left"
+            >
+              <div className="min-w-0">
+                <p className="truncate font-semibold text-ink">{tyre.tyreNumber}</p>
+                <p className="truncate text-sm text-ink-secondary">
+                  {tyre.brand} {tyre.model}
+                </p>
+                <p className="text-xs text-ink-tertiary">{tyre.size}</p>
+              </div>
+              <StatusBadge tone={toneFor(tyre.status)}>
+                {LABEL[tyre.status] ?? tyre.status}
+              </StatusBadge>
+            </button>
+
+            <div className="mt-3 flex items-center justify-between border-t border-hairline pt-3 text-sm">
+              <TruckLink tyre={tyre} />
+              <TreadDepth depth={tyre.currentTreadDepth} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </>
   );
 }

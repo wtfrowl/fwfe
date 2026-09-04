@@ -1,87 +1,91 @@
-import { useContext } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import truckIcon from '../assets/truck.svg' 
-import driverIcon from '../assets/drivericon.svg'
-import ownerIcon from '../assets/ownerIcon.svg'
-import InstallFloater from '../app/components/InstallFloater';
-import { AuthContext } from '../context/AuthContext';
-import { FaArrowRight } from 'react-icons/fa';
-
-
+import { useContext } from "react";
+import { useNavigate } from "react-router-dom";
+import { motion, useReducedMotion } from "motion/react";
+import { FaArrowRight } from "react-icons/fa";
+import truckIcon from "../assets/truck.svg";
+import driverIcon from "../assets/drivericon.svg";
+import ownerIcon from "../assets/ownerIcon.svg";
+import InstallFloater from "../app/components/InstallFloater";
+import { AuthContext } from "../context/AuthContext";
+import { Button } from "../components/ui/Button";
+import { spring, ease } from "../motion/springs";
 
 function WebHome() {
-    const navigate = useNavigate();
-    const { user, role } = useContext(AuthContext);
+  const navigate = useNavigate();
+  const reduced = useReducedMotion();
+  const { user, role } = useContext(AuthContext);
 
-    const handleContinue = () => {
-        if (role === 'owner') {
-            navigate('/owner-home');
-        } else if (role === 'driver') {
-            navigate('/driver-home');
-        }
-    };
+  const handleContinue = () => {
+    navigate(role === "owner" ? "/owner-home" : "/driver-home");
+  };
+
+  /* Both of these were `<button>` elements — one wrapping a `<Link>`, one
+     with an onClick — so the two identical-looking choices were built two
+     different ways, and the nested anchor-in-button was invalid markup. */
+  const roleChoices = [
+    { icon: ownerIcon, label: "Continue as fleet owner", to: "/owner-login" },
+    { icon: driverIcon, label: "Continue as driver", to: "/driver-login" },
+  ];
+
   return (
-  <div className="h-screen relative py-16 bg-gradient-to-br from-sky-50 to-gray-200"> 
-  <h2 className=" flex justify-center mb-8 text-3xl text-cyan-900 font-bold">Manage Fleet with Ease.</h2>
-  {/* ⬅️ Add the floater component */}
+    <div className="flex min-h-screen flex-col bg-canvas">
+      <main className="flex flex-1 items-center justify-center p-4 sm:p-6">
+        <motion.div
+          data-motion="transform"
+          initial={reduced ? { opacity: 0 } : { opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={spring.default}
+          className="w-full max-w-md rounded-sheet border border-hairline bg-surface p-6 shadow-[var(--shadow-floating)] sm:p-10"
+        >
+          <img src={truckIcon} loading="lazy" className="h-14 w-14" alt="" />
+
+          <h1 className="mt-5 text-3xl font-semibold text-ink">
+            Manage your fleet with ease
+          </h1>
+          <p className="mt-2 text-sm leading-relaxed text-ink-secondary">
+            Track trucks, trips, documents and running costs in one place.
+          </p>
+
+          {user && (
+            <motion.div
+              initial={reduced ? { opacity: 0 } : { opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={ease.enter}
+              className="mt-6 rounded-card border border-positive/25 bg-positive-soft p-4"
+            >
+              <p className="text-sm text-positive-ink">
+                You're already signed in as a {role}.
+              </p>
+              <Button size="sm" className="mt-3" onClick={handleContinue}>
+                Continue to dashboard
+                <FaArrowRight className="h-3 w-3" />
+              </Button>
+            </motion.div>
+          )}
+
+          <div className="mt-8 space-y-3">
+            {roleChoices.map((choice) => (
+              <motion.button
+                key={choice.to}
+                type="button"
+                onClick={() => navigate(choice.to)}
+                className="flex w-full items-center gap-3 rounded-control border border-hairline bg-surface px-4 py-3.5 text-left transition-colors duration-150 hover:border-accent hover:bg-accent-soft"
+                whileTap={reduced ? { opacity: 0.7 } : { scale: 0.98 }}
+                transition={spring.snappy}
+              >
+                <img src={choice.icon} className="h-5 w-5 shrink-0" alt="" />
+                <span className="flex-1 text-sm font-semibold text-ink">{choice.label}</span>
+                <FaArrowRight className="h-3 w-3 shrink-0 text-ink-quaternary" />
+              </motion.button>
+            ))}
+          </div>
+
+          <p className="mt-8 text-center text-xs text-ink-tertiary">Built by humans.</p>
+        </motion.div>
+      </main>
+
       <InstallFloater />
-    <div className="relative container m-auto px-6 text-gray-500 md:px-12 xl:px-40">
-        <div className="m-auto md:w-8/12 lg:w-6/12 xl:w-6/12">
-            <div className="rounded-xl bg-white shadow-xl">
-                <div className="p-6 sm:p-16">
-                    <div className="space-y-4">
-                        <img src={truckIcon} loading="lazy" className="w-15 h-20" alt="tailus logo"/>
-                        <h2 className="mb-4 text-2xl text-cyan-900 font-bold">Track Everything<br/> Login Now.</h2>
-                        {user && (
-                            <div className="p-4  text-center bg-green-100 border-l-4 border-green-500 rounded-r-lg">
-                                <p className="text-sm text-green-800">
-                                    You are already logged in as a {role}.
-                                </p>
-                                <button
-                                    onClick={handleContinue}
-                                    className="cursor-pointer mt-2 group inline-flex items-center justify-center h-10 px-5 border-2 border-green-500 rounded-full transition duration-300 hover:bg-green-500 hover:text-white focus:bg-green-600 active:bg-green-700"
-                                >
-                                    <span className="block w-max font-semibold tracking-wide text-green-700 text-sm transition duration-300 group-hover:text-white">
-                                        Continue to Dashboard
-                                    </span>
-                                    <FaArrowRight className="ml-2 transition-transform group-hover:translate-x-1" />
-                                </button>
-                            </div>
-                        )}
-                    <div className="mt-8 grid space-y-4">
-                    
-                     <button className="group h-12 px-6 border-2 border-gray-300 rounded-full transition duration-300 hover:border-blue-400 focus:bg-blue-50 active:bg-blue-100 cursor-pointer">
-                     <Link to="/owner-login">    <div className="relative flex items-center space-x-4 justify-center">
-                                <img src={ownerIcon} className="absolute left-0 w-5" alt="fleet owner logo"/>
-                                <span className="block w-max font-semibold tracking-wide text-gray-700 text-sm transition duration-300 group-hover:text-blue-600 sm:text-base ">Continue as FleetOwner</span>
-                            </div></Link>
-                        </button>
-                   <button className="group h-12 mt-2 px-6 border-2 border-gray-300 rounded-full transition duration-300 
- hover:border-blue-400 focus:bg-blue-50 active:bg-blue-100 cursor-pointer" onClick={() => navigate("/driver-login")}>
-                         {/* <Link to="/driver-login"> */}
-                          <div className="relative flex items-center space-x-4 justify-center">
-                                <img src={driverIcon} className="absolute left-0 w-5" alt="fleet owner logo"/>
-                                <span className="block w-max font-semibold tracking-wide text-gray-700 text-sm transition duration-300 group-hover:text-blue-600 sm:text-base">Continue as Driver</span>
-                            </div>
-                            {/* </Link>  */}
-                            </button>
-                        </div>
-                        
-                    </div>
-
-                    <div className="mt-5 md:mt-10 space-y-4 text-gray-600 text-center ">
-                        <p className="text-xs">Built by Humans  <a href="#" className="underline">Connect with Us.</a></p>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
-</div>
-
-
-
-
-
   );
 }
 

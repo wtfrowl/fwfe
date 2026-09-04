@@ -12,7 +12,7 @@ export default function RouteAnalyticsTable({ data }: { data: RouteAnalytics[] }
         {
           key: "route",
           header: "Route",
-          render: (r) => <div className="font-medium">{r.route}</div>,
+          render: (r) => <div className="font-medium text-ink">{r.route}</div>,
         },
         {
           key: "totalTrips",
@@ -47,15 +47,15 @@ export default function RouteAnalyticsTable({ data }: { data: RouteAnalytics[] }
           key: "costPerKm",
           header: "Cost / KM",
           align: "right",
-          render: (r) => `Rs ${r.costPerKm.toFixed(2)}`,
+          render: (r) => `₹${r.costPerKm.toFixed(2)}`,
         },
         {
           key: "profitPerKm",
           header: "Profit / KM",
           align: "right",
           render: (r) => (
-            <span className={`font-medium ${r.profitPerKm < 0 ? "text-red-600" : "text-green-600"}`}>
-              Rs {r.profitPerKm.toFixed(2)}
+            <span className={`font-medium ${r.profitPerKm < 0 ? "text-critical-ink" : "text-positive-ink"}`}>
+              ₹{r.profitPerKm.toFixed(2)}
             </span>
           ),
         },
