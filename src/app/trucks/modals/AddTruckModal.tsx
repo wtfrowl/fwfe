@@ -25,7 +25,30 @@ const EMPTY = {
      position codes, "8 of 10 hubs filled". Guessing it later from however many
      tyres happen to be fitted is how a 12-wheeler ends up drawn as a 10. */
   axleLayout: DEFAULT_LAYOUT_ID,
+  /* What the vehicle can carry. This is the field a load is matched on —
+     matching used to compare a load's "Container" against the truck's make
+     ("Tata 4018"), which could never be equal, so no truck ever matched a
+     load and the board looked permanently empty. */
+  bodyType: "Open",
+  /* Opening odometer. Asked for here because every per-kilometre number in the
+     product — tyre cost-per-km, fuel economy, service intervals — is measured
+     from it, and a fleet that starts at zero on a vehicle with 400,000 km on
+     the clock gets nonsense for its first year. */
+  totalKm: "",
 };
+
+/* Kept in step with BODY_TYPES on the server; a value outside this list is
+   rejected by the truck validator. */
+const BODY_TYPES = [
+  "Open",
+  "Container",
+  "Trailer",
+  "Tanker",
+  "Tipper",
+  "Refrigerated",
+  "Flatbed",
+  "Other",
+] as const;
 
 export const AddTruckModal = ({
   isOpen,
@@ -75,6 +98,8 @@ export const AddTruckModal = ({
         availableFrom: form.availableFrom,
         availableTill: form.availableTill,
         axleLayout: form.axleLayout,
+        bodyType: form.bodyType,
+        totalKm: form.totalKm === "" ? 0 : parseFloat(form.totalKm),
       });
 
       setForm(EMPTY);
@@ -169,6 +194,46 @@ export const AddTruckModal = ({
                 </option>
               ))}
             </select>
+          </FormField>
+
+          <FormField
+            label="Body type"
+            htmlFor="bodyType"
+            hint="What loads this truck is offered"
+            required
+          >
+            <select
+              id="bodyType"
+              name="bodyType"
+              value={form.bodyType}
+              onChange={handleChange}
+              className={inputClasses}
+              required
+            >
+              {BODY_TYPES.map((type) => (
+                <option key={type} value={type}>
+                  {type}
+                </option>
+              ))}
+            </select>
+          </FormField>
+
+          <FormField
+            label="Odometer"
+            htmlFor="totalKm"
+            hint="Current reading in km — starts every cost-per-km figure"
+          >
+            <input
+              id="totalKm"
+              name="totalKm"
+              type="number"
+              min="0"
+              step="1"
+              value={form.totalKm}
+              onChange={handleChange}
+              className={inputClasses}
+              placeholder="0"
+            />
           </FormField>
 
           <FormField label="Last maintenance" htmlFor="lastMaintenance">

@@ -19,6 +19,11 @@ import { FormField } from "../../../components/ui/FormField"
 import { inputClasses, inputClassesCompact } from "../../../components/ui/inputStyles"
 import { StatusBadge } from "../../../components/ui/StatusBadge"
 import { DetailPage, DetailHeader } from "../../../components/ui/DetailPage"
+import { InlineMessage } from "../../../components/ui/InlineMessage"
+import { ACCEPTED_TYPES, uploadFile, validateFile } from "../../docs/lib/upload"
+import { TripStageBar } from "../components/TripStageBar"
+import { IncidentPanel } from "../components/IncidentPanel"
+import { moveTripStatus } from "../../../api"
 
 // --- Interfaces ---
 interface Expense {
@@ -54,6 +59,35 @@ interface Trip {
   commissionAmount?: number
   shortageAmount?: number
   cashAdvance?: number 
+
+  /* Odometer either side of the trip. The closing reading is what advances the
+     truck's own odometer, which every per-kilometre figure in the product —
+     tyre cost-per-km, fuel economy, service intervals — is measured against. */
+  startOdometer?: number
+  endOdometer?: number
+  distance?: number
+  arrivedAt?: string
+  cancelledAt?: string
+  cancellationReason?: string
+  incidents?: {
+    _id: string
+    type: string
+    reportedAt: string
+    resolvedAt?: string
+    notes?: string
+    reportedByRole?: string
+  }[]
+
+  /* The signed, stamped LR the consignee hands back. Without it a disputed
+     shortage is one party's word against the other's, and the deduction lands
+     on the owner by default. */
+  proofOfDelivery?: {
+    viewUrl?: string
+    downloadUrl?: string
+    uploadedAt?: string
+    uploadedBy?: string
+    referenceNumber?: string
+  }
 }
 
 interface NewExpense {
@@ -83,6 +117,22 @@ const TripInfo: React.FC = () => {
   
   const [currentPage, setCurrentPage] = useState(1)
   const [isMarkingCompleted, setIsMarkingCompleted] = useState(false)
+  /* Completion asks for the closing odometer before it commits. It is the one
+     moment the number is actually in front of someone — the driver is at the
+     unloading point looking at the dash — and nothing else in the product ever
+     collects it. */
+  const [odometerPromptOpen, setOdometerPromptOpen] = useState(false)
+  const [closingOdometer, setClosingOdometer] = useState("")
+  /* Proof of delivery, captured at the same moment. This is the only point in
+     the workflow when someone is holding the signed paper; asking for it a
+     week later at a desk gets it from nobody. */
+  const [podFile, setPodFile] = useState<File | null>(null)
+  const [podReference, setPodReference] = useState("")
+  const [podError, setPodError] = useState<string | null>(null)
+  /* The stage the user picked, carried into the completion sheet so one
+     handler serves every forward move rather than one per button. */
+  const [pendingMove, setPendingMove] = useState<{ to: string; label: string } | null>(null)
+  const [cancelReason, setCancelReason] = useState("")
   const [isAddingExpense, setIsAddingExpense] = useState(false)
   const [isUpdatingSettlement, setIsUpdatingSettlement] = useState(false)
 
@@ -196,14 +246,97 @@ const TripInfo: React.FC = () => {
     }
   }
 
+  /**
+   * A stage change.
+   *
+   * Only the move to Completed needs the odometer and the signed receipt, so
+   * only that one opens the sheet; everything else is a single request. Asking
+   * for a POD when a truck starts loading would train people to dismiss the
+   * prompt, and then it would be dismissed at the one moment it mattered.
+   */
+  const handleMove = async (to: string, label: string) => {
+    if (to === "Completed") {
+      setPendingMove({ to, label })
+      openCompletionPrompt()
+      return
+    }
+
+    if (to === "Cancelled") {
+      setPendingMove({ to, label })
+      setCancelReason("")
+      return
+    }
+
+    setIsMarkingCompleted(true)
+    try {
+      await moveTripStatus(id || "", { to })
+      await fetchTripDetails()
+    } catch (err: any) {
+      console.error("Error moving trip:", err)
+      setError(err?.message ?? "Could not update the trip.")
+    } finally {
+      setIsMarkingCompleted(false)
+    }
+  }
+
+  const handleCancel = async () => {
+    setIsMarkingCompleted(true)
+    try {
+      await moveTripStatus(id || "", { to: "Cancelled", reason: cancelReason.trim() || undefined })
+      setPendingMove(null)
+      await fetchTripDetails()
+    } catch (err: any) {
+      console.error("Error cancelling trip:", err)
+      setError(err?.message ?? "Could not cancel the trip.")
+    } finally {
+      setIsMarkingCompleted(false)
+    }
+  }
+
+  const openCompletionPrompt = () => {
+    /* Prefilled with the opening reading, so the field starts at the smallest
+       plausible answer rather than empty — the number can only have gone up. */
+    setClosingOdometer(trip?.startOdometer != null ? String(trip.startOdometer) : "")
+    setPodFile(null)
+    setPodReference(trip?.proofOfDelivery?.referenceNumber ?? "")
+    setPodError(null)
+    setOdometerPromptOpen(true)
+  }
+
   const handleMarkAsCompleted = async () => {
     try {
       setIsMarkingCompleted(true)
-     const payload :any= { unloadingDate: new Date() };
+      const payload: any = { unloadingDate: new Date(), to: "Completed" }
+
+      /* Optional on purpose. A trip that is over is over; refusing to close it
+         because nobody read the dash would leave the truck marked En Route and
+         unavailable for its next load, which is a far worse failure than a
+         missing kilometre count. The server ignores a reading below the
+         opening one. */
+      const reading = Number(closingOdometer)
+      if (closingOdometer !== "" && Number.isFinite(reading)) {
+        payload.endOdometer = reading
+      }
+
+      /* Uploaded before the status call, so a failed upload does not leave a
+         trip closed with its paperwork silently dropped. */
+      if (podFile) {
+        const uploaded = await uploadFile(podFile)
+        payload.proofOfDelivery = {
+          viewUrl: uploaded.viewUrl,
+          downloadUrl: uploaded.downloadUrl,
+          referenceNumber: podReference.trim() || undefined,
+        }
+      } else if (podReference.trim()) {
+        payload.proofOfDelivery = { referenceNumber: podReference.trim() }
+      }
+
       await updateTripStatus(id || "", payload);
+      setOdometerPromptOpen(false)
       await fetchTripDetails();
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error updating trip status:", err)
+      setPodError(err?.message ?? "Could not complete the trip. Please try again.")
     } finally {
       setIsMarkingCompleted(false)
     }
@@ -241,18 +374,7 @@ const TripInfo: React.FC = () => {
       default: return <FaQuestion className="mr-2 text-ink-quaternary" />;
     }
   }
-  const handleFinalizeSettlement = async () => {
-    try {
-      // 1. Call API to update status to 'Settled'
-      await updateTripStatus(id || "", { paymentReceivedDate: new Date() });
-      
-      // 2. Fetch the updated trip data to trigger a re-render
-      await fetchTripDetails(); 
-      
-    } catch (err) {
-      console.error("Error finalizing settlement:", err);
-    }
-  }
+
 
   if (error) return <div className="text-critical text-center">{error}</div>
   if (!trip)
@@ -467,29 +589,26 @@ const TripInfo: React.FC = () => {
             </button>
         </div>
         
-        {trip.status === "Settled" ? (
-             <button disabled className="bg-ink/6 text-ink-tertiary border border-hairline-strong px-6 py-2 rounded-control font-medium cursor-not-allowed">Trip Settled</button>
-        ) : trip.status === "Completed" ? (
-             userRole === "owner" ? (
-                <button 
-                  onClick={handleFinalizeSettlement}
-                  className="bg-positive text-white px-6 py-2 rounded-control hover:bg-positive"
-                >
-                   Finalize Settlement
-                </button>
-             ) : (
-                <button disabled className="bg-ink/6 text-ink-tertiary px-6 py-2 rounded-control">Completed</button>
-             )
-        ) : trip.status === "ApprovalRequested" ? (
-             userRole === "owner" ? (
-                <button onClick={handleMarkAsCompleted} disabled={isMarkingCompleted} className="bg-positive text-white px-6 py-2 rounded-control">Approve Completion</button>
-             ) : (
-                <button disabled className="bg-caution-soft text-caution-ink px-6 py-2 rounded-control">Pending Approval</button>
-             )
-        ) : (
-             <button onClick={handleMarkAsCompleted} disabled={isMarkingCompleted} className="bg-accent text-white px-6 py-2 rounded-control">Mark Completed</button>
-        )}
+        {/* Stage control.
+            This was a chain of conditionals producing one button per status,
+            which is why Loading, Unloading and Cancelled had no way to be
+            reached even after the server supported them. The bar renders every
+            move this role is allowed to make. */}
       </div>
+
+      <TripStageBar
+        status={trip.status}
+        role={userRole}
+        busy={isMarkingCompleted}
+        onMove={handleMove}
+      />
+
+      <IncidentPanel
+        tripId={trip._id}
+        incidents={trip.incidents ?? []}
+        canReport={trip.status !== "Settled" && trip.status !== "Cancelled"}
+        onChanged={fetchTripDetails}
+      />
 
       {/* --- Financial Summary Section --- */}
       <div className="rounded-card border border-hairline bg-surface p-5 shadow-[var(--shadow-raised)]">
@@ -655,6 +774,179 @@ const TripInfo: React.FC = () => {
             </div>
           )}
       </div>
+
+      {/* Cancelling a trip.
+          A reason is asked for because a cancelled trip keeps its record — it
+          is no longer deleted — and six weeks later the only useful thing
+          about it is why it was called off. */}
+      <Sheet
+        open={pendingMove?.to === "Cancelled"}
+        onClose={() => setPendingMove(null)}
+        title="Cancel this trip"
+        description="The truck and its drivers are released. The trip and its expenses are kept."
+        size="md"
+        footer={
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+            <Button variant="secondary" onClick={() => setPendingMove(null)} disabled={isMarkingCompleted}>
+              Keep trip
+            </Button>
+            <Button variant="danger" onClick={handleCancel} loading={isMarkingCompleted}>
+              Cancel trip
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <FormField label="Why" htmlFor="cancel-reason" hint="Optional, but worth a few words">
+            <input
+              id="cancel-reason"
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              className={inputClasses}
+              placeholder="Load withdrawn by the transporter"
+            />
+          </FormField>
+          <InlineMessage tone="warning">
+            This cannot be undone. A cancelled trip cannot be reopened.
+          </InlineMessage>
+        </div>
+      </Sheet>
+
+      {/* Closing odometer.
+          Deliberately a prompt rather than a field buried in the settlement
+          form: this is the only point in the workflow where someone is
+          standing in front of the vehicle, and a reading collected a week
+          later at a desk is a guess. */}
+      <Sheet
+        open={odometerPromptOpen}
+        onClose={() => setOdometerPromptOpen(false)}
+        title="Close this trip"
+        description="Enter the odometer reading now, so this trip's distance and every cost-per-km figure are real."
+        size="md"
+        footer={
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+            <Button
+              variant="secondary"
+              onClick={() => setOdometerPromptOpen(false)}
+              disabled={isMarkingCompleted}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleMarkAsCompleted} loading={isMarkingCompleted}>
+              Complete trip
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-4">
+          <FormField
+            label="Closing odometer"
+            htmlFor="closing-odometer"
+            hint={
+              trip?.startOdometer != null
+                ? `Opened at ${trip.startOdometer.toLocaleString("en-IN")} km`
+                : "Current reading in km"
+            }
+          >
+            <input
+              id="closing-odometer"
+              type="number"
+              min={trip?.startOdometer ?? 0}
+              step="1"
+              value={closingOdometer}
+              onChange={(e) => setClosingOdometer(e.target.value)}
+              className={inputClasses}
+              placeholder="e.g. 428500"
+            />
+          </FormField>
+
+          {/* Shows the consequence of the number as it is typed, which is the
+              cheapest way to catch a transposed digit before it lands. */}
+          {trip?.startOdometer != null &&
+          closingOdometer !== "" &&
+          Number(closingOdometer) >= trip.startOdometer ? (
+            <p className="text-sm text-ink-secondary">
+              This trip covered{" "}
+              <span className="font-semibold text-ink tabular-nums">
+                {(Number(closingOdometer) - trip.startOdometer).toLocaleString("en-IN")} km
+              </span>
+              .
+            </p>
+          ) : null}
+
+          {trip?.startOdometer != null &&
+          closingOdometer !== "" &&
+          Number(closingOdometer) < trip.startOdometer ? (
+            <p className="text-sm text-critical-ink">
+              That is below the opening reading of{" "}
+              {trip.startOdometer.toLocaleString("en-IN")} km, so it will be ignored.
+            </p>
+          ) : null}
+
+          <p className="text-xs text-ink-tertiary">
+            You can leave this blank — the trip will still close, but it will not
+            contribute to distance or per-kilometre costs.
+          </p>
+
+          {/* Proof of delivery.
+              Attached here rather than on a separate screen because this is the
+              only moment the signed LR is physically in someone's hands. A
+              shortage deduction argued three weeks later without it is a
+              deduction the owner simply absorbs. */}
+          <div className="space-y-4 border-t border-hairline pt-4">
+            <div>
+              <p className="font-medium text-ink">Proof of delivery</p>
+              <p className="text-sm text-ink-secondary">
+                Photograph the signed LR now. It is what settles a shortage claim later.
+              </p>
+            </div>
+
+            {podError && <InlineMessage tone="error">{podError}</InlineMessage>}
+
+            <FormField label="LR / consignment number" htmlFor="pod-ref" hint="Optional">
+              <input
+                id="pod-ref"
+                value={podReference}
+                onChange={(e) => setPodReference(e.target.value)}
+                className={inputClasses}
+                placeholder="As written on the receipt"
+              />
+            </FormField>
+
+            <FormField label="Signed receipt" htmlFor="pod-file" hint="Photo or PDF, up to 10 MB">
+              <input
+                id="pod-file"
+                type="file"
+                accept={ACCEPTED_TYPES}
+                onChange={(e) => {
+                  const file = e.target.files?.[0] ?? null
+                  /* Checked before the network is touched, so a 40 MB scan is
+                     rejected instantly rather than after a spinner. */
+                  const problem = file ? validateFile(file) : null
+                  setPodError(problem)
+                  setPodFile(problem ? null : file)
+                }}
+                className={inputClasses}
+              />
+            </FormField>
+
+            {trip?.proofOfDelivery?.viewUrl && !podFile && (
+              <p className="text-sm text-ink-secondary">
+                A receipt is already on file.{" "}
+                <a
+                  href={trip.proofOfDelivery.viewUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-medium text-accent-ink underline"
+                >
+                  View it
+                </a>
+                . Attaching a new one replaces it.
+              </p>
+            )}
+          </div>
+        </div>
+      </Sheet>
 
       <Sheet
         open={expenseModalOpen}

@@ -25,6 +25,7 @@ import { InspectTyreSheet } from "../modals/InspectTyreSheet";
 import { EditTyreSheet } from "../modals/EditTyreSheet";
 import { FitTyreSheet, type FitTruck } from "../modals/FitTyreSheet";
 import { RemoveTyreSheet } from "../modals/RemoveTyreSheet";
+import { RetreadSheet } from "../modals/RetreadSheet";
 import {
   TREAD,
   costPerKm,
@@ -90,6 +91,8 @@ export default function TyreDetailsPage() {
   const [editing, setEditing] = useState(false);
   const [fitting, setFitting] = useState(false);
   const [removing, setRemoving] = useState(false);
+  /* null when closed; otherwise which half of the retread cycle is open. */
+  const [retreading, setRetreading] = useState<"send" | "return" | null>(null);
 
   const fetchTyreDetails = useCallback(async () => {
     if (!id) return;
@@ -191,6 +194,17 @@ export default function TyreDetailsPage() {
                   <FaExchangeAlt className="h-3.5 w-3.5" />
                   {fitted ? "Move" : "Fit to truck"}
                 </Button>
+              )}
+              {/* A casing is only sendable when it is off the truck, and only
+                  returnable when it is actually away — so the two never appear
+                  together and neither shows when it cannot apply. */}
+              {tyre.status === "Spare" && (
+                <Button variant="secondary" onClick={() => setRetreading("send")}>
+                  Send for retread
+                </Button>
+              )}
+              {tyre.status === "SentForRetreading" && (
+                <Button onClick={() => setRetreading("return")}>Back from retread</Button>
               )}
               <Button onClick={() => setInspecting(true)}>
                 <FaSearchPlus className="h-3.5 w-3.5" />
@@ -379,6 +393,17 @@ export default function TyreDetailsPage() {
           subject={tyre}
         />
       )}
+
+      <RetreadSheet
+        open={retreading !== null}
+        mode={retreading ?? "send"}
+        tyre={tyre}
+        onClose={() => setRetreading(null)}
+        onDone={(updated) => {
+          setTyre(updated);
+          setRetreading(null);
+        }}
+      />
 
       <RemoveTyreSheet
         open={removing}

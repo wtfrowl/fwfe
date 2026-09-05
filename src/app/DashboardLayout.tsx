@@ -6,8 +6,8 @@ import { RiSteering2Fill } from "react-icons/ri";
 import { AuthContext } from "../context/AuthContext";
 import { NotificationBell } from "./components/NotificationBell";
 import { FaTruck } from "react-icons/fa";
-import { MdAnalytics, MdDashboard } from "react-icons/md";
-import { TbPackages } from "react-icons/tb";
+import { MdAnalytics, MdDashboard, MdHealthAndSafety } from "react-icons/md";
+import { TbPackages, TbReceipt } from "react-icons/tb";
 import { GiPathDistance, GiTyre } from "react-icons/gi";
 import { HiOutlineDocumentText } from "react-icons/hi";
 import { CgProfile } from "react-icons/cg";
@@ -16,6 +16,7 @@ import { ImLocation2 } from "react-icons/im";
 import { useTracking } from "../context/TrackingContext";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { getLoginPath } from "../utils/auth";
+import { onNotificationClick } from "../utils/push";
 import { RealtimeProvider } from "../context/RealtimeContext";
 import { ToastHost } from "../components/ui/Toast";
 import { spring } from "../motion/springs";
@@ -35,6 +36,8 @@ interface NavEntry {
 const NAV: NavEntry[] = [
   { to: "", label: "Dashboard", icon: <MdDashboard />, end: true },
   { to: "analytics", label: "Analytics", icon: <MdAnalytics />, ownerOnly: true },
+  { to: "health", label: "Fleet Health", icon: <MdHealthAndSafety />, ownerOnly: true },
+  { to: "billing", label: "Billing", icon: <TbReceipt />, ownerOnly: true },
   { to: "loads", label: "Loads", icon: <TbPackages />, ownerOnly: true },
   { to: "mytrucks", label: "My Trucks", icon: <FaTruck /> },
   { to: "drivers", label: "Drivers", icon: <RiSteering2Fill />, ownerOnly: true },
@@ -82,7 +85,7 @@ function NavItem({ entry, layoutGroup }: { entry: NavEntry; layoutGroup: string 
 
 const DashboardLayout: React.FC = () => {
   const navigate = useNavigate();
-  const { isTracking, startTracking, stopTracking, error } = useTracking();
+  const { isTracking, startTracking, stopTracking, error, pending } = useTracking();
   const { user, role, logout } = useContext(AuthContext);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const reduced = useReducedMotion();
@@ -108,6 +111,13 @@ const DashboardLayout: React.FC = () => {
       : "Please Login";
   }, [user, isOwner]);
 
+  /* Tapping a background notification should land on the thing it is about.
+     The service worker navigates the tab itself where the browser allows it;
+     where it does not, it posts the target here and the router handles it —
+     otherwise the tap just focuses whatever page happened to be open, which
+     reads as the notification having done nothing. */
+  useEffect(() => onNotificationClick((url) => navigate(url)), [navigate]);
+
   return (
     <RealtimeProvider>
       {/* Chrome is a translucent layer the content scrolls beneath, not an
@@ -129,6 +139,7 @@ const DashboardLayout: React.FC = () => {
           <div className="flex items-center gap-2 sm:gap-3">
             <TrackingToggle
               isTracking={isTracking}
+              pending={pending}
               error={error}
               onToggle={handleToggleTracking}
             />
@@ -227,10 +238,13 @@ const DashboardLayout: React.FC = () => {
 function TrackingToggle({
   isTracking,
   error,
+  pending = 0,
   onToggle,
 }: {
   isTracking: boolean;
   error?: string | null;
+  /** Fixes held on the device because the network was unavailable. */
+  pending?: number;
   onToggle: () => void;
 }) {
   const reduced = useReducedMotion();
@@ -240,7 +254,13 @@ function TrackingToggle({
       <motion.button
         type="button"
         onClick={onToggle}
-        title={isTracking ? "Stop tracking (go offline)" : "Start tracking (go online)"}
+        title={
+          pending
+            ? `${pending} location${pending === 1 ? "" : "s"} waiting to upload`
+            : isTracking
+              ? "Stop tracking (go offline)"
+              : "Start tracking (go online)"
+        }
         aria-pressed={isTracking}
         className={cn(
           "relative grid h-9 w-9 place-items-center rounded-full transition-colors duration-200",
@@ -263,6 +283,18 @@ function TrackingToggle({
         )}
         <ImLocation2 className="h-4.5 w-4.5" />
       </motion.button>
+
+      {/* Held fixes, shown as a count.
+          Without it, driving through a dead zone looks identical to tracking
+          being broken — and a driver who thinks it is broken turns it off. */}
+      {pending > 0 && (
+        <span
+          className="absolute -top-1 -right-1 grid min-w-4.5 place-items-center rounded-full bg-caution px-1 text-[0.625rem] font-bold text-white"
+          title={`${pending} waiting to upload`}
+        >
+          {pending > 99 ? "99+" : pending}
+        </span>
+      )}
 
       {error ? (
         <span className="absolute top-11 right-0 z-10 whitespace-nowrap rounded-chip bg-critical-soft px-2 py-1 text-xs font-medium text-critical-ink">

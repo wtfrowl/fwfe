@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
-import { FaArrowTrendUp, FaRoute, FaTruck, FaUserTie } from "react-icons/fa6";
+import { FaArrowTrendUp, FaRoute, FaTriangleExclamation, FaTruck, FaUserTie } from "react-icons/fa6";
 import { useLocation, useNavigate } from "react-router-dom";
 import type { IconType } from "react-icons";
 import { AnalyticsAPI } from "../../api/analytics.api";
 import type {
   DriverAnalytics,
   DriverRouteAnalytics,
+  LaneAlerts,
+  LaneAssignment,
   RouteAnalytics,
   TruckAnalytics,
 } from "../../types/analytics";
@@ -13,6 +15,7 @@ import DriverAnalyticsTable from "./components/DriverAnalyticsTable";
 import DriverRouteAnalyticsTable from "./components/DriverRouteAnalyticsTable";
 import RouteAnalyticsTable from "./components/RouteAnalyticsTable";
 import TruckAnalyticsTable from "./components/TruckAnalyticsTable";
+import LaneAssignmentTable from "./components/LaneAssignmentTable";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { InlineMessage } from "../../components/ui/InlineMessage";
 import { SegmentedControl, type Segment } from "../../components/ui/SegmentedControl";
@@ -24,6 +27,8 @@ type AnalyticsResponseTuple = [
   RouteAnalytics[],
   DriverAnalytics[],
   DriverRouteAnalytics[],
+  LaneAssignment[],
+  LaneAlerts,
 ];
 
 const formatCurrency = (value: number) => `₹${value.toLocaleString("en-IN")}`;
@@ -37,7 +42,8 @@ type SectionId =
   | "fleet-analytics"
   | "route-analytics"
   | "driver-analytics"
-  | "driver-route-analytics";
+  | "driver-route-analytics"
+  | "lane-assignment";
 
 function SectionCard({
   id,
@@ -108,6 +114,8 @@ export default function AnalyticsDashboard() {
   const [routes, setRoutes] = useState<RouteAnalytics[]>([]);
   const [drivers, setDrivers] = useState<DriverAnalytics[]>([]);
   const [driverRoutes, setDriverRoutes] = useState<DriverRouteAnalytics[]>([]);
+  const [bestPerLane, setBestPerLane] = useState<LaneAssignment[]>([]);
+  const [lossMakers, setLossMakers] = useState<LaneAssignment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -116,17 +124,22 @@ export default function AnalyticsDashboard() {
       setLoading(true);
       setError(null);
       try {
-        const [trucksRes, routesRes, driversRes, driverRoutesRes] = (await Promise.all([
-          AnalyticsAPI.getTruckAnalytics(),
-          AnalyticsAPI.getRouteAnalytics(),
-          AnalyticsAPI.getDriverAnalytics(),
-          AnalyticsAPI.getDriverRouteAnalytics(),
-        ])) as unknown as AnalyticsResponseTuple;
+        const [trucksRes, routesRes, driversRes, driverRoutesRes, bestRes, worstRes] =
+          (await Promise.all([
+            AnalyticsAPI.getTruckAnalytics(),
+            AnalyticsAPI.getRouteAnalytics(),
+            AnalyticsAPI.getDriverAnalytics(),
+            AnalyticsAPI.getDriverRouteAnalytics(),
+            AnalyticsAPI.getBestDriverPerRoute(),
+            AnalyticsAPI.getWorstDriverPerRoute(),
+          ])) as unknown as AnalyticsResponseTuple;
 
         setTrucks(trucksRes ?? []);
         setRoutes(routesRes ?? []);
         setDrivers(driversRes ?? []);
         setDriverRoutes(driverRoutesRes ?? []);
+        setBestPerLane(bestRes ?? []);
+        setLossMakers(worstRes?.alerts ?? []);
       } catch (loadError) {
         console.error("Failed to load analytics:", loadError);
         setError("Analytics could not be loaded right now. Please try again.");
@@ -167,6 +180,7 @@ export default function AnalyticsDashboard() {
     { label: "Routes", value: "route-analytics" },
     { label: "Drivers", value: "driver-analytics" },
     { label: "Driver × route", value: "driver-route-analytics" },
+    { label: "Lane assignment", value: "lane-assignment" },
   ];
 
   const activeSection = (location.hash.replace("#", "") || "analytics-overview") as SectionId;
@@ -263,6 +277,23 @@ export default function AnalyticsDashboard() {
             </div>
           </RevealItem>
         </RevealGroup>
+
+        {lossMakers.length > 0 && (
+          <RevealGroup className="grid grid-cols-1 gap-4">
+            <RevealItem className="h-full">
+              <HighlightCard
+                label="Needs attention"
+                icon={FaTriangleExclamation}
+                headline={`${lossMakers[0].driver.firstName} ${lossMakers[0].driver.lastName} · ${lossMakers[0].route}`}
+                value={`₹${lossMakers[0].profitPerKm.toFixed(2)} / km`}
+                tone="text-critical-ink"
+                note={`Worst of ${lossMakers.length} pairing${
+                  lossMakers.length === 1 ? "" : "s"
+                } running at a loss — see Lane assignment`}
+              />
+            </RevealItem>
+          </RevealGroup>
+        )}
 
         <RevealGroup className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
           <RevealItem className="h-full">
@@ -372,6 +403,33 @@ export default function AnalyticsDashboard() {
         meta={`${driverRoutes.length} assignments`}
       >
         <DriverRouteAnalyticsTable data={driverRoutes} />
+      </SectionCard>
+
+      {/* The decision the rest of this page is evidence for: who runs which
+          lane next. The loss-making list comes first deliberately — it is the
+          one with money already leaking out of it. */}
+      <SectionCard
+        id="lane-assignment"
+        title="Lane assignment"
+        subtitle="Who to put on each route, and which pairings to stop repeating."
+        meta={
+          lossMakers.length
+            ? `${lossMakers.length} losing money`
+            : `${bestPerLane.length} lanes ranked`
+        }
+      >
+        <div className="space-y-4">
+          {lossMakers.length > 0 && (
+            <InlineMessage tone="warning">
+              {lossMakers.length === 1
+                ? "One driver-route pairing is running at a loss per kilometre."
+                : `${lossMakers.length} driver-route pairings are running at a loss per kilometre.`}{" "}
+              Ranked worst first.
+            </InlineMessage>
+          )}
+          <LaneAssignmentTable data={lossMakers} variant="worst" />
+          <LaneAssignmentTable data={bestPerLane} variant="best" />
+        </div>
       </SectionCard>
     </div>
   );

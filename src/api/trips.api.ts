@@ -36,3 +36,20 @@ export const updateTripDates = (id: string, payload: any): Promise<Trip> => {
 export const approveExpense = (expenseId: string): Promise<any> => {
     return api.patch(`/api/tripexpense/${expenseId}/approve`, {});
 }
+/**
+ * Move a trip to a named stage.
+ *
+ * The server owns the transition rules; `to` names the target rather than
+ * letting the server infer one, which is what the old endpoint had to do when
+ * there were only four statuses.
+ */
+export const moveTripStatus = (id: string, payload: Record<string, unknown>) =>
+  api.patch(`/api/trips/updateStatus/${id}`, payload);
+
+/** Report a delay, breakdown or detention against a running trip. */
+export const reportIncident = (id: string, payload: Record<string, unknown>) =>
+  api.post(`/api/trips/${id}/incidents`, payload);
+
+/** Close an open incident. Detention is billed on this timestamp. */
+export const resolveIncident = (tripId: string, incidentId: string, payload: Record<string, unknown> = {}) =>
+  api.patch(`/api/trips/${tripId}/incidents/${incidentId}/resolve`, payload);

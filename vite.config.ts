@@ -13,6 +13,20 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['icon/favicon.ico', 'icon/apple-touch-icon.png', 'icon/favicon-16x16.png', 'icon/favicon-32x32.png'],
+
+      workbox: {
+        /* Push and notification-click handlers. Pulled into the generated
+           worker rather than replacing it: switching to `injectManifest` to
+           add two listeners would mean owning precaching and update handling
+           by hand, for no benefit. The file is served from `public/`, so its
+           URL is stable and it is not hashed by the build. */
+        importScripts: ['/push-sw.js'],
+
+        /* A driver's phone caches the whole shell; the API is deliberately
+           not cached here — stale trip and expense data presented as current
+           is worse than an honest failure. */
+        navigateFallbackDenylist: [/^\/api\//],
+      },
       manifest: {
         name: 'FleetWise',
         short_name: 'Fleetz',

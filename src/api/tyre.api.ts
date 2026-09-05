@@ -5,6 +5,8 @@ import type {
   IInspectTyrePayload,
   IMountTyrePayload,
   IMoveTyrePayload,
+  IReturnFromRetreadPayload,
+  ISendForRetreadPayload,
   ITyre,
 } from '../types/tyre';
 
@@ -57,3 +59,21 @@ export const updateTyreDetails = (id: string, data: Partial<ICreateTyrePayload>)
 export const inspectTyre = (id: string, data: IInspectTyrePayload): Promise<ITyre> => {
   return api.patch(`/api/tyre/${id}/inspect`, data);
 };
+
+/**
+ * Retreading.
+ *
+ * `SentForRetreading` was a status with nothing behind it, so a casing that
+ * left the yard simply vanished from the system: no vendor, no date, no
+ * expected return. A retread costs roughly a third of a new tyre and casings
+ * do get lost at the retreader.
+ */
+export const sendForRetread = (
+  id: string,
+  data: ISendForRetreadPayload
+): Promise<{ message: string; tyre: ITyre }> => api.post(`/api/tyre/${id}/retread/send`, data);
+
+export const returnFromRetread = (
+  id: string,
+  data: IReturnFromRetreadPayload
+): Promise<{ message: string; tyre: ITyre }> => api.post(`/api/tyre/${id}/retread/return`, data);

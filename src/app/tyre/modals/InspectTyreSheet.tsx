@@ -33,6 +33,7 @@ interface Props {
 
 export function InspectTyreSheet({ open, onClose, tyre, onDone }: Props) {
   const [depth, setDepth] = useState("");
+  const [pressure, setPressure] = useState("");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,6 +41,7 @@ export function InspectTyreSheet({ open, onClose, tyre, onDone }: Props) {
   useEffect(() => {
     if (!open || !tyre) return;
     setDepth(String(tyre.currentTreadDepth));
+    setPressure(tyre.currentPressurePsi != null ? String(tyre.currentPressurePsi) : "");
     setNotes("");
     setError(null);
   /* Keyed on the tyre's identity, not the object: re-seeding whenever the
@@ -67,8 +69,11 @@ export function InspectTyreSheet({ open, onClose, tyre, onDone }: Props) {
     setSaving(true);
     setError(null);
     try {
+      const psi = pressure === "" ? undefined : Number(pressure);
+
       const updated = await inspectTyre(tyre._id, {
         currentTreadDepth: value,
+        pressurePsi: Number.isFinite(psi) ? psi : undefined,
         notes: notes || undefined,
       });
       onDone(updated);
@@ -165,6 +170,41 @@ export function InspectTyreSheet({ open, onClose, tyre, onDone }: Props) {
             ) : null}
           </div>
         )}
+
+        {/* Inflation pressure.
+            Tread depth records the damage; pressure is the cause. A tyre run
+            20% under wears its shoulders out in a fraction of its life and
+            burns measurably more diesel doing it — and it is the only part of
+            the two that anyone can actually act on. */}
+        <FormField
+          label="Pressure"
+          htmlFor="inspect-psi"
+          hint={
+            tyre?.recommendedPressurePsi
+              ? `PSI — should be around ${tyre.recommendedPressurePsi}`
+              : "PSI, optional"
+          }
+        >
+          <input
+            id="inspect-psi"
+            type="number"
+            min="0"
+            max="200"
+            step="1"
+            value={pressure}
+            onChange={(e) => setPressure(e.target.value)}
+            className={inputClasses}
+            placeholder={tyre?.recommendedPressurePsi ? String(tyre.recommendedPressurePsi) : "100"}
+          />
+        </FormField>
+
+        {tyre?.recommendedPressurePsi && pressure !== "" && Number(pressure) > 0 &&
+          Number(pressure) < tyre.recommendedPressurePsi * 0.85 && (
+            <InlineMessage tone="warning">
+              That is more than 15% under the recommended {tyre.recommendedPressurePsi} PSI.
+              Running it like this will wear the shoulders out early.
+            </InlineMessage>
+          )}
 
         <FormField label="Note" htmlFor="inspect-notes" hint="Optional">
           <input

@@ -20,6 +20,8 @@ import TyreDetailsPage from './app/tyre/components/tyreDetails.tsx';
 import DriversPage from './app/driver/Drivers.tsx';
 import DriverDetailsPage from './app/driver/DriverDetails.tsx';
 import AnalyticsDashboard from './app/analytics/AnalyticsDashboard.tsx';
+import FleetHealth from './app/health/FleetHealth.tsx';
+import Billing from './app/billing/Billing.tsx';
 import NotFound from './app/NotFound.tsx';
 
 export const routes: RouteObject[] = [
@@ -38,6 +40,8 @@ export const routes: RouteObject[] = [
     children: [
       { index: true, element: <Dashboard /> },
       { path: "analytics", element: <AnalyticsDashboard /> },
+      { path: "health", element: <FleetHealth /> },
+      { path: "billing", element: <Billing /> },
       { path: "loads", element: <Loads /> },
       { path: "mytrucks", element: <OwnerTrucks /> },
       { path: "mytrucks/:regNo", element: <TruckDetails /> },

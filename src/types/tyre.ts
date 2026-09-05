@@ -39,6 +39,22 @@ export interface ITyre {
   axleApplication?: AxleApplication;
 
   currentTreadDepth: number;
+  /** Last measured inflation pressure, in PSI. */
+  currentPressurePsi?: number;
+  lastPressureCheck?: string;
+  /** What this tyre should be running at, by axle and load. */
+  recommendedPressurePsi?: number;
+  /** Depth at which it must come off — 3 mm keeps a retreadable casing. */
+  minimumTreadDepth?: number;
+  retread?: {
+    vendorName?: string;
+    sentAt?: string;
+    expectedBackAt?: string;
+    returnedAt?: string;
+    cost?: number;
+    newTreadDepth?: number;
+    notes?: string;
+  };
   initialTreadDepth: number;
   totalKmRun?: number;
 
@@ -98,6 +114,24 @@ export interface IMoveTyrePayload {
 }
 
 export interface IInspectTyrePayload {
-  currentTreadDepth: number;
+  /* Both optional on the wire — an inflation check without a gauge reading is
+     a normal thing to record, and the server requires at least one. */
+  currentTreadDepth?: number;
+  /** Inflation pressure in PSI. */
+  pressurePsi?: number;
+  notes?: string;
+}
+
+export interface ISendForRetreadPayload {
+  vendorName?: string;
+  expectedBackAt?: string;
+  notes?: string;
+}
+
+export interface IReturnFromRetreadPayload {
+  cost?: number;
+  /** Tread depth of the new cap — the tyre's initial depth for its next life. */
+  newTreadDepth: number;
+  returnedAt?: string;
   notes?: string;
 }

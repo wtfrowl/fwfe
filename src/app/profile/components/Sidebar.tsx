@@ -1,10 +1,10 @@
 import { useId } from "react";
-import { FiUser, FiLock, FiRadio } from "react-icons/fi";
+import { FiUser, FiLock, FiRadio, FiBell } from "react-icons/fi";
 import { motion, useReducedMotion } from "motion/react";
 import { spring } from "../../../motion/springs";
 import { cn } from "../../../utils/cn";
 
-export type ProfileTab = "profile" | "password" | "shift";
+export type ProfileTab = "profile" | "password" | "notifications" | "shift";
 
 interface SidebarProps {
   activeTab: ProfileTab;
@@ -25,6 +25,9 @@ export function Sidebar({ activeTab, setActiveTab, showShift = false }: SidebarP
   const tabs = [
     { id: "profile" as const, icon: FiUser, label: "Profile" },
     { id: "password" as const, icon: FiLock, label: "Password" },
+    /* Applies to everyone: an owner wants expiry and approval alerts on their
+       phone as much as a driver wants trip alerts on theirs. */
+    { id: "notifications" as const, icon: FiBell, label: "Notifications" },
     ...(showShift ? [{ id: "shift" as const, icon: FiRadio, label: "Shift" }] : []),
   ];
 

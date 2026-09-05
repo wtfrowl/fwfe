@@ -2,6 +2,7 @@ import { useState, useEffect, useContext, useCallback } from "react";
 import { Sidebar, type ProfileTab } from "./components/Sidebar";
 import { ProfileForm } from "./components/ProfileForm";
 import { PasswordForm } from "./components/PasswordForm";
+import { NotificationSettings } from "./components/NotificationSettings";
 import { useDriverTracking } from "../../utils/location";
 import { changePassword, getDriverProfile, getOwnerProfile, updateProfile } from "../../api";
 import { AuthContext } from "../../context/AuthContext";
@@ -158,6 +159,8 @@ export default function ProfileSettings() {
               {activeTab === "password" && (
                 <PasswordForm onSubmit={handlePasswordUpdate} saving={saving} />
               )}
+
+              {activeTab === "notifications" && <NotificationSettings />}
 
               {activeTab === "shift" && (
                 <div className="space-y-5">

@@ -1,118 +1,234 @@
-import { useState, useRef, useCallback } from 'react';
-import { getStoredSession } from './auth';
-
-// The API endpoint on your backend
-const LOCATION_API_ENDPOINT =`${import.meta.env.VITE_API_BASE_URL}/api/driver/updateLocation`; // Make sure this path is correct
+import { useCallback, useEffect, useRef, useState } from "react";
+import api from "../api/axios";
+import { BATCH_SIZE, drop, enqueue, markFailed, peek, size } from "./locationQueue";
 
 /**
- * A custom React hook to manage driver location tracking.
+ * Driver location tracking.
+ *
+ * What changed and why:
+ *
+ * - Fixes are queued to storage first and drained in the background. The old
+ *   version POSTed each one and, on failure, logged to the console — so on a
+ *   highway with no signal the trail simply had holes in it, which is exactly
+ *   where knowing the truck's position was worth something.
+ * - Nothing is sent more often than `MIN_SEND_INTERVAL_MS`, and a fix that has
+ *   barely moved is not recorded at all. `watchPosition` fires far more often
+ *   than a truck's position meaningfully changes, and every one of those was a
+ *   request and a database row.
+ * - The token is read at send time rather than captured when the hook first
+ *   ran. The old code closed over it at mount, so a driver whose session was
+ *   refreshed kept posting with a stale token until they reloaded the page.
  */
-export const useDriverTracking = () => {
-    // Utility to get token + role
-const getAuthDetails = (): { token: string; role: "owner" | "driver" | null } => {
-  const session = getStoredSession();
-  return { token: session.token ?? "", role: session.role };
+
+/** A fix closer than this to the last one is drift, not travel. */
+const MIN_DISTANCE_M = 50;
+
+/** Never send more than once a minute, however often the browser reports. */
+const MIN_SEND_INTERVAL_MS = 60_000;
+
+/** Retry the queue on this cadence even without a new fix. */
+const DRAIN_INTERVAL_MS = 30_000;
+
+/** Rough metres between two coordinates. Good enough for a 50 m threshold. */
+const metresBetween = (
+  a: { lat: number; lng: number },
+  b: { lat: number; lng: number }
+) => {
+  const R = 6371000;
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(b.lat - a.lat);
+  const dLng = toRad(b.lng - a.lng);
+  const lat1 = toRad(a.lat);
+  const lat2 = toRad(b.lat);
+  const h =
+    Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
 };
-      const { token } = getAuthDetails();
+
+export const useDriverTracking = () => {
   const [isTracking, setIsTracking] = useState(false);
-  const [error, setError] = useState(null);
-  
-  // Use useRef to hold the watchId. This prevents re-renders when it changes.
+  const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState(0);
+
   const watchIdRef = useRef<number | null>(null);
+  const lastFixRef = useRef<{ lat: number; lng: number } | null>(null);
+  const lastSentAtRef = useRef(0);
+  const drainingRef = useRef(false);
+  /* Dropped to false after a high-accuracy timeout. Indoors, in a yard, or
+     under a loading canopy a GPS-only fix can take longer than any sensible
+     timeout, while the network-based one resolves immediately. Refusing to
+     degrade means tracking simply never starts in exactly those places. */
+  const highAccuracyRef = useRef(true);
+  const startRef = useRef<() => void>(() => {});
 
   /**
-   * Success callback for watchPosition.
-   * Called every time the browser detects a location change.
+   * Push whatever is queued.
+   *
+   * Guarded against overlapping runs: the drain timer and a new fix can land
+   * together, and two concurrent drains would send the same batch twice and
+   * then each drop the front of the queue — losing the fixes behind it.
    */
-  const handlePositionUpdate = (position:any) => {
-    const { latitude, longitude } = position.coords;
-    const timestamp = new Date(position.timestamp);
+  const drain = useCallback(async () => {
+    if (drainingRef.current) return;
+    if (typeof navigator !== "undefined" && navigator.onLine === false) return;
 
-    console.log('New position found:', { latitude, longitude });
+    drainingRef.current = true;
+    try {
+      /* One batch per run. Draining the whole queue in a loop on a slow link
+         would keep the flag held for minutes and block new fixes. */
+      const batch = peek(BATCH_SIZE);
+      if (!batch.length) return;
 
-    // Send this data to your backend
-    fetch(LOCATION_API_ENDPOINT, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        // You MUST include your auth token here
-        'Authorization': `${token}`
-      },
-      body: JSON.stringify({
+      const payload = batch.map(({ latitude, longitude, timestamp }) => ({
         latitude,
         longitude,
-        timestamp: timestamp.toISOString()
-      })
-    })
-    .catch(err => {
-      // Handle network errors (e.g., driver goes offline)
-      console.error('Failed to send location to server:', err);
-      // setError('Network error: Failed to send location.');
-    });
-  };
+        timestamp,
+      }));
 
-  /**
-   * Error callback for watchPosition.
-   * Called when the browser fails to get a location.
-   */
-  const handlePositionError = (error:any) => {
-    setError(error.message);
-    console.error('Geolocation error:', error.message);
-    
-    // If permission is permanently denied, stop trying.
-    if (error.code === error.PERMISSION_DENIED) {
-      stopTracking();
+      const res = (await api.post("/api/driver/updateLocations", {
+        fixes: payload,
+      })) as unknown as { accepted?: number; rejected?: { index: number }[] };
+
+      /* The whole batch leaves the queue on a 2xx, including anything the
+         server rejected as malformed — it will reject it again forever, and
+         the queue drains in order, so keeping it blocks everything behind. */
+      drop(batch.length);
+      setPending(size());
+
+      void res;
+    } catch (err: any) {
+      /* A 4xx means the server will not take these however many times we ask;
+         count it against them so a poisoned fix eventually falls out. A
+         network error or a 5xx is worth retrying indefinitely. */
+      const status = err?.statusCode;
+      if (status && status >= 400 && status < 500 && status !== 429) {
+        markFailed(BATCH_SIZE);
+        setPending(size());
+      }
+    } finally {
+      drainingRef.current = false;
     }
-  };
+  }, []);
 
-  /**
-   * Starts watching the driver's location.
-   */
-  const startTracking = useCallback(() => {
-    if (!navigator.geolocation) {
-      // setError('Geolocation is not supported by this browser.');
-      return;
-    }
-    
-    // Don't start if already tracking
-    if (watchIdRef.current !== null) {
-      console.log('Already tracking.');
-      return;
-    }
+  const handlePositionUpdate = useCallback(
+    (position: GeolocationPosition) => {
+      const { latitude, longitude } = position.coords;
+      const here = { lat: latitude, lng: longitude };
 
-    console.log('Starting location tracking...');
-    setError(null);
+      const movedEnough =
+        !lastFixRef.current || metresBetween(lastFixRef.current, here) >= MIN_DISTANCE_M;
+      const dueAnyway = Date.now() - lastSentAtRef.current >= MIN_SEND_INTERVAL_MS;
 
-    // Geolocation options for high accuracy (best for drivers)
-    const options = {
-      enableHighAccuracy: true,
-      timeout: 10000, // 10 seconds to get a fix
-      maximumAge: 0     // Don't use a cached position
-    };
+      /* A parked truck still reports periodically, so a halt is visible as a
+         run of identical points rather than as a gap in the trail — which is
+         indistinguishable from the phone being off. */
+      if (!movedEnough && !dueAnyway) return;
 
-    // Start watching and save the ID
-    watchIdRef.current = navigator.geolocation.watchPosition(
-      handlePositionUpdate,
-      handlePositionError,
-      options
-    );
-    setIsTracking(true);
-  }, []); // useCallback ensures this function is stable
+      lastFixRef.current = here;
+      lastSentAtRef.current = Date.now();
 
-  /**
-   * Stops watching the driver's location.
-   */
+      enqueue({
+        latitude,
+        longitude,
+        timestamp: new Date(position.timestamp).toISOString(),
+      });
+      setPending(size());
+
+      void drain();
+    },
+    [drain]
+  );
+
   const stopTracking = useCallback(() => {
-    if (watchIdRef.current === null) {
-      return; // Already stopped
-    }
-
-    console.log('Stopping location tracking...');
+    if (watchIdRef.current === null) return;
     navigator.geolocation.clearWatch(watchIdRef.current);
     watchIdRef.current = null;
     setIsTracking(false);
-  }, []); // useCallback ensures this function is stable
+  }, []);
 
-  // Return the state and controls for your component to use
-  return { isTracking, startTracking, stopTracking, error };
+  const handlePositionError = useCallback(
+    (positionError: GeolocationPositionError) => {
+      /* A denied permission will not un-deny itself; continuing to watch just
+         burns battery producing the same error. */
+      if (positionError.code === positionError.PERMISSION_DENIED) {
+        setError("Location permission was denied. Allow it to share your position.");
+        stopTracking();
+        return;
+      }
+
+      /* Timed out waiting for a precise fix. Retry once without the
+         high-accuracy requirement rather than giving up — the coarse position
+         is worth far more than nothing, and this is the common case in a
+         warehouse. */
+      if (positionError.code === positionError.TIMEOUT && highAccuracyRef.current) {
+        highAccuracyRef.current = false;
+        if (watchIdRef.current !== null) {
+          navigator.geolocation.clearWatch(watchIdRef.current);
+          watchIdRef.current = null;
+        }
+        startRef.current();
+        return;
+      }
+
+      setError(positionError.message);
+    },
+    [stopTracking]
+  );
+
+  const startTracking = useCallback(() => {
+    if (!navigator.geolocation) {
+      setError("This device cannot report its location.");
+      return;
+    }
+    if (watchIdRef.current !== null) return;
+
+    setError(null);
+
+    watchIdRef.current = navigator.geolocation.watchPosition(
+      handlePositionUpdate,
+      handlePositionError,
+      {
+        enableHighAccuracy: highAccuracyRef.current,
+        timeout: highAccuracyRef.current ? 30_000 : 45_000,
+        maximumAge: 15_000,
+      }
+    );
+    setIsTracking(true);
+  }, [handlePositionError, handlePositionUpdate]);
+
+  /* The error handler restarts the watcher after degrading accuracy, and the
+     watcher's own callbacks are what the error handler is attached to. A ref
+     breaks that cycle without either of them depending on the other. */
+  useEffect(() => {
+    startRef.current = startTracking;
+  }, [startTracking]);
+
+  /* Drain on a timer and whenever connectivity returns. The timer covers the
+     case where the driver stops moving inside a dead zone: no new fixes, but a
+     queue still waiting to go out once there is signal. */
+  useEffect(() => {
+    setPending(size());
+
+    const timer = setInterval(() => void drain(), DRAIN_INTERVAL_MS);
+    const onOnline = () => void drain();
+
+    window.addEventListener("online", onOnline);
+    void drain();
+
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener("online", onOnline);
+    };
+  }, [drain]);
+
+  useEffect(() => stopTracking, [stopTracking]);
+
+  return {
+    isTracking,
+    startTracking,
+    stopTracking,
+    error,
+    /** Fixes collected but not yet accepted by the server. */
+    pending,
+  };
 };

@@ -27,16 +27,20 @@ interface TruckProfile {
   capacity: number;
   status: "En Route" | "Available" | "Out of Service";
   lastMaintenance: string; // ISO Date string
-  currentSpeed?: number;
-  travelledToday?: number;
-  ignition?: string;
-  lastUpdated?: string;
-  location?: string;
+  /* Position, as relayed by the assigned driver's phone. There is no GPS
+     hardware in this product, so these are null whenever nobody is tracking —
+     which is a state the panel has to be able to say out loud. */
+  latitude?: number | null;
+  longitude?: number | null;
+  lastUpdated?: string | null;
+  locationKnown?: boolean;
   currentTrip?: any;
   trips?: any[];
   driverNames?: string[];
   driverId?: string[];
+  /** Odometer. Advanced when a trip is closed with a reading. */
   totalKm?: number;
+  bodyType?: string;
   available?: boolean;
   /** Which wheel positions this vehicle has. Drives the fitting diagram. */
   axleLayout?: string | null;
@@ -442,21 +446,47 @@ export default function TruckDetails() {
 
         {/* --- 2. TELEMETRY & TRIP CARDS --- */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Telemetry Card */}
+          {/* Position & odometer.
+              This card used to be headed "Live Telemetry" and showed ignition
+              ON, 45 km/h and "NH48, Near Jaipur" — the same three values for
+              every truck in every fleet, because the server hardcoded them.
+              None of it was ever measured.
+
+              What the product genuinely knows is the last GPS fix relayed by
+              the assigned driver's phone, and the odometer. Where there is no
+              fix it says so, because a blank is read as zero and a stale fix
+              read as current is worse than an admitted gap. */}
           <div className="rounded-card border border-hairline bg-surface shadow-[var(--shadow-raised)] p-4 sm:p-6">
-            <h3 className="text-lg font-semibold mb-4">Live Telemetry</h3>
+            <h3 className="text-lg font-semibold mb-4">Position &amp; odometer</h3>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <MetricCard
-                label="Ignition"
-                value={truckDetails.ignition || "OFF"}
-                valueColor={truckDetails.ignition === "ON" ? "text-positive-ink" : "text-critical-ink"}
+                label="Odometer"
+                value={
+                  truckDetails.totalKm != null
+                    ? `${Math.round(truckDetails.totalKm).toLocaleString("en-IN")} km`
+                    : "Not set"
+                }
               />
-              <MetricCard label="Speed" value={`${truckDetails.currentSpeed || 0} km/h`} />
-              <MetricCard label="Travelled Today" value={`${truckDetails.travelledToday || 0} km`} />
+              <MetricCard
+                label="Tracking"
+                value={truckDetails.locationKnown ? "Reporting" : "No signal"}
+                valueColor={
+                  truckDetails.locationKnown ? "text-positive-ink" : "text-ink-tertiary"
+                }
+              />
+              <MetricCard label="Body" value={truckDetails.bodyType || "Not set"} />
             </div>
             <div className="mt-4 pt-4 border-t text-xs sm:text-sm text-ink-tertiary flex flex-col sm:flex-row justify-between gap-2">
-               <span>Updated: {truckDetails.lastUpdated ? new Date(truckDetails.lastUpdated).toLocaleTimeString() : "-"}</span>
-               <span className="truncate">{truckDetails.location || "Location unknown"}</span>
+              <span>
+                {truckDetails.lastUpdated
+                  ? `Last fix: ${new Date(truckDetails.lastUpdated).toLocaleString()}`
+                  : "No location reported yet"}
+              </span>
+              <span className="truncate tabular-nums">
+                {truckDetails.latitude != null && truckDetails.longitude != null
+                  ? `${truckDetails.latitude.toFixed(4)}, ${truckDetails.longitude.toFixed(4)}`
+                  : "Driver tracking is off"}
+              </span>
             </div>
           </div>
 

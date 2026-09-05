@@ -15,7 +15,22 @@ interface ProfileData {
   state: string;
   role?: string;
   totalTrucks?: number;
+
+  /* Driver compliance. Optional on the type because an owner's profile has
+     none of it, and the fields are only rendered for drivers. */
+  license?: string;
+  licenseType?: string;
+  licenseExpiryDate?: string;
+  badgeNumber?: string;
+  badgeExpiryDate?: string;
+  medicalExpiryDate?: string;
 }
+
+const LICENCE_TYPES = ["LMV", "MGV", "HMV", "HGV", "HTV", "Other"];
+
+/* A date input needs "YYYY-MM-DD"; the API returns a full ISO timestamp, and
+   feeding that straight into the input silently blanks it. */
+const toDateInput = (value?: string) => (value ? String(value).slice(0, 10) : "");
 
 interface ProfileFormProps {
   initialData: ProfileData | null;
@@ -38,7 +53,11 @@ export function ProfileForm({ initialData, onSubmit, saving = false }: ProfileFo
     if (initialData) setProfileData(initialData);
   }, [initialData]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const isDriver = profileData.role === "driver";
+
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     const { name, value } = e.target;
     /* `parseInt("")` is NaN, which React renders as an empty controlled input
        that can never be typed into again. */
@@ -136,6 +155,83 @@ export function ProfileForm({ initialData, onSubmit, saving = false }: ProfileFo
           className={inputClasses}
         />
       </FormField>
+
+      {/* Licence and certificates.
+          Only asked of drivers, and only here — this is their own profile, and
+          they are the only person who can actually renew any of it. Recording
+          the dates is what lets the compliance sweep warn before a licence
+          lapses instead of a checkpoint finding it first. */}
+      {isDriver && (
+        <div className="space-y-4 border-t border-hairline pt-6">
+          <div>
+            <p className="font-semibold text-ink">Licence &amp; certificates</p>
+            <p className="text-sm text-ink-secondary">
+              Add the expiry dates and you will be reminded 30, 7 and 1 days before each lapses.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <FormField label="Licence type" htmlFor="licenseType">
+              <select
+                id="licenseType"
+                name="licenseType"
+                value={profileData.licenseType ?? "HMV"}
+                onChange={handleChange}
+                className={inputClasses}
+              >
+                {LICENCE_TYPES.map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </select>
+            </FormField>
+
+            <FormField label="Licence expires" htmlFor="licenseExpiryDate">
+              <input
+                id="licenseExpiryDate"
+                type="date"
+                name="licenseExpiryDate"
+                value={toDateInput(profileData.licenseExpiryDate)}
+                onChange={handleChange}
+                className={inputClasses}
+              />
+            </FormField>
+
+            <FormField label="Badge number" htmlFor="badgeNumber" hint="If your state requires one">
+              <input
+                id="badgeNumber"
+                name="badgeNumber"
+                value={profileData.badgeNumber ?? ""}
+                onChange={handleChange}
+                className={inputClasses}
+              />
+            </FormField>
+
+            <FormField label="Badge expires" htmlFor="badgeExpiryDate">
+              <input
+                id="badgeExpiryDate"
+                type="date"
+                name="badgeExpiryDate"
+                value={toDateInput(profileData.badgeExpiryDate)}
+                onChange={handleChange}
+                className={inputClasses}
+              />
+            </FormField>
+
+            <FormField label="Medical certificate expires" htmlFor="medicalExpiryDate">
+              <input
+                id="medicalExpiryDate"
+                type="date"
+                name="medicalExpiryDate"
+                value={toDateInput(profileData.medicalExpiryDate)}
+                onChange={handleChange}
+                className={inputClasses}
+              />
+            </FormField>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <FormField label="City" htmlFor="city">
